@@ -79,14 +79,8 @@ const COMPAT_RULES = {
             reason: 'React + Vercel แนะนำใช้กับ Supabase (Google Sheets ไม่รองรับ)'
         }
     },
-    // platform -> allowed page types
-    pageType: {
-        'google-apps-script': {
-            allowed: ['single-page'],
-            blocked: ['spa'],
-            reason: 'Google Apps Script รองรับเฉพาะ Single Page'
-        }
-    }
+    // platform -> allowed page types (no restrictions - GAS can do SPA with Alpine.js)
+    pageType: {}
 };
 
 function applyValidationRules() {
