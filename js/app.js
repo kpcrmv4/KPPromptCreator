@@ -454,6 +454,26 @@ async function generatePrompt() {
         'spa': 'SPA - Single Page Application (หลายหน้า มี routing)'
     };
 
+    // Build context-aware notes based on combo selections
+    const comboNotes = [];
+    if (platform === 'google-apps-script' && pageType === 'spa') {
+        comboNotes.push(`- **สำคัญ**: เนื่องจากใช้ GAS เป็น SPA ให้ใช้ Alpine.js สำหรับจัดการ client-side routing และ state management ภายใน HTML template ของ GAS
+- โครงสร้าง: ใช้ไฟล์ HTML เดียวใน GAS แล้วใช้ Alpine.js x-show/x-if สลับหน้า
+- ใช้ hash-based routing (window.location.hash) สำหรับการนำทางระหว่างหน้า
+- โหลด Alpine.js ผ่าน CDN ใน <script> tag`);
+    }
+    if (platform === 'google-apps-script' && pwa === 'yes') {
+        comboNotes.push(`- **หมายเหตุ PWA บน GAS**: ต้อง deploy GAS เป็น Web App แล้วใช้ Service Worker แยก, manifest.json จะต้อง serve จาก GAS endpoint`);
+    }
+    if (platform === 'react-vercel' && pageType === 'spa') {
+        comboNotes.push(`- ใช้ React Router สำหรับ client-side routing
+- ตั้งค่า vercel.json rewrites ให้ redirect ทุก path ไปที่ index.html`);
+    }
+
+    const comboNotesText = comboNotes.length > 0
+        ? `\n## หมายเหตุเฉพาะสำหรับ Tech Stack ที่เลือก\n${comboNotes.join('\n')}\n`
+        : '';
+
     // Build prompt for Gemini
     const skillsText = selectedSkills.length > 0
         ? selectedSkills.map(s => `- ${s.title} (${s.name}): ${s.description}`).join('\n')
@@ -471,10 +491,10 @@ async function generatePrompt() {
 - **แพลตฟอร์ม**: ${platformNames[platform]}
 - **ฐานข้อมูล**: ${dbNames[database]}
 - **CSS Framework**: ${cssNames[cssFramework]}
-- **รูปแบบหน้าเว็บ**: ${pageNames[pageType]}
+- **รูปแบบหน้าเว็บ**: ${pageNames[pageType]}${platform === 'google-apps-script' && pageType === 'spa' ? ' (ใช้ Alpine.js สำหรับ routing/state)' : ''}
 - **PWA**: ${pwa === 'yes' ? 'ต้องการ PWA (Progressive Web App)' : 'ไม่ต้องการ PWA'}
 - **การแสดงผล**: ${responsive === 'responsive' ? 'Responsive (รองรับทุกขนาดหน้าจอ)' : 'Desktop Only'}
-
+${comboNotesText}
 ## Skills ที่เกี่ยวข้อง
 ${skillsText}
 
