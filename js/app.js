@@ -37,6 +37,18 @@ function initApp() {
         });
     });
 
+    // Tech stack validation
+    document.querySelectorAll('input[name="platform"]').forEach(radio => {
+        radio.addEventListener('change', applyValidationRules);
+    });
+    document.querySelectorAll('input[name="database"]').forEach(radio => {
+        radio.addEventListener('change', applyValidationRules);
+    });
+    document.querySelectorAll('input[name="pageType"]').forEach(radio => {
+        radio.addEventListener('change', applyValidationRules);
+    });
+    applyValidationRules();
+
     // Fetch skills button
     document.getElementById('fetchSkillsBtn').addEventListener('click', fetchSkills);
 
@@ -48,6 +60,102 @@ function initApp() {
 
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', downloadResult);
+}
+
+// ===== Tech Stack Validation =====
+
+// Compatibility rules: [platform][option] => allowed databases/options
+const COMPAT_RULES = {
+    // platform -> allowed databases
+    database: {
+        'google-apps-script': {
+            allowed: ['google-sheets'],
+            blocked: ['supabase'],
+            reason: 'Google Apps Script ใช้ได้กับ Google Sheets เท่านั้น'
+        },
+        'react-vercel': {
+            allowed: ['supabase'],
+            blocked: ['google-sheets'],
+            reason: 'React + Vercel แนะนำใช้กับ Supabase (Google Sheets ไม่รองรับ)'
+        }
+    },
+    // platform -> allowed page types
+    pageType: {
+        'google-apps-script': {
+            allowed: ['single-page'],
+            blocked: ['spa'],
+            reason: 'Google Apps Script รองรับเฉพาะ Single Page'
+        }
+    }
+};
+
+function applyValidationRules() {
+    const platform = getRadioValue('platform');
+
+    // Validate database
+    applyRule('database', platform);
+
+    // Validate page type
+    applyRule('pageType', platform);
+}
+
+function applyRule(fieldName, platform) {
+    const rule = COMPAT_RULES[fieldName]?.[platform];
+    if (!rule) {
+        // No rule = enable all options
+        document.querySelectorAll(`input[name="${fieldName}"]`).forEach(radio => {
+            const card = radio.closest('.option-card');
+            card.classList.remove('disabled');
+            radio.disabled = false;
+        });
+        removeWarning(fieldName);
+        return;
+    }
+
+    let needSwitch = false;
+    const currentValue = getRadioValue(fieldName);
+
+    document.querySelectorAll(`input[name="${fieldName}"]`).forEach(radio => {
+        const card = radio.closest('.option-card');
+        if (rule.blocked.includes(radio.value)) {
+            card.classList.add('disabled');
+            radio.disabled = true;
+            if (radio.checked) {
+                radio.checked = false;
+                needSwitch = true;
+            }
+        } else {
+            card.classList.remove('disabled');
+            radio.disabled = false;
+        }
+    });
+
+    // Auto-select allowed option if current was blocked
+    if (needSwitch && rule.allowed.length > 0) {
+        const allowedRadio = document.querySelector(`input[name="${fieldName}"][value="${rule.allowed[0]}"]`);
+        if (allowedRadio) {
+            allowedRadio.checked = true;
+        }
+    }
+
+    // Show/update warning
+    showWarning(fieldName, rule.reason);
+}
+
+function showWarning(fieldName, message) {
+    const group = document.querySelector(`input[name="${fieldName}"]`).closest('.form-group');
+    removeWarning(fieldName);
+
+    const warning = document.createElement('div');
+    warning.className = 'validation-warning';
+    warning.dataset.field = fieldName;
+    warning.innerHTML = `<i class="bi bi-info-circle"></i> ${message}`;
+    group.appendChild(warning);
+}
+
+function removeWarning(fieldName) {
+    const existing = document.querySelector(`.validation-warning[data-field="${fieldName}"]`);
+    if (existing) existing.remove();
 }
 
 // ===== Skills Fetching =====
