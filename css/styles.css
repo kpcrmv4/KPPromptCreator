@@ -502,6 +502,23 @@ textarea {
     color: var(--danger);
 }
 
+.footer-github {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+}
+
+.footer-github:hover {
+    color: var(--primary);
+}
+
+.footer-github i {
+    color: inherit;
+}
+
 /* ===== Toast ===== */
 .toast {
     position: fixed;
