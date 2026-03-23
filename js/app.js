@@ -73,9 +73,9 @@ function initApp() {
 const COMPAT_RULES = {
     database: {
         'google-apps-script': {
-            allowed: ['google-sheets'],
-            blocked: ['supabase', 'firebase-firestore', 'mongodb-atlas', 'turso'],
-            reason: 'Google Apps Script ใช้ได้กับ Google Sheets เท่านั้น'
+            allowed: ['google-sheets', 'supabase', 'firebase-firestore'],
+            blocked: ['mongodb-atlas', 'turso'],
+            reason: 'GAS ใช้ Google Sheets, Supabase, Firebase ได้ผ่าน UrlFetchApp (MongoDB/Turso ต้องการ driver ที่ GAS ไม่รองรับ)'
         },
         'static-html': {
             allowed: ['firebase-firestore', 'supabase'],
