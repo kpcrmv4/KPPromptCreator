@@ -30,10 +30,13 @@
     </div>
   </nav>
 
-  <div class="mp-container">
-    <div class="mp-page-header">
-      <h1><i class="bi bi-shield-lock"></i> Admin Panel</h1>
-      <p>จัดการ Prompt, Users และ Payouts</p>
+  <div class="mp-container" id="admin-panel">
+    <!-- Header -->
+    <div class="admin-page-header">
+      <div class="admin-header-content">
+        <h1><i class="bi bi-shield-lock"></i> Admin Panel</h1>
+        <p>จัดการระบบ Marketplace ทั้งหมด</p>
+      </div>
     </div>
 
     <!-- Overview Stats -->
@@ -41,48 +44,84 @@
       <div class="loading-state"><div class="spinner"></div></div>
     </div>
 
-    <!-- Admin Notifications -->
-    <div style="margin-bottom: 2rem;">
-      <h2><i class="bi bi-bell"></i> การแจ้งเตือน <span id="admin-notif-badge" class="badge badge-danger" style="display:none;"></span></h2>
-      <div id="admin-notifications">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- Admin Tabs -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="admin-tab-prompts">
+        <i class="bi bi-collection"></i>
+        <span>จัดการ Prompt</span>
+      </button>
+      <button class="admin-tab" data-tab="admin-tab-payouts">
+        <i class="bi bi-cash-coin"></i>
+        <span>คำขอถอนเงิน</span>
+      </button>
+      <button class="admin-tab" data-tab="admin-tab-users">
+        <i class="bi bi-people"></i>
+        <span>สมาชิก</span>
+      </button>
+      <button class="admin-tab" data-tab="admin-tab-notifications">
+        <i class="bi bi-bell"></i>
+        <span>แจ้งเตือน</span>
+        <span id="admin-notif-badge" class="badge badge-danger" style="display:none;"></span>
+      </button>
+      <button class="admin-tab" data-tab="admin-tab-settings">
+        <i class="bi bi-gear"></i>
+        <span>ตั้งค่า</span>
+      </button>
+    </div>
+
+    <!-- Tab: จัดการ Prompt -->
+    <div class="admin-tab-content active" id="admin-tab-prompts">
+      <div class="admin-section-card">
+        <div class="admin-prompt-status-tabs">
+          <button class="admin-status-tab active" onclick="loadAdminPromptsByStatus('pending');document.querySelectorAll('.admin-status-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
+            <i class="bi bi-hourglass-split"></i> รออนุมัติ
+          </button>
+          <button class="admin-status-tab" onclick="loadAdminPromptsByStatus('approved');document.querySelectorAll('.admin-status-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
+            <i class="bi bi-check-circle"></i> อนุมัติแล้ว
+          </button>
+          <button class="admin-status-tab" onclick="loadAdminPromptsByStatus('rejected');document.querySelectorAll('.admin-status-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">
+            <i class="bi bi-x-circle"></i> ปฏิเสธ
+          </button>
+        </div>
+        <div id="admin-prompts">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- Prompts Management -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-collection"></i> จัดการ Prompt</h2>
-      <div class="auth-tabs" style="margin-bottom:1rem;">
-        <button class="auth-tab active" onclick="loadAdminPromptsByStatus('pending');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">รออนุมัติ</button>
-        <button class="auth-tab" onclick="loadAdminPromptsByStatus('approved');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">อนุมัติแล้ว</button>
-        <button class="auth-tab" onclick="loadAdminPromptsByStatus('rejected');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">ปฏิเสธ</button>
-      </div>
-      <div id="admin-prompts">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- Tab: คำขอถอนเงิน -->
+    <div class="admin-tab-content" id="admin-tab-payouts">
+      <div class="admin-section-card">
+        <div id="admin-payouts">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- Pending Payouts -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-cash-coin"></i> คำขอถอนเงินรอดำเนินการ</h2>
-      <div id="admin-payouts">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- Tab: จัดการสมาชิก -->
+    <div class="admin-tab-content" id="admin-tab-users">
+      <div class="admin-section-card">
+        <div id="admin-users" class="mp-form">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- User Management -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-people"></i> จัดการสมาชิก</h2>
-      <div id="admin-users" class="mp-form">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- Tab: แจ้งเตือน -->
+    <div class="admin-tab-content" id="admin-tab-notifications">
+      <div class="admin-section-card">
+        <div id="admin-notifications">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- Settings -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-gear"></i> ตั้งค่าระบบ</h2>
-      <div id="admin-settings" class="mp-form">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- Tab: ตั้งค่าระบบ -->
+    <div class="admin-tab-content" id="admin-tab-settings">
+      <div class="admin-section-card">
+        <div id="admin-settings" class="mp-form">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>
     </div>
   </div>
