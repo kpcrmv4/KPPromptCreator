@@ -31,6 +31,9 @@ function initDashboardTabs() {
 // Seller Dashboard
 // =============================================
 async function loadSellerDashboard() {
+  // Check if we need to pre-fill from saved prompt (sell flow)
+  prefillFromSavedPrompt();
+
   const container = document.getElementById('seller-dashboard');
   if (!container) return;
 
@@ -801,4 +804,36 @@ async function openUserDetail(userId) {
   } catch {
     document.getElementById('user-detail-body').innerHTML = '<p class="text-sm text-slate-400">โหลดไม่สำเร็จ</p>';
   }
+}
+
+// =============================================
+// Pre-fill Dashboard Create Form from Saved Prompt
+// =============================================
+async function prefillFromSavedPrompt() {
+  const savedId = localStorage.getItem('kp_sell_prompt_id');
+  if (!savedId) return;
+  localStorage.removeItem('kp_sell_prompt_id');
+
+  try {
+    const { saved_prompts } = await api('/saved-prompts');
+    const sp = saved_prompts.find(x => x.id === savedId);
+    if (!sp) return;
+
+    // Switch to create tab
+    setTimeout(() => {
+      const createTab = document.querySelector('.dash-tab[data-tab="tab-create"]');
+      if (createTab) createTab.click();
+
+      // Pre-fill form fields
+      const titleInput = document.querySelector('#tab-create input[name="title"]');
+      const descInput = document.querySelector('#tab-create textarea[name="description"]');
+      const techInput = document.querySelector('#tab-create input[name="tech_stack"]');
+
+      if (titleInput) titleInput.value = sp.title || '';
+      if (descInput) descInput.value = sp.project_name ? `Prompt สำหรับ ${sp.project_name}` : '';
+      if (techInput && sp.tech_stack?.length) techInput.value = sp.tech_stack.join(', ');
+
+      showToast('กรุณาอัปโหลดไฟล์ Prompt (.md) และกรอกรายละเอียดเพิ่มเติม', 'info');
+    }, 300);
+  } catch {}
 }

@@ -255,6 +255,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else if (page.includes('account')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadAccountForm();
+    loadMyPrompts();
+    loadPurchasedPrompts();
+    loadCollections();
   } else if (page.includes('dashboard')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     initDashboardTabs();

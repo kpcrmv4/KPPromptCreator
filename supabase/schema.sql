@@ -117,6 +117,55 @@ INSERT INTO settings (key, value) VALUES
   ('site_name', 'KP Prompt Creator');
 
 -- =============================================
+-- Collections & Saved Prompts (Personal Library)
+-- =============================================
+
+-- คอลเล็คชั่นส่วนตัวของ user
+CREATE TABLE collections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  color TEXT DEFAULT '#6366f1',
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, name)
+);
+
+-- Prompt ที่บันทึกจาก KP Prompt Creator (ยังไม่ลงขาย)
+CREATE TABLE saved_prompts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  collection_id UUID REFERENCES collections(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  target_ai TEXT DEFAULT '',
+  project_name TEXT DEFAULT '',
+  tech_stack JSONB DEFAULT '[]',
+  kp_signature TEXT,
+  content_hash TEXT,
+  file_name TEXT DEFAULT 'CLAUDE.md',
+  source TEXT DEFAULT 'creator',  -- creator / import
+  marketplace_prompt_id UUID REFERENCES prompts(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_collections_user ON collections(user_id);
+CREATE INDEX idx_saved_prompts_user ON saved_prompts(user_id);
+CREATE INDEX idx_saved_prompts_collection ON saved_prompts(collection_id);
+CREATE INDEX idx_saved_prompts_hash ON saved_prompts(content_hash);
+
+ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_prompts ENABLE ROW LEVEL SECURITY;
+
+-- RLS: user เห็นเฉพาะคอลเล็คชั่นตัวเอง
+CREATE POLICY "collections_owner" ON collections FOR ALL USING (user_id = auth.uid());
+-- RLS: user เห็นเฉพาะ saved prompt ตัวเอง
+CREATE POLICY "saved_prompts_owner" ON saved_prompts FOR ALL USING (user_id = auth.uid());
+
+-- =============================================
 -- Indexes
 -- =============================================
 CREATE INDEX idx_prompts_seller ON prompts(seller_id);

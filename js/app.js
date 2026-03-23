@@ -2022,3 +2022,136 @@ function simpleHash(str) {
     const timePart = Date.now().toString(36);
     return `${hex}-${timePart}`;
 }
+
+// =============================================
+// Save Prompt to Personal Library
+// =============================================
+const SAVE_API = window.location.origin + '/api';
+
+function getSavedToken() {
+  return localStorage.getItem('kp_token');
+}
+
+async function saveApi(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getSavedToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${SAVE_API}${path}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function openSavePromptModal() {
+  const content = document.getElementById('resultText')?.value;
+  if (!content) { showToast('ยังไม่มี Prompt ให้บันทึก'); return; }
+
+  const overlay = document.getElementById('savePromptOverlay');
+  overlay.style.display = 'flex';
+
+  const token = getSavedToken();
+  const authSection = document.getElementById('save-auth-section');
+  const formSection = document.getElementById('save-form-section');
+
+  if (!token) {
+    authSection.style.display = 'block';
+    formSection.style.display = 'none';
+  } else {
+    authSection.style.display = 'none';
+    formSection.style.display = 'block';
+    // Pre-fill title from project name
+    const projectName = document.getElementById('projectName')?.value || '';
+    const targetAI = getRadioValue('targetAI') || 'claude';
+    document.getElementById('save-prompt-title').value = projectName ? `${projectName} (${targetAI})` : `Prompt ${targetAI}`;
+    loadCollectionsForSave();
+  }
+}
+
+function closeSaveModal() {
+  document.getElementById('savePromptOverlay').style.display = 'none';
+  document.getElementById('new-collection-section').style.display = 'none';
+}
+
+async function loadCollectionsForSave() {
+  const select = document.getElementById('save-collection-select');
+  try {
+    const { collections } = await saveApi('/collections');
+    select.innerHTML = '<option value="">— ไม่ระบุ —</option>' +
+      collections.map(c => `<option value="${c.id}">${c.name} (${c.prompt_count})</option>`).join('');
+  } catch {
+    select.innerHTML = '<option value="">— ไม่ระบุ —</option>';
+  }
+}
+
+function toggleNewCollection() {
+  const section = document.getElementById('new-collection-section');
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+  if (section.style.display === 'block') {
+    document.getElementById('new-collection-name').focus();
+  }
+}
+
+async function createNewCollection() {
+  const nameInput = document.getElementById('new-collection-name');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('กรุณาตั้งชื่อคอลเล็คชั่น'); return; }
+
+  try {
+    const { collection } = await saveApi('/collections', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+    showToast(`สร้างคอลเล็คชั่น "${name}" สำเร็จ!`);
+    nameInput.value = '';
+    document.getElementById('new-collection-section').style.display = 'none';
+    await loadCollectionsForSave();
+    // Auto-select the new collection
+    document.getElementById('save-collection-select').value = collection.id;
+  } catch (err) {
+    showToast(err.error || 'สร้างไม่สำเร็จ');
+  }
+}
+
+async function handleSavePrompt(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = document.getElementById('save-prompt-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:4px;"></div> กำลังบันทึก...';
+
+  const content = document.getElementById('resultText')?.value || '';
+  const resultSection = document.getElementById('result-section');
+  const fileName = resultSection?.dataset.fileName || 'CLAUDE.md';
+  const projectName = document.getElementById('projectName')?.value || '';
+  const targetAI = getRadioValue('targetAI') || '';
+
+  // Collect tech stack
+  const techStack = [];
+  ['platform', 'database', 'cssFramework', 'language', 'authentication', 'apiStyle', 'hosting'].forEach(name => {
+    const val = getRadioValue(name);
+    if (val && val !== 'none') techStack.push(val);
+  });
+
+  try {
+    await saveApi('/saved-prompts', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: form.title.value,
+        content,
+        target_ai: targetAI,
+        project_name: projectName,
+        tech_stack: techStack,
+        file_name: fileName,
+        collection_id: form.collection_id.value || null,
+        source: 'creator'
+      })
+    });
+    showToast('บันทึก Prompt สำเร็จ!');
+    closeSaveModal();
+  } catch (err) {
+    showToast(err.error || 'บันทึกไม่สำเร็จ');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-bookmark-check"></i> บันทึก';
+  }
+}
