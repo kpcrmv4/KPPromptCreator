@@ -15,13 +15,15 @@ body {
 .mp-navbar {
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
-  padding: 0.75rem 1.5rem;
+  padding: 0 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 100;
+  height: 56px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .mp-navbar .nav-brand {
   display: flex;
@@ -31,21 +33,113 @@ body {
   color: #1a1a2e;
   font-weight: 700;
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 .mp-navbar .nav-brand img { height: 32px; }
 .mp-navbar .nav-links {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.25rem;
+  height: 100%;
 }
-.mp-navbar .nav-links a {
+
+/* -- Nav Main Links (Marketplace, สร้าง Prompt) -- */
+.mp-navbar .nav-links > a {
   color: #64748b;
   text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  position: relative;
 }
-.mp-navbar .nav-links a:hover { color: #6c5ce7; }
-.mp-navbar .nav-links a.active { color: #6c5ce7; font-weight: 600; }
+.mp-navbar .nav-links > a:hover {
+  color: #6c5ce7;
+  background: #f5f3ff;
+}
+.mp-navbar .nav-links > a.active {
+  color: #6c5ce7;
+  font-weight: 600;
+  background: #f0edff;
+  box-shadow: 0 1px 4px rgba(108, 92, 231, 0.15);
+}
+
+/* -- Nav Divider -- */
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: #e2e8f0;
+  margin: 0 0.35rem;
+  flex-shrink: 0;
+}
+
+/* -- User Menu (wallet, orders, dashboard, admin, account, logout) -- */
+.mp-navbar .user-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.mp-navbar .user-menu a {
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.mp-navbar .user-menu a:hover {
+  color: #6c5ce7;
+  background: #f5f3ff;
+}
+.mp-navbar .user-menu a.active {
+  color: #6c5ce7;
+  font-weight: 600;
+  background: #f0edff;
+  box-shadow: 0 1px 4px rgba(108, 92, 231, 0.15);
+}
+/* Wallet — special highlight */
+.mp-navbar .user-menu a.nav-wallet {
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+.mp-navbar .user-menu a.nav-wallet:hover {
+  background: #dcfce7;
+  color: #166534;
+}
+.mp-navbar .user-menu a.nav-wallet.active {
+  background: #bbf7d0;
+  color: #166534;
+  box-shadow: 0 1px 4px rgba(22, 101, 52, 0.15);
+}
+/* Logout — subtle danger */
+.mp-navbar .user-menu a.nav-logout {
+  color: #94a3b8;
+}
+.mp-navbar .user-menu a.nav-logout:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+/* Auth link */
+.mp-navbar .auth-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  background: #6c5ce7;
+  transition: all 0.2s;
+}
+.mp-navbar .auth-links a:hover {
+  background: #5a4bd1;
+}
 
 /* ---- Container ---- */
 .mp-container {
@@ -713,28 +807,66 @@ body {
 /* ---- Hamburger Menu ---- */
 .nav-toggle {
   display: none;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   cursor: pointer;
   color: #1a1a2e;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.nav-toggle:hover {
+  background: #f1f5f9;
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   /* Navbar */
-  .mp-navbar { padding: 0.5rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
-  .nav-toggle { display: block; }
+  .mp-navbar { padding: 0 1rem; flex-wrap: wrap; gap: 0; height: auto; min-height: 52px; }
+  .nav-toggle { display: flex; }
   .mp-navbar .nav-links {
     display: none;
     width: 100%;
     flex-direction: column;
     gap: 0.25rem;
-    padding-top: 0.5rem;
+    padding: 0.5rem 0 0.75rem;
     border-top: 1px solid #e2e8f0;
   }
   .mp-navbar .nav-links.show { display: flex; }
-  .mp-navbar .nav-links a { padding: 0.5rem 0; font-size: 0.9rem; }
+  .mp-navbar .nav-links > a {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+  .mp-navbar .nav-links > a.active {
+    background: #f0edff;
+  }
+  .nav-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0.35rem 0;
+  }
+  .mp-navbar .user-menu {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.15rem;
+  }
+  .mp-navbar .user-menu a {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    width: 100%;
+  }
+  .mp-navbar .auth-links { width: 100%; }
+  .mp-navbar .auth-links a {
+    display: block;
+    text-align: center;
+    padding: 0.6rem;
+  }
 
   /* Container */
   .mp-container { padding: 0.75rem; }

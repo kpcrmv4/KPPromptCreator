@@ -15,11 +15,17 @@
       <span>KP Prompt Creator</span>
     </a>
     <div class="nav-links">
-      <a href="/marketplace.html">Marketplace</a>
-      <a href="/dashboard.html">Dashboard</a>
-      <a href="/admin.html" class="active">Admin</a>
+      <a href="/marketplace.html"><i class="bi bi-shop"></i> Marketplace</a>
+      <a href="/"><i class="bi bi-magic"></i> สร้าง Prompt</a>
       <span class="user-menu" style="display:none;">
-        <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i></a>
+        <div class="nav-divider"></div>
+        <a href="/topup.html" class="nav-wallet"><i class="bi bi-wallet2"></i> <span class="user-balance">฿0</span></a>
+        <a href="/orders.html"><i class="bi bi-bag-check"></i> คำสั่งซื้อ</a>
+        <a href="/dashboard.html" class="seller-only"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/admin.html" class="active admin-only"><i class="bi bi-shield-lock"></i> Admin</a>
+        <div class="nav-divider"></div>
+        <a href="/account.html"><i class="bi bi-person-circle"></i></a>
+        <a href="#" onclick="logout()" class="nav-logout"><i class="bi bi-box-arrow-right"></i></a>
       </span>
     </div>
   </nav>
