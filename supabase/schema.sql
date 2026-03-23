@@ -160,8 +160,9 @@ ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- Users: อ่านได้ทุกคน (public profile), แก้ไขได้เฉพาะตัวเอง
+-- Users: อ่านได้ทุกคน (public profile), แก้ไขได้เฉพาะตัวเอง, สร้างได้ถ้า id ตรงกับ auth
 CREATE POLICY "users_select" ON users FOR SELECT USING (true);
+CREATE POLICY "users_insert_own" ON users FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "users_update_own" ON users FOR UPDATE USING (auth.uid() = id);
 
 -- Prompts: อ่าน approved ได้ทุกคน, seller จัดการของตัวเอง
