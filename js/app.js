@@ -84,6 +84,10 @@ function initApp() {
     // Wizard mode
     document.getElementById('wizAnalyzeBtn').addEventListener('click', startWizardAnalysis);
     document.getElementById('wizGenerateBtn').addEventListener('click', wizardGenerate);
+
+    // Initialize i18n
+    updateLangToggle();
+    applyTranslations();
 }
 
 // ===== Tech Stack Validation =====
@@ -1490,12 +1494,7 @@ async function startWizardTechRecommendation(apiKey) {
 }
 
 function renderWizardTech(techData) {
-    const labelMap = {
-        platform: 'แพลตฟอร์ม', database: 'ฐานข้อมูล', cssFramework: 'CSS Framework',
-        language: 'ภาษา', pageType: 'รูปแบบหน้าเว็บ', pwa: 'PWA',
-        responsive: 'การแสดงผล', authentication: 'Authentication', apiStyle: 'API Style',
-        packageManager: 'Package Manager', testing: 'Testing', hosting: 'Hosting'
-    };
+    const labelMap = getWizardLabels();
 
     let html = `<div class="wiz-summary-box">${techData.summary}</div>`;
 
@@ -1528,7 +1527,7 @@ function renderWizardFinalSummary() {
 async function wizardGenerate() {
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) {
-        showToast('กรุณาใส่ Gemini API Key');
+        showToast(t('toastNoApiKey'));
         return;
     }
 
@@ -1567,6 +1566,6 @@ async function wizardGenerate() {
     // Make manual sections visible briefly for generatePrompt to work
     await generatePrompt();
 
-    showToast('สร้าง prompt สำเร็จ!');
+    showToast(t('toastGenerated'));
     document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
 }
