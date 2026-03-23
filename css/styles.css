@@ -474,6 +474,32 @@ textarea {
     margin-top: 2px;
 }
 
+.skill-badge-live {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #7c3aed;
+    color: #fff;
+    vertical-align: middle;
+    margin-left: 6px;
+    letter-spacing: 0.3px;
+}
+
+.skill-badge-local {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--border);
+    color: var(--text-secondary);
+    vertical-align: middle;
+    margin-left: 6px;
+    letter-spacing: 0.3px;
+}
+
 /* ===== Loading ===== */
 .loading-state {
     display: flex;

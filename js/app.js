@@ -468,7 +468,145 @@ const SKILLS_CATALOG = [
     }
 ];
 
-function fetchSkills() {
+// Build search keywords from current tech stack selections
+function buildSkillSearchQueries() {
+    const platform = getRadioValue('platform');
+    const database = getRadioValue('database');
+    const cssFramework = getRadioValue('cssFramework');
+    const pageType = getRadioValue('pageType');
+    const pwa = getRadioValue('pwa');
+    const authentication = getRadioValue('authentication');
+    const testing = getRadioValue('testing');
+    const hosting = getRadioValue('hosting');
+
+    const queries = [];
+
+    // Platform-specific
+    const platformQueries = {
+        'google-apps-script': 'google apps script',
+        'react-vercel': 'react',
+        'nextjs-vercel': 'nextjs',
+        'vue-netlify': 'vue',
+        'static-html': 'html css'
+    };
+    if (platformQueries[platform]) queries.push(platformQueries[platform]);
+
+    // Database-specific
+    const dbQueries = {
+        'google-sheets': 'google sheets',
+        'supabase': 'supabase',
+        'firebase-firestore': 'firebase',
+        'mongodb-atlas': 'mongodb',
+        'turso': 'sqlite'
+    };
+    if (dbQueries[database]) queries.push(dbQueries[database]);
+
+    // CSS-specific
+    const cssQueries = {
+        'bootstrap': 'bootstrap',
+        'tailwind': 'tailwind',
+        'daisyui': 'tailwind daisyui',
+        'shadcn-ui': 'shadcn',
+        'material-ui': 'material ui'
+    };
+    if (cssQueries[cssFramework]) queries.push(cssQueries[cssFramework]);
+
+    // Other features
+    if (pageType === 'spa') queries.push('spa routing');
+    if (pwa === 'yes') queries.push('pwa');
+    if (authentication && authentication !== 'none') queries.push(authentication.replace('-', ' '));
+    if (testing && testing !== 'none') queries.push(testing);
+    if (hosting) {
+        const hostQueries = { 'vercel': 'vercel', 'netlify': 'netlify', 'cloudflare-pages': 'cloudflare', 'firebase-hosting': 'firebase hosting' };
+        if (hostQueries[hosting]) queries.push(hostQueries[hosting]);
+    }
+
+    // Always include general web dev
+    queries.push('frontend design');
+
+    return [...new Set(queries)]; // deduplicate
+}
+
+// Fetch skills from skills.sh API, fallback to hardcoded catalog
+async function fetchSkills() {
+    const loadingEl = document.getElementById('skillsLoading');
+    const listEl = document.getElementById('skillsList');
+
+    loadingEl.style.display = 'flex';
+    listEl.innerHTML = '';
+
+    const queries = buildSkillSearchQueries();
+    let allSkills = [];
+
+    try {
+        // Search skills.sh with multiple queries in parallel
+        const searchPromises = queries.slice(0, 5).map(q =>
+            fetch(`/api/skills/search?q=${encodeURIComponent(q)}&limit=5`)
+                .then(r => r.ok ? r.json() : { skills: [] })
+                .catch(() => ({ skills: [] }))
+        );
+
+        const results = await Promise.all(searchPromises);
+
+        // Merge and deduplicate results
+        const seen = new Set();
+        for (const result of results) {
+            const skills = result.skills || result || [];
+            if (Array.isArray(skills)) {
+                for (const skill of skills) {
+                    const id = skill.id || skill.slug || skill.name;
+                    if (id && !seen.has(id)) {
+                        seen.add(id);
+                        allSkills.push({
+                            name: skill.source || id,
+                            title: skill.name || id,
+                            description: skill.description || '',
+                            installs: skill.installs ? `${skill.installs.toLocaleString()}` : 'N/A',
+                            fromAPI: true
+                        });
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('skills.sh API failed, using fallback catalog:', err.message);
+    }
+
+    // Fallback: if API returned nothing, use hardcoded catalog
+    if (allSkills.length === 0) {
+        allSkills = getLocalSkillsFallback();
+    }
+
+    loadingEl.style.display = 'none';
+
+    if (allSkills.length === 0) {
+        listEl.innerHTML = '<p class="form-hint">' + t('skillsEmpty') + '</p>';
+        return;
+    }
+
+    // Show up to 10 skills
+    const displaySkills = allSkills.slice(0, 10);
+    displaySkills.forEach((skill, index) => {
+        const checked = index < 5 ? 'checked' : ''; // Auto-check top 5
+        const badge = skill.fromAPI
+            ? '<span class="skill-badge-live">skills.sh</span>'
+            : '<span class="skill-badge-local">built-in</span>';
+        const html = `
+            <label class="skill-item">
+                <input type="checkbox" name="skills" value="${skill.name}" ${checked}>
+                <div class="skill-info">
+                    <span class="skill-name">${skill.title} ${badge}</span>
+                    <span class="skill-desc">${skill.description}</span>
+                    <span class="skill-meta"><code>${skill.name}</code> &middot; ${skill.installs} installs</span>
+                </div>
+            </label>
+        `;
+        listEl.innerHTML += html;
+    });
+}
+
+// Fallback: score hardcoded skills by relevance (original logic)
+function getLocalSkillsFallback() {
     const projectDesc = document.getElementById('projectDesc').value.toLowerCase();
     const platform = getRadioValue('platform');
     const database = getRadioValue('database');
@@ -477,16 +615,7 @@ function fetchSkills() {
     const pwa = getRadioValue('pwa');
     const responsive = getRadioValue('responsive');
 
-    const loadingEl = document.getElementById('skillsLoading');
-    const listEl = document.getElementById('skillsList');
-
-    loadingEl.style.display = 'flex';
-    listEl.innerHTML = '';
-
-    // Build relevance tags based on selections
-    const relevantTags = new Set();
-    relevantTags.add('web');
-    relevantTags.add('frontend');
+    const relevantTags = new Set(['web', 'frontend', 'ui', 'css', 'design']);
 
     const platformTags = {
         'google-apps-script': ['gas', 'google', 'sheets'],
@@ -513,32 +642,15 @@ function fetchSkills() {
     };
     (cssTags[cssFramework] || []).forEach(t => relevantTags.add(t));
 
-    if (pageType === 'spa') {
-        relevantTags.add('spa');
-        relevantTags.add('routing');
-    }
+    if (pageType === 'spa') { relevantTags.add('spa'); relevantTags.add('routing'); }
+    if (pwa === 'yes') { relevantTags.add('pwa'); relevantTags.add('service-worker'); }
+    if (responsive === 'responsive') { relevantTags.add('responsive'); relevantTags.add('mobile'); }
 
-    if (pwa === 'yes') {
-        relevantTags.add('pwa');
-        relevantTags.add('service-worker');
-    }
-
-    if (responsive === 'responsive') {
-        relevantTags.add('responsive');
-        relevantTags.add('mobile');
-    }
-
-    relevantTags.add('ui');
-    relevantTags.add('css');
-    relevantTags.add('design');
-
-    // Score and sort skills by relevance
     const scoredSkills = SKILLS_CATALOG.map(skill => {
         let score = 0;
         for (const tag of skill.tags) {
             if (relevantTags.has(tag)) score += 2;
         }
-        // Boost if description matches project description keywords
         if (projectDesc) {
             const words = projectDesc.split(/\s+/);
             for (const word of words) {
@@ -551,33 +663,70 @@ function fetchSkills() {
     });
 
     scoredSkills.sort((a, b) => b.score - a.score);
+    return scoredSkills.filter(s => s.score > 0).slice(0, 8);
+}
 
-    // Show top relevant skills
-    const topSkills = scoredSkills.filter(s => s.score > 0).slice(0, 8);
+// ===== Auto-select Skills (for AI Chat & Wizard) =====
 
-    setTimeout(() => {
-        loadingEl.style.display = 'none';
+async function autoSelectSkills() {
+    const queries = buildSkillSearchQueries();
+    let allSkills = [];
 
-        if (topSkills.length === 0) {
-            listEl.innerHTML = '<p class="form-hint">' + t('skillsEmpty') + '</p>';
-            return;
+    // Try skills.sh API first
+    try {
+        const searchPromises = queries.slice(0, 4).map(q =>
+            fetch(`/api/skills/search?q=${encodeURIComponent(q)}&limit=3`)
+                .then(r => r.ok ? r.json() : { skills: [] })
+                .catch(() => ({ skills: [] }))
+        );
+
+        const results = await Promise.all(searchPromises);
+        const seen = new Set();
+        for (const result of results) {
+            const skills = result.skills || result || [];
+            if (Array.isArray(skills)) {
+                for (const skill of skills) {
+                    const id = skill.id || skill.slug || skill.name;
+                    if (id && !seen.has(id)) {
+                        seen.add(id);
+                        allSkills.push({
+                            name: skill.source || id,
+                            title: skill.name || id,
+                            description: skill.description || '',
+                            installs: skill.installs ? `${skill.installs.toLocaleString()}` : 'N/A'
+                        });
+                    }
+                }
+            }
         }
+    } catch (err) {
+        console.warn('autoSelectSkills: API failed, using fallback');
+    }
 
-        topSkills.forEach((skill, index) => {
-            const checked = skill.score >= 3 ? 'checked' : '';
-            const html = `
-                <label class="skill-item">
-                    <input type="checkbox" name="skills" value="${skill.name}" ${checked}>
-                    <div class="skill-info">
-                        <span class="skill-name">${skill.title}</span>
-                        <span class="skill-desc">${skill.description}</span>
-                        <span class="skill-meta"><code>${skill.name}</code> &middot; ${skill.installs} installs</span>
-                    </div>
-                </label>
-            `;
-            listEl.innerHTML += html;
-        });
-    }, 800);
+    // Fallback to hardcoded catalog
+    if (allSkills.length === 0) {
+        allSkills = getLocalSkillsFallback();
+    }
+
+    const topSkills = allSkills.slice(0, 8);
+
+    // Inject checked checkboxes so generatePrompt() can read them
+    const listEl = document.getElementById('skillsList');
+    listEl.innerHTML = '';
+    topSkills.forEach(skill => {
+        listEl.innerHTML += `
+            <label class="skill-item">
+                <input type="checkbox" name="skills" value="${skill.name}" checked>
+                <div class="skill-info">
+                    <span class="skill-name">${skill.title}</span>
+                    <span class="skill-desc">${skill.description}</span>
+                    <span class="skill-meta"><code>${skill.name}</code></span>
+                </div>
+            </label>
+        `;
+    });
+
+    return topSkills;
 }
 
 // ===== Magic Wizard =====
@@ -1420,6 +1569,12 @@ async function generateFromChatData(apiKey) {
     document.getElementById('projectName').value = analysis.projectName || chatProjectData.description;
     document.getElementById('projectDesc').value = `${chatProjectData.description}\n\nฟีเจอร์: ${chatProjectData.features}\nผู้ใช้: ${chatProjectData.users}\nข้อจำกัด: ${chatProjectData.constraints}`;
 
+    // Auto-select relevant skills based on tech stack
+    const autoSkills = await autoSelectSkills();
+    if (autoSkills.length > 0) {
+        addChatBubble('system', `🔧 เลือก Skills อัตโนมัติ ${autoSkills.length} รายการ: ${autoSkills.map(s => s.title).join(', ')}`);
+    }
+
     // Trigger generate
     await generatePrompt();
 
@@ -1680,6 +1835,9 @@ async function wizardGenerate() {
     }
 
     document.getElementById('projectDesc').value = richDesc;
+
+    // Auto-select relevant skills based on tech stack
+    await autoSelectSkills();
 
     // Make manual sections visible briefly for generatePrompt to work
     await generatePrompt();
