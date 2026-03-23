@@ -580,6 +580,88 @@ function fetchSkills() {
     }, 800);
 }
 
+// ===== Auto-select Skills (for AI Chat & Wizard) =====
+
+function autoSelectSkills() {
+    const projectDesc = document.getElementById('projectDesc').value.toLowerCase();
+    const platform = getRadioValue('platform');
+    const database = getRadioValue('database');
+    const cssFramework = getRadioValue('cssFramework');
+    const pageType = getRadioValue('pageType');
+    const pwa = getRadioValue('pwa');
+    const responsive = getRadioValue('responsive');
+
+    // Build relevance tags based on current form selections
+    const relevantTags = new Set(['web', 'frontend', 'ui', 'css', 'design']);
+
+    const platformTags = {
+        'google-apps-script': ['gas', 'google', 'sheets'],
+        'react-vercel': ['react', 'vercel', 'deploy'],
+        'nextjs-vercel': ['react', 'vercel', 'deploy', 'ssr'],
+        'vue-netlify': ['vue', 'netlify', 'deploy'],
+        'static-html': ['html', 'vanilla']
+    };
+    (platformTags[platform] || []).forEach(t => relevantTags.add(t));
+
+    const dbTags = {
+        'google-sheets': ['google', 'sheets'],
+        'supabase': ['supabase', 'database', 'auth'],
+        'firebase-firestore': ['firebase', 'database', 'nosql'],
+        'mongodb-atlas': ['mongodb', 'database', 'nosql'],
+        'turso': ['sqlite', 'database', 'edge']
+    };
+    (dbTags[database] || []).forEach(t => relevantTags.add(t));
+
+    const cssTags = {
+        'bootstrap': ['bootstrap'], 'tailwind': ['tailwind'],
+        'daisyui': ['tailwind', 'daisyui'], 'shadcn-ui': ['tailwind', 'react'],
+        'material-ui': ['react', 'material']
+    };
+    (cssTags[cssFramework] || []).forEach(t => relevantTags.add(t));
+
+    if (pageType === 'spa') { relevantTags.add('spa'); relevantTags.add('routing'); }
+    if (pwa === 'yes') { relevantTags.add('pwa'); relevantTags.add('service-worker'); }
+    if (responsive === 'responsive') { relevantTags.add('responsive'); relevantTags.add('mobile'); }
+
+    // Score skills
+    const scoredSkills = SKILLS_CATALOG.map(skill => {
+        let score = 0;
+        for (const tag of skill.tags) {
+            if (relevantTags.has(tag)) score += 2;
+        }
+        if (projectDesc) {
+            const words = projectDesc.split(/\s+/);
+            for (const word of words) {
+                if (word.length > 2 && skill.description.toLowerCase().includes(word)) {
+                    score += 1;
+                }
+            }
+        }
+        return { ...skill, score };
+    });
+
+    scoredSkills.sort((a, b) => b.score - a.score);
+    const topSkills = scoredSkills.filter(s => s.score >= 3).slice(0, 8);
+
+    // Ensure skillsList has checkboxes (even if hidden) so generatePrompt() can read them
+    const listEl = document.getElementById('skillsList');
+    listEl.innerHTML = '';
+    topSkills.forEach(skill => {
+        listEl.innerHTML += `
+            <label class="skill-item">
+                <input type="checkbox" name="skills" value="${skill.name}" checked>
+                <div class="skill-info">
+                    <span class="skill-name">${skill.title}</span>
+                    <span class="skill-desc">${skill.description}</span>
+                    <span class="skill-meta"><code>${skill.name}</code> &middot; ${skill.installs} installs</span>
+                </div>
+            </label>
+        `;
+    });
+
+    return topSkills;
+}
+
 // ===== Magic Wizard =====
 
 let wizardSelections = {};
@@ -1420,6 +1502,12 @@ async function generateFromChatData(apiKey) {
     document.getElementById('projectName').value = analysis.projectName || chatProjectData.description;
     document.getElementById('projectDesc').value = `${chatProjectData.description}\n\nฟีเจอร์: ${chatProjectData.features}\nผู้ใช้: ${chatProjectData.users}\nข้อจำกัด: ${chatProjectData.constraints}`;
 
+    // Auto-select relevant skills based on tech stack
+    const autoSkills = autoSelectSkills();
+    if (autoSkills.length > 0) {
+        addChatBubble('system', `🔧 เลือก Skills อัตโนมัติ ${autoSkills.length} รายการ: ${autoSkills.map(s => s.title).join(', ')}`);
+    }
+
     // Trigger generate
     await generatePrompt();
 
@@ -1680,6 +1768,9 @@ async function wizardGenerate() {
     }
 
     document.getElementById('projectDesc').value = richDesc;
+
+    // Auto-select relevant skills based on tech stack
+    autoSelectSkills();
 
     // Make manual sections visible briefly for generatePrompt to work
     await generatePrompt();
