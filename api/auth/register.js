@@ -6,13 +6,13 @@ module.exports = async function handler(req, res) {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, password, display_name, role } = req.body;
+  const { email, password, display_name } = req.body;
   const err = validateRequired(req.body, ['email', 'password', 'display_name']);
   if (err) return res.status(400).json({ error: err });
 
   if (password.length < 6) return res.status(400).json({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' });
 
-  const userRole = ['buyer', 'seller'].includes(role) ? role : 'buyer';
+  const userRole = 'user';
 
   try {
     // 1. Create user in Supabase Auth

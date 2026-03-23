@@ -34,7 +34,6 @@ async function updateSettings(req, res) {
   // Validate settings
   const validations = {
     commission_rate: (v) => { const n = parseFloat(v); return n >= 0 && n <= 100; },
-    min_payout_amount: (v) => { const n = parseFloat(v); return n >= 0 && n <= 100000; },
     truemoney_phone: (v) => !v || /^0[0-9]{8,9}$/.test(v),
     site_name: (v) => v && v.length > 0 && v.length <= 100
   };
@@ -45,7 +44,7 @@ async function updateSettings(req, res) {
     }
   }
 
-  const allowedKeys = ['commission_rate', 'min_payout_amount', 'truemoney_phone', 'site_name'];
+  const allowedKeys = ['commission_rate', 'truemoney_phone', 'site_name'];
   const updates = Object.entries(settings)
     .filter(([key]) => allowedKeys.includes(key))
     .map(([key, value]) => ({

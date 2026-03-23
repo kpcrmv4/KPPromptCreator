@@ -8,7 +8,7 @@ CREATE TABLE users (
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   display_name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'buyer' CHECK (role IN ('buyer', 'seller', 'admin')),
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   phone TEXT,
   truemoney_phone TEXT,
   avatar_url TEXT,
@@ -82,7 +82,7 @@ CREATE TABLE reviews (
 CREATE TABLE transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id),
-  type TEXT NOT NULL CHECK (type IN ('topup', 'purchase', 'sale', 'payout', 'refund')),
+  type TEXT NOT NULL CHECK (type IN ('topup', 'purchase', 'sale', 'commission', 'refund')),
   amount DECIMAL(10,2) NOT NULL,
   balance_after DECIMAL(10,2) NOT NULL,
   ref_id TEXT,  -- voucher_hash หรือ order_id
@@ -90,25 +90,11 @@ CREATE TABLE transactions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Payouts (ถอนเงินของ seller)
-CREATE TABLE payouts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  seller_id UUID NOT NULL REFERENCES users(id),
-  amount DECIMAL(10,2) NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'paid', 'rejected')),
-  payment_method TEXT DEFAULT 'truemoney',
-  payment_account TEXT,
-  admin_note TEXT,
-  proof_image_url TEXT,  -- รูปหลักฐานการโอนจาก Admin
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  processed_at TIMESTAMPTZ
-);
-
--- 8. Notifications (แจ้งเตือน)
+-- 7. Notifications (แจ้งเตือน)
 CREATE TABLE notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES users(id),  -- คนที่จะเห็น notification
-  type TEXT NOT NULL CHECK (type IN ('payout_request', 'payout_approved', 'payout_rejected', 'prompt_approved', 'prompt_rejected', 'new_sale', 'system')),
+  type TEXT NOT NULL CHECK (type IN ('prompt_approved', 'prompt_rejected', 'new_sale', 'system')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   ref_id TEXT,         -- อ้างอิง payout_id, prompt_id, order_id
@@ -127,7 +113,6 @@ CREATE TABLE settings (
 -- Default settings
 INSERT INTO settings (key, value) VALUES
   ('commission_rate', '10'),          -- ค่าคอมมิชชั่น 10%
-  ('min_payout_amount', '100'),       -- ถอนขั้นต่ำ 100 บาท
   ('truemoney_phone', ''),            -- เบอร์รับอั่งเปา
   ('site_name', 'KP Prompt Creator');
 
@@ -145,7 +130,6 @@ CREATE INDEX idx_orders_prompt ON orders(prompt_id);
 CREATE INDEX idx_transactions_user ON transactions(user_id);
 CREATE INDEX idx_transactions_ref ON transactions(ref_id);
 CREATE INDEX idx_reviews_prompt ON reviews(prompt_id);
-CREATE INDEX idx_payouts_seller ON payouts(seller_id);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
 CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read) WHERE is_read = false;
 
@@ -158,7 +142,6 @@ ALTER TABLE prompt_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
@@ -188,9 +171,6 @@ CREATE POLICY "reviews_insert" ON reviews FOR INSERT WITH CHECK (buyer_id = auth
 
 -- Transactions: เห็นเฉพาะของตัวเอง
 CREATE POLICY "transactions_select_own" ON transactions FOR SELECT USING (user_id = auth.uid());
-
--- Payouts: เห็นเฉพาะของตัวเอง
-CREATE POLICY "payouts_select_own" ON payouts FOR SELECT USING (seller_id = auth.uid());
 
 -- Notifications: เห็นเฉพาะของตัวเอง
 CREATE POLICY "notifications_select_own" ON notifications FOR SELECT USING (user_id = auth.uid());
@@ -294,62 +274,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =============================================
--- Function: Atomic Payout Request (ป้องกัน double submit)
--- =============================================
-CREATE OR REPLACE FUNCTION request_payout(
-  p_seller_id UUID,
-  p_amount DECIMAL,
-  p_payment_account TEXT,
-  p_min_amount DECIMAL
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_seller RECORD;
-  v_new_balance DECIMAL;
-  v_payout_id UUID;
-BEGIN
-  -- Lock seller row
-  SELECT * INTO v_seller FROM users WHERE id = p_seller_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'user_not_found'; END IF;
-
-  -- Check min amount
-  IF p_amount < p_min_amount THEN
-    RAISE EXCEPTION 'below_minimum';
-  END IF;
-
-  -- Check balance
-  IF v_seller.credit_balance < p_amount THEN
-    RAISE EXCEPTION 'insufficient_balance';
-  END IF;
-
-  -- Check pending payout
-  IF EXISTS (SELECT 1 FROM payouts WHERE seller_id = p_seller_id AND status = 'pending') THEN
-    RAISE EXCEPTION 'pending_exists';
-  END IF;
-
-  -- Deduct balance
-  v_new_balance := v_seller.credit_balance - p_amount;
-  UPDATE users SET credit_balance = v_new_balance WHERE id = p_seller_id;
-
-  -- Create payout
-  INSERT INTO payouts (seller_id, amount, payment_method, payment_account, status)
-  VALUES (p_seller_id, p_amount, 'truemoney', p_payment_account, 'pending')
-  RETURNING id INTO v_payout_id;
-
-  -- Transaction
-  INSERT INTO transactions (user_id, type, amount, balance_after, ref_id, description)
-  VALUES (p_seller_id, 'payout', -p_amount, v_new_balance, v_payout_id::text,
-          'ถอนเงิน ฿' || p_amount || ' ไปที่ ' || p_payment_account);
-
-  RETURN jsonb_build_object(
-    'payout_id', v_payout_id,
-    'amount', p_amount,
-    'new_balance', v_new_balance
-  );
-END;
-$$ LANGUAGE plpgsql;
-
--- =============================================
 -- Supabase Storage: Bucket + Policies
 -- =============================================
 
@@ -380,16 +304,6 @@ VALUES (
   'avatars',
   true,
   2097152,  -- 2MB max
-  ARRAY['image/jpeg', 'image/png', 'image/webp']
-);
-
--- สร้าง bucket สำหรับหลักฐานการโอนเงิน (admin only)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'payout-proofs',
-  'payout-proofs',
-  true,  -- seller ต้องเห็นหลักฐานได้
-  5242880,  -- 5MB max
   ARRAY['image/jpeg', 'image/png', 'image/webp']
 );
 
@@ -457,17 +371,4 @@ ON storage.objects FOR DELETE
 USING (
   bucket_id = 'avatars'
   AND (storage.foldername(name))[1] = auth.uid()::text
-);
-
--- Policy: ทุกคนอ่านรูปหลักฐานโอนเงินได้ (seller ต้องเห็น)
-CREATE POLICY "payout_proofs_public_read"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'payout-proofs');
-
--- Policy: admin upload หลักฐานโอนเงินได้
-CREATE POLICY "payout_proofs_admin_upload"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'payout-proofs'
-  AND auth.role() = 'authenticated'
 );

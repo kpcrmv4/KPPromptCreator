@@ -3,80 +3,376 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เติมเงิน — KP Prompt Creator</title>
+  <title>เติมเครดิต — KP Prompt Creator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Thai', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/marketplace.css">
+  <style>
+    .gradient-text {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-gradient {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    }
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      right: 1rem;
+      z-index: 9999;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 320px;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .toast-success { background: #10b981; color: white; }
+    .toast-error { background: #ef4444; color: white; }
+    .toast-info { background: #3b82f6; color: white; }
+    .bottom-nav-item.active .bottom-nav-icon { color: #4f46e5; }
+    .bottom-nav-item.active .bottom-nav-label { color: #4f46e5; font-weight: 600; }
+    .spinner {
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid #e0e7ff;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
-<body>
-  <nav class="mp-navbar">
-    <a href="/" class="nav-brand">
-      <img src="images/logo.png" alt="KP">
-      <span>KP Prompt Creator</span>
-    </a>
-    <div class="nav-links">
-      <a href="/marketplace.html"><i class="bi bi-shop"></i> Marketplace</a>
-      <a href="/"><i class="bi bi-magic"></i> สร้าง Prompt</a>
-      <span class="user-menu" style="display:none;">
-        <div class="nav-divider"></div>
-        <a href="/topup.html" class="active nav-wallet"><i class="bi bi-wallet2"></i> <span class="user-balance">฿0</span></a>
-        <a href="/orders.html"><i class="bi bi-bag-check"></i> คำสั่งซื้อ</a>
-        <a href="/dashboard.html" class="seller-only"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <div class="nav-divider"></div>
-        <a href="/account.html"><i class="bi bi-person-circle"></i></a>
-        <a href="#" onclick="logout()" class="nav-logout"><i class="bi bi-box-arrow-right"></i></a>
-      </span>
+<body class="bg-slate-50 font-sans antialiased pb-16 md:pb-0">
+
+  <!-- ===== TOP NAVBAR ===== -->
+  <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Left: Logo -->
+        <a href="/" class="flex items-center gap-2 shrink-0">
+          <div class="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
+            <span class="text-white font-bold text-sm">KP</span>
+          </div>
+          <div class="flex flex-col leading-tight">
+            <span class="gradient-text font-bold text-base leading-none">KP</span>
+            <span class="text-slate-500 text-xs leading-none">Marketplace</span>
+          </div>
+        </a>
+
+        <!-- Center: Nav links (hidden on mobile) -->
+        <div class="hidden md:flex items-center gap-1">
+          <a href="/" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+            <i data-lucide="home" class="w-4 h-4"></i>
+            หน้าแรก
+          </a>
+          <a href="/marketplace.html" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+            <i data-lucide="store" class="w-4 h-4"></i>
+            Marketplace
+          </a>
+        </div>
+
+        <!-- Right: Auth / User menu -->
+        <div class="flex items-center gap-2">
+          <!-- Auth Links (guest) -->
+          <span class="auth-links flex items-center gap-2">
+            <a href="/auth.html" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100">
+              เข้าสู่ระบบ
+            </a>
+            <a href="/auth.html?tab=register" class="text-sm font-medium text-white hero-gradient px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+              สมัครสมาชิก
+            </a>
+          </span>
+
+          <!-- User Menu (logged in) -->
+          <span class="user-menu hidden items-center gap-2">
+            <!-- Wallet balance -->
+            <a href="/topup.html" class="hidden sm:flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors">
+              <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+              <span class="user-balance">฿0.00</span>
+            </a>
+
+            <a href="/orders.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="คำสั่งซื้อ">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            </a>
+
+            <a href="/dashboard.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="Dashboard">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            </a>
+
+            <a href="/admin.html" class="admin-only hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="Admin Panel">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </a>
+
+            <div class="relative" id="user-dropdown-wrap">
+              <button id="user-dropdown-btn" onclick="toggleUserDropdown()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                <div class="w-7 h-7 rounded-full hero-gradient flex items-center justify-center">
+                  <i data-lucide="user" class="w-3.5 h-3.5 text-white"></i>
+                </div>
+                <span class="user-display-name hidden sm:block text-sm font-medium text-slate-700 max-w-24 truncate"></span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 hidden sm:block"></i>
+              </button>
+              <div id="user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
+                <a href="/account.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="user-circle" class="w-4 h-4 text-slate-400"></i>
+                  บัญชีของฉัน
+                </a>
+                <a href="/orders.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
+                  <i data-lucide="shopping-bag" class="w-4 h-4 text-slate-400"></i>
+                  คำสั่งซื้อ
+                </a>
+                <a href="/topup.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
+                  <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
+                  เติมเครดิต
+                </a>
+                <a href="/dashboard.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i>
+                  Dashboard
+                </a>
+                <a href="/admin.html" class="admin-only flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="shield" class="w-4 h-4 text-slate-400"></i>
+                  Admin Panel
+                </a>
+                <div class="border-t border-slate-100 my-1"></div>
+                <button onclick="logout()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                  <i data-lucide="log-out" class="w-4 h-4"></i>
+                  ออกจากระบบ
+                </button>
+              </div>
+            </div>
+          </span>
+
+          <!-- Hamburger (mobile) -->
+          <button id="hamburger-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+            <i data-lucide="menu" class="w-5 h-5 text-slate-600"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 py-3 space-y-1">
+        <a href="/" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+          <i data-lucide="home" class="w-4 h-4"></i> หน้าแรก
+        </a>
+        <a href="/marketplace.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+          <i data-lucide="store" class="w-4 h-4"></i> Marketplace
+        </a>
+      </div>
     </div>
   </nav>
 
-  <div class="mp-container-sm" style="margin-top: 2rem;">
-    <div class="mp-page-header">
-      <h1><i class="bi bi-wallet2"></i> เติมเงิน</h1>
-      <p>เติมเครดิตด้วย TrueMoney อั่งเปา</p>
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+    <!-- Page Header -->
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">เติมเครดิต</h1>
+      <p class="text-slate-500 text-sm mt-1">เติมเครดิตด้วย TrueMoney อั่งเปา</p>
     </div>
 
-    <!-- ยอดเครดิต -->
-    <div class="stat-card" style="margin-bottom: 1.5rem;">
-      <div class="stat-value user-balance">฿0</div>
-      <div class="stat-label">เครดิตคงเหลือ</div>
-    </div>
-
-    <!-- วิธีเติม -->
-    <div class="topup-info">
-      <h3><i class="bi bi-info-circle"></i> วิธีเติมเงิน</h3>
-      <ol>
-        <li>เปิดแอป TrueMoney Wallet</li>
-        <li>สร้างซองอั่งเปา จำนวนเงินที่ต้องการ</li>
-        <li>คัดลอกลิงก์อั่งเปามาวางด้านล่าง</li>
-        <li>กดปุ่ม "เติมเงิน" — ระบบจะเติมเครดิตให้อัตโนมัติ</li>
-      </ol>
-    </div>
-
-    <!-- ฟอร์มเติมเงิน -->
-    <div class="mp-form">
-      <form onsubmit="handleTopup(event)">
-        <div class="form-group">
-          <label>ลิงก์อั่งเปา TrueMoney</label>
-          <input type="text" name="angpao_link" required
-                 placeholder="https://gift.truemoney.com/campaign/?v=xxxxxxxxxx"
-                 pattern="https://gift\.truemoney\.com/campaign/\?v=.+"
-                 title="กรุณาวางลิงก์อั่งเปาจาก TrueMoney">
+    <!-- Balance Card -->
+    <div class="rounded-2xl p-6 text-white" style="background: linear-gradient(135deg, #10b981 0%, #0d9488 100%);">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-emerald-100 text-sm font-medium mb-1">เครดิตคงเหลือ</p>
+          <p class="text-4xl font-bold tracking-tight"><span class="user-balance">฿0.00</span></p>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" style="width:100%">
-          <i class="bi bi-cash-coin"></i> เติมเงิน
+        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+          <i data-lucide="wallet" class="w-7 h-7 text-white"></i>
+        </div>
+      </div>
+      <div class="mt-4 pt-4 border-t border-emerald-400/40">
+        <p class="text-emerald-100 text-xs">เครดิตสามารถใช้ซื้อ Prompt ในระบบได้ทันที</p>
+      </div>
+    </div>
+
+    <!-- Top-up Form -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-600"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-slate-800">เติมเครดิตด้วยอั่งเปา</h2>
+          <p class="text-xs text-slate-400 mt-0.5">TrueMoney Wallet Gift Voucher</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleTopup(event)" class="space-y-4">
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-slate-700">
+            ลิงก์อั่งเปา TrueMoney
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <i data-lucide="link" class="w-4 h-4 text-slate-400"></i>
+            </div>
+            <input
+              type="text"
+              name="angpao_link"
+              required
+              placeholder="วางลิงก์อั่งเปาที่นี่..."
+              class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            >
+          </div>
+          <p class="text-xs text-slate-400 flex items-center gap-1">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            รูปแบบ: https://gift.truemoney.com/campaign/?v=xxxxxxxxxx
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
+          style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);"
+        >
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          เติมเครดิต
         </button>
       </form>
     </div>
 
-    <!-- ประวัติเครดิต -->
-    <div style="margin-top: 2rem;">
-      <h2>ประวัติเครดิต</h2>
-      <div id="credit-history">
-        <div class="loading-state"><div class="spinner"></div></div>
+    <!-- How it works -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+          <i data-lucide="help-circle" class="w-5 h-5 text-amber-500"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-slate-800">วิธีการเติมเครดิต</h2>
+          <p class="text-xs text-slate-400 mt-0.5">4 ขั้นตอนง่าย ๆ</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div class="flex items-start gap-3">
+          <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">ได้รับลิงก์อั่งเปา TrueMoney</p>
+            <p class="text-xs text-slate-400 mt-0.5">เปิดแอป TrueMoney Wallet แล้วสร้างซองอั่งเปา</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">วางลิงก์ในช่องด้านบน</p>
+            <p class="text-xs text-slate-400 mt-0.5">คัดลอกลิงก์จากแอปแล้ววางในช่องด้านบน</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">กดปุ่ม "เติมเครดิต"</p>
+            <p class="text-xs text-slate-400 mt-0.5">ระบบจะตรวจสอบและดำเนินการอัตโนมัติ</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</div>
+          <div>
+            <p class="text-sm font-medium text-slate-700">เครดิตจะเข้าบัญชีทันที</p>
+            <p class="text-xs text-slate-400 mt-0.5">ใช้ซื้อ Prompt ได้ทันทีหลังเติมสำเร็จ</p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
+    <!-- Transaction History -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+          <i data-lucide="clock" class="w-5 h-5 text-slate-500"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-slate-800">ประวัติเครดิต</h2>
+          <p class="text-xs text-slate-400 mt-0.5">รายการเติม-ใช้เครดิตทั้งหมด</p>
+        </div>
+      </div>
+
+      <div id="credit-history">
+        <div class="flex flex-col items-center justify-center py-10 gap-3 text-slate-400">
+          <div class="spinner"></div>
+          <p class="text-sm">กำลังโหลด...</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===== BOTTOM NAVIGATION (mobile only) ===== -->
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 flex md:hidden">
+    <a href="/marketplace.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="store" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">Explore</span>
+    </a>
+    <a href="/orders.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="shopping-bag" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">Orders</span>
+    </a>
+    <a href="/dashboard.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <div class="w-9 h-9 hero-gradient rounded-full flex items-center justify-center -mt-4 shadow-lg">
+        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="bottom-nav-label text-xs text-slate-400 mt-0.5">Create</span>
+    </a>
+    <a href="/topup.html" class="bottom-nav-item active flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="wallet" class="bottom-nav-icon w-5 h-5 text-indigo-600"></i>
+      <span class="bottom-nav-label text-xs text-indigo-600 font-semibold">Wallet</span>
+    </a>
+    <a href="/account.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="user-circle" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">Profile</span>
+    </a>
+  </nav>
+
+  <script>
+    function toggleUserDropdown() {
+      const dd = document.getElementById('user-dropdown');
+      dd.classList.toggle('hidden');
+    }
+    document.addEventListener('click', function(e) {
+      const wrap = document.getElementById('user-dropdown-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('user-dropdown')?.classList.add('hidden');
+      }
+    });
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
   <script src="js/marketplace.js"></script>
 </body>
 </html>

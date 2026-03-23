@@ -1,97 +1,122 @@
-# Marketplace Redesign Plan — Tailwind CSS + Modern UI
+# Marketplace Redesign Plan — Tailwind CSS + Unified Role/Wallet
 
 ## Overview
-รีดีไซน์ทุกหน้า Marketplace (ยกเว้น index.html หน้าสร้าง Prompt) ให้ทันสมัย สวยงาม responsive ด้วย Tailwind CSS + Lucide Icons
+รีดีไซน์ทุกหน้า Marketplace (ยกเว้น index.html) + ปรับระบบ role/wallet ให้เรียบง่าย
 
-## Tech Changes
+## Major Changes
+
+### 1. Unified Role System
+| เดิม | ใหม่ |
+|------|------|
+| 3 roles: buyer, seller, admin | **2 roles: user, admin** |
+| ต้องเลือก buyer/seller ตอนสมัคร | ทุกคนซื้อ+ขายได้เลย |
+| Seller dashboard แยก | **Dashboard เดียว** — ทุกคนเข้าถึง |
+| ระบบถอนเงิน (payouts) | **ไม่ต้อง** — เครดิตหมุนเวียนในระบบ |
+
+### 2. Unified Wallet
+```
+เติมเงิน 100 → ยอด 100
+ซื้อ prompt 50 → ยอด 50 (ผู้ขายได้ 50 - ค่าคอม)
+ขาย prompt ได้ 20 → ยอด 70
+```
+
+**Transaction Types:**
+- `topup` — เติมเครดิตผ่าน TrueMoney อั่งเปา
+- `purchase` — ซื้อ prompt (หักเงิน)
+- `sale` — ขาย prompt (ได้เงินหลังหักค่าคอม)
+- `commission` — ค่าคอมมิชชั่นที่ถูกหัก
+
+### 3. Tailwind CSS Redesign
 | Before | After |
 |--------|-------|
-| Custom CSS (marketplace.css 1,136 lines) | Tailwind CSS CDN + minimal custom CSS |
-| Bootstrap Icons CDN | Lucide Icons CDN (สวยกว่า, lightweight) |
-| สี #6c5ce7 (purple เดิม) | Gradient-based palette (Indigo → Violet) |
+| Custom CSS 1,136 lines | **Tailwind CSS CDN** + minimal custom |
+| Bootstrap Icons | **Lucide Icons** |
+| สี #6c5ce7 | **Indigo→Violet gradient** |
 
-## Color Palette (Modern)
-- **Primary**: Indigo-600 (#4f46e5) → Violet-500 (#8b5cf6) gradient
-- **Accent**: Emerald-500 (#10b981) สำหรับ success/balance
+## Color Palette
+- **Primary**: Indigo-600 (#4f46e5) → Violet-500 (#8b5cf6)
+- **Accent**: Emerald-500 (#10b981) — success/balance
 - **Warning**: Amber-500 (#f59e0b)
 - **Danger**: Rose-500 (#f43f5e)
-- **Background**: Slate-50 (#f8fafc) → White
+- **Background**: Slate-50 → White
 - **Text**: Slate-900, Slate-600, Slate-400
-- **Cards**: White with subtle shadow + hover lift
 
-## Pages to Redesign (8 pages)
+## Navigation
+| Device | Style |
+|--------|-------|
+| Desktop | Top navbar (glassmorphism, backdrop-blur) |
+| Mobile | **Bottom navigation bar** (4-5 icons แบบ app) |
 
-### 1. Shared Components (ทุกหน้า)
-- **Navbar**: Glassmorphism effect (backdrop-blur), gradient logo, modern dropdown menu
-- **Mobile**: Slide-in sidebar menu (ไม่ใช่แค่ hamburger toggle)
-- **Toast**: Slide-in from top-right with icon
-- **Modal**: Backdrop blur, smooth animation
-- **Loading**: Skeleton loader แทน spinner
+**Bottom menu items:**
+1. 🏠 Marketplace
+2. 📦 Orders
+3. ➕ Create
+4. 💰 Wallet (Top-up)
+5. 👤 Profile
 
-### 2. marketplace.html — Prompt Browsing
-- Hero section with gradient background + search bar กลาง
-- Filter chips (pill-style) แทน select dropdowns
-- Card grid: rounded-2xl, image aspect-ratio, hover scale effect
-- Seller avatar + verified badge on cards
-- Pagination: modern pill buttons
+## Pages to Redesign
 
-### 3. prompt-detail.html — Prompt Detail + Purchase
-- Full-width image gallery (swipeable on mobile)
-- Sticky sidebar with price + buy button (desktop)
-- Review cards with avatar
-- Related prompts section
+### marketplace.html
+- Hero gradient + search กลาง
+- Card grid: rounded-2xl, hover scale, shadow
+- รองรับ `?seller={id}` แสดงเฉพาะ prompt ของ seller
 
-### 4. auth.html — Login / Register
-- Split layout (desktop: image left, form right)
-- Floating labels, smooth transitions
-- Social-style buttons
-- Mobile: full-width form
+### prompt-detail.html
+- Image gallery + sticky sidebar (desktop)
+- Review cards + purchase button
 
-### 5. dashboard.html — Seller Dashboard
-- Sidebar navigation (desktop) / bottom tabs (mobile)
-- Stat cards with gradient icons
-- Modern data tables with status pills
-- Drag-drop image upload zone
-- **NEW**: Share link button — คัดลอกลิงก์ `marketplace.html?seller={id}` ให้ seller แชร์หน้าร้านตัวเอง
+### auth.html
+- Split layout (desktop: รูปซ้าย ฟอร์มขวา)
+- **ไม่ต้องเลือก role** — สมัครแล้วเป็น user อัตโนมัติ
 
-### 6. admin.html — Admin Panel
-- Dark sidebar (desktop)
-- Overview cards with sparkline-style stats
-- Tabbed content with smooth transitions
-- User management with avatar + role badges
+### dashboard.html (ทุกคนเข้าถึง)
+- Stat cards (prompts, sales, revenue, balance)
+- My Prompts table + สร้าง prompt ใหม่
+- **ปุ่มคัดลอกลิงก์ร้านค้า** (`marketplace.html?seller={id}`)
+- Transaction history (เห็นทุก type: เติม/ซื้อ/ขาย/ค่าคอม)
+- Notifications
 
-### 7. topup.html — Top-up Credits
-- Step-by-step visual guide
-- Large balance card with gradient
-- Transaction history with icons
+### admin.html
+- Overview stats
+- จัดการ Prompt (approve/reject)
+- จัดการสมาชิก (user/admin)
+- ตั้งค่า (commission rate, เบอร์ TrueMoney)
+- **ไม่มีหน้าถอนเงินแล้ว**
 
-### 8. orders.html — Purchase History
-- Order cards (ไม่ใช่ table) with status badges
-- Download button prominent
-- Review inline
+### topup.html
+- Balance card gradient
+- Step-by-step guide
+- Transaction history
 
-### 9. account.html — Profile Settings
-- Avatar section
-- Clean form layout
-- Password strength indicator
+### orders.html
+- Order cards + download + review
 
-## New Feature: Seller Shop Link
+### account.html
+- Profile form + change password
+
+## DB Changes
+1. `users.role` — default 'user' แทน 'buyer'
+2. Remove payout-related tables/functions (optional: keep for future)
+3. `credits` table — unified transactions ทุก type
+4. Remove `request_payout()` DB function
+
+## API Changes
+1. `auth/register` — ไม่ต้องรับ role (default: user)
+2. `prompts/*` — ทุก user สร้าง/ขายได้
+3. `credits/history` — แสดงทุก transaction type
+4. Remove: `seller/payouts`, `admin/payouts`
+5. `admin/users` — role เป็น user/admin เท่านั้น
+
+## New Feature: Shop Link
 - URL: `marketplace.html?seller={user_id}`
-- แสดงเฉพาะ prompt ของ seller คนนั้น
-- มี header แสดงชื่อร้าน/seller info
-- Seller กดปุ่ม "คัดลอกลิงก์ร้านค้า" ใน dashboard → copy URL to clipboard
-- API: ใช้ GET /api/prompts?seller_id={id} (มีอยู่แล้ว)
+- แสดง seller info header + prompt ของคนนั้น
+- ปุ่มคัดลอกลิงก์ใน dashboard
 
 ## Implementation Order
-1. Add Tailwind CSS CDN + Lucide Icons CDN to all pages
-2. Redesign shared navbar + mobile menu
-3. Redesign marketplace.html + seller filter support
-4. Redesign prompt-detail.html
-5. Redesign auth.html
-6. Redesign dashboard.html + share link feature
-7. Redesign admin.html
-8. Redesign topup.html
-9. Redesign orders.html
-10. Redesign account.html
-11. Rewrite marketplace.css (minimal custom styles only)
-12. Update marketplace.js HTML generation to use Tailwind classes
+1. Update plan.md ✅
+2. Update DB schema (unified role/wallet)
+3. Update backend APIs
+4. Redesign all HTML pages (Tailwind CSS)
+5. Update marketplace.js (role system + Tailwind classes)
+6. Rewrite marketplace.css (minimal)
+7. Test & commit
