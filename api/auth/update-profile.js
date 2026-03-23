@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../../lib/supabase');
-const { requireAuth, hashPassword, verifyPassword } = require('../../lib/auth');
+const { requireAuth } = require('../../lib/auth');
 const { cors } = require('../../lib/helpers');
 
 module.exports = async function handler(req, res) {
@@ -21,19 +21,29 @@ module.exports = async function handler(req, res) {
     await supabaseAdmin.from('users').update(updates).eq('id', user.id);
   }
 
-  // เปลี่ยนรหัสผ่าน
+  // เปลี่ยนรหัสผ่านผ่าน Supabase Auth
   if (current_password && new_password) {
     if (new_password.length < 6) return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' });
 
-    const { data: fullUser } = await supabaseAdmin
-      .from('users').select('password_hash').eq('id', user.id).single();
+    // ตรวจรหัสผ่านปัจจุบันโดย signIn
+    const { error: verifyError } = await supabaseAdmin.auth.signInWithPassword({
+      email: user.email,
+      password: current_password
+    });
 
-    if (!verifyPassword(current_password, fullUser.password_hash)) {
+    if (verifyError) {
       return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
     }
 
-    const password_hash = hashPassword(new_password);
-    await supabaseAdmin.from('users').update({ password_hash }).eq('id', user.id);
+    // อัปเดตรหัสผ่านใน Supabase Auth
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      password: new_password
+    });
+
+    if (updateError) {
+      console.error('Password update error:', updateError.message);
+      return res.status(500).json({ error: 'เปลี่ยนรหัสผ่านไม่สำเร็จ' });
+    }
   }
 
   // ดึงข้อมูลล่าสุด
