@@ -1531,15 +1531,45 @@ async function processChatMessage(apiKey, userMessage) {
 ข้อมูลปัจจุบัน: ${JSON.stringify(chatProjectData.analysis.techStack)}
 คำขอปรับ: ${userMessage}
 
+สำคัญ: ค่าที่ตอบต้องตรงกับค่าที่อนุญาตเท่านั้น:
+- platform: google-apps-script | react-vercel | nextjs-vercel | vue-netlify | static-html
+- database: google-sheets | supabase | firebase-firestore | mongodb-atlas | turso
+- cssFramework: bootstrap | tailwind | daisyui | shadcn-ui | material-ui
+- language: javascript | typescript
+- pageType: single-page | spa
+- pwa: yes | no
+- responsive: responsive | desktop-only
+- authentication: none | firebase-auth | supabase-auth | clerk
+- apiStyle: rest | graphql | trpc
+- packageManager: none | npm | pnpm | bun
+- testing: none | vitest | jest | playwright
+- hosting: gas-deploy | vercel | netlify | cloudflare-pages | firebase-hosting
+
 ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
-{"adjusted": {เฉพาะ field ที่เปลี่ยน}, "message": "อธิบายสิ่งที่เปลี่ยนสั้นๆ ภาษาไทย"}`;
+{"adjusted": {เฉพาะ field ที่เปลี่ยน ใช้ค่าที่อนุญาตด้านบนเท่านั้น}, "message": "อธิบายสิ่งที่เปลี่ยนสั้นๆ ภาษาไทย"}`;
 
             const raw = await callGeminiAPI(apiKey, adjustPrompt);
             const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const adj = JSON.parse(jsonStr);
 
-            // Apply adjustments
-            Object.assign(chatProjectData.analysis.techStack, adj.adjusted);
+            // Apply adjustments (normalize values to match radio button values)
+            const adjNormalized = { ...adj.adjusted };
+            const valueNorms = {
+                'cssFramework': { 'tailwindcss': 'tailwind', 'tailwind-css': 'tailwind', 'tailwind css': 'tailwind', 'daisy-ui': 'daisyui', 'mui': 'material-ui' },
+                'platform': { 'gas': 'google-apps-script', 'react': 'react-vercel', 'nextjs': 'nextjs-vercel', 'next': 'nextjs-vercel', 'vue': 'vue-netlify', 'static': 'static-html', 'html': 'static-html' },
+                'database': { 'sheets': 'google-sheets', 'googlesheets': 'google-sheets', 'firebase': 'firebase-firestore', 'firestore': 'firebase-firestore', 'mongodb': 'mongodb-atlas', 'mongo': 'mongodb-atlas', 'sqlite': 'turso' },
+                'language': { 'js': 'javascript', 'ts': 'typescript' },
+                'authentication': { 'firebase': 'firebase-auth', 'supabase': 'supabase-auth' },
+                'hosting': { 'gas': 'gas-deploy', 'cloudflare': 'cloudflare-pages' }
+            };
+            for (const [field, val] of Object.entries(adjNormalized)) {
+                const norms = valueNorms[field];
+                if (norms && typeof val === 'string') {
+                    const lower = val.toLowerCase().trim();
+                    if (norms[lower]) adjNormalized[field] = norms[lower];
+                }
+            }
+            Object.assign(chatProjectData.analysis.techStack, adjNormalized);
 
             return {
                 message: `${adj.message}<br><br>ต้องการปรับอะไรเพิ่มไหม? ถ้าโอเคแล้วพิมพ์ "ตกลง" ครับ`,
@@ -1555,6 +1585,69 @@ async function generateFromChatData(apiKey) {
     const analysis = chatProjectData.analysis;
     const ts = analysis.techStack;
     const targetAI = analysis.targetAI || 'claude';
+
+    // Normalize AI-returned values to match exact radio button values
+    const normalizeMap = {
+        'platform': {
+            'gas': 'google-apps-script', 'google-apps-script': 'google-apps-script',
+            'react': 'react-vercel', 'react-vercel': 'react-vercel',
+            'nextjs': 'nextjs-vercel', 'next': 'nextjs-vercel', 'nextjs-vercel': 'nextjs-vercel',
+            'vue': 'vue-netlify', 'vue-netlify': 'vue-netlify',
+            'static': 'static-html', 'html': 'static-html', 'static-html': 'static-html'
+        },
+        'database': {
+            'google-sheets': 'google-sheets', 'sheets': 'google-sheets', 'googlesheets': 'google-sheets',
+            'supabase': 'supabase',
+            'firebase-firestore': 'firebase-firestore', 'firebase': 'firebase-firestore', 'firestore': 'firebase-firestore',
+            'mongodb-atlas': 'mongodb-atlas', 'mongodb': 'mongodb-atlas', 'mongo': 'mongodb-atlas',
+            'turso': 'turso', 'sqlite': 'turso'
+        },
+        'cssFramework': {
+            'bootstrap': 'bootstrap',
+            'tailwind': 'tailwind', 'tailwindcss': 'tailwind', 'tailwind-css': 'tailwind', 'tailwind css': 'tailwind',
+            'daisyui': 'daisyui', 'daisy-ui': 'daisyui', 'daisy': 'daisyui',
+            'shadcn-ui': 'shadcn-ui', 'shadcn': 'shadcn-ui',
+            'material-ui': 'material-ui', 'mui': 'material-ui', 'material': 'material-ui'
+        },
+        'language': {
+            'javascript': 'javascript', 'js': 'javascript',
+            'typescript': 'typescript', 'ts': 'typescript'
+        },
+        'pageType': {
+            'single-page': 'single-page', 'single': 'single-page',
+            'spa': 'spa'
+        },
+        'authentication': {
+            'none': 'none',
+            'firebase-auth': 'firebase-auth', 'firebase': 'firebase-auth',
+            'supabase-auth': 'supabase-auth', 'supabase': 'supabase-auth',
+            'clerk': 'clerk'
+        },
+        'hosting': {
+            'gas-deploy': 'gas-deploy', 'gas': 'gas-deploy',
+            'vercel': 'vercel',
+            'netlify': 'netlify',
+            'cloudflare-pages': 'cloudflare-pages', 'cloudflare': 'cloudflare-pages',
+            'firebase-hosting': 'firebase-hosting'
+        }
+    };
+
+    function normalizeValue(field, value) {
+        if (!value) return value;
+        const map = normalizeMap[field];
+        if (!map) return value;
+        const lower = value.toLowerCase().trim();
+        return map[lower] || value;
+    }
+
+    // Normalize tech stack values before setting radio buttons
+    ts.platform = normalizeValue('platform', ts.platform);
+    ts.database = normalizeValue('database', ts.database);
+    ts.cssFramework = normalizeValue('cssFramework', ts.cssFramework);
+    ts.language = normalizeValue('language', ts.language);
+    ts.pageType = normalizeValue('pageType', ts.pageType);
+    ts.authentication = normalizeValue('authentication', ts.authentication);
+    ts.hosting = normalizeValue('hosting', ts.hosting);
 
     // Set form values to match analysis (so generatePrompt works)
     setRadioIfExists('platform', ts.platform);
