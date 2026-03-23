@@ -78,9 +78,9 @@ const COMPAT_RULES = {
             reason: 'GAS ใช้ Google Sheets, Supabase, Firebase ได้ผ่าน UrlFetchApp (MongoDB/Turso ต้องการ driver ที่ GAS ไม่รองรับ)'
         },
         'static-html': {
-            allowed: ['firebase-firestore', 'supabase'],
-            blocked: ['google-sheets', 'mongodb-atlas', 'turso'],
-            reason: 'Static HTML แนะนำ Firebase หรือ Supabase (เชื่อมต่อจาก client ได้)'
+            allowed: ['google-sheets', 'firebase-firestore', 'supabase'],
+            blocked: ['mongodb-atlas', 'turso'],
+            reason: 'Static HTML ใช้ Supabase/Firebase ได้โดยตรง หรือใช้ Google Sheets ผ่าน GAS API เป็น backend'
         }
     },
     cssFramework: {
