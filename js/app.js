@@ -37,20 +37,25 @@ function initApp() {
         });
     });
 
-    // Tech stack validation
-    document.querySelectorAll('input[name="platform"]').forEach(radio => {
-        radio.addEventListener('change', applyValidationRules);
-    });
-    document.querySelectorAll('input[name="database"]').forEach(radio => {
-        radio.addEventListener('change', applyValidationRules);
-    });
-    document.querySelectorAll('input[name="pageType"]').forEach(radio => {
-        radio.addEventListener('change', applyValidationRules);
+    // Tech stack validation - listen on all relevant fields
+    ['platform', 'database', 'pageType', 'cssFramework', 'language', 'authentication', 'apiStyle', 'packageManager', 'testing', 'hosting'].forEach(name => {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+            radio.addEventListener('change', applyValidationRules);
+        });
     });
     applyValidationRules();
 
     // Fetch skills button
     document.getElementById('fetchSkillsBtn').addEventListener('click', fetchSkills);
+
+    // Magic Wizard button
+    document.getElementById('magicWizardBtn').addEventListener('click', openMagicWizard);
+    document.getElementById('wizardClose').addEventListener('click', closeWizard);
+    document.getElementById('wizardCancel').addEventListener('click', closeWizard);
+    document.getElementById('wizardApply').addEventListener('click', applyWizardSelections);
+    document.getElementById('wizardOverlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeWizard();
+    });
 
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
@@ -64,22 +69,89 @@ function initApp() {
 
 // ===== Tech Stack Validation =====
 
-// Compatibility rules: [platform][option] => allowed databases/options
+// Compatibility rules: when platform X is selected, restrict field Y
 const COMPAT_RULES = {
-    // platform -> allowed databases
     database: {
         'google-apps-script': {
             allowed: ['google-sheets'],
-            blocked: ['supabase'],
+            blocked: ['supabase', 'firebase-firestore', 'mongodb-atlas', 'turso'],
             reason: 'Google Apps Script ใช้ได้กับ Google Sheets เท่านั้น'
         },
-        'react-vercel': {
-            allowed: ['supabase'],
-            blocked: ['google-sheets'],
-            reason: 'React + Vercel แนะนำใช้กับ Supabase (Google Sheets ไม่รองรับ)'
+        'static-html': {
+            allowed: ['firebase-firestore', 'supabase'],
+            blocked: ['google-sheets', 'mongodb-atlas', 'turso'],
+            reason: 'Static HTML แนะนำ Firebase หรือ Supabase (เชื่อมต่อจาก client ได้)'
         }
     },
-    // platform -> allowed page types (no restrictions - GAS can do SPA with Alpine.js)
+    cssFramework: {
+        'google-apps-script': {
+            allowed: ['bootstrap', 'tailwind'],
+            blocked: ['shadcn-ui', 'material-ui', 'daisyui'],
+            reason: 'GAS ใช้ CDN-based framework ได้ (Bootstrap/Tailwind) ส่วน Shadcn/MUI ต้องมี build step'
+        }
+    },
+    language: {
+        'google-apps-script': {
+            allowed: ['javascript'],
+            blocked: ['typescript'],
+            reason: 'Google Apps Script ใช้ JavaScript เท่านั้น'
+        }
+    },
+    authentication: {
+        'google-apps-script': {
+            allowed: ['none'],
+            blocked: ['firebase-auth', 'supabase-auth', 'clerk'],
+            reason: 'GAS ใช้ Google Account ในตัว ไม่ต้องเพิ่ม Auth แยก'
+        }
+    },
+    apiStyle: {
+        'google-apps-script': {
+            allowed: ['rest'],
+            blocked: ['graphql', 'trpc'],
+            reason: 'GAS ใช้ REST (doGet/doPost) เท่านั้น'
+        }
+    },
+    packageManager: {
+        'google-apps-script': {
+            allowed: ['none'],
+            blocked: ['npm', 'pnpm', 'bun'],
+            reason: 'GAS ไม่รองรับ package manager ใช้ CDN แทน'
+        },
+        'static-html': {
+            allowed: ['none'],
+            blocked: ['pnpm', 'bun'],
+            reason: 'Static HTML แนะนำใช้ CDN หรือ npm เท่านั้น'
+        }
+    },
+    testing: {
+        'google-apps-script': {
+            allowed: ['none'],
+            blocked: ['vitest', 'jest', 'playwright'],
+            reason: 'GAS ไม่มี testing framework มาตรฐาน'
+        }
+    },
+    hosting: {
+        'google-apps-script': {
+            allowed: ['gas-deploy'],
+            blocked: ['vercel', 'netlify', 'cloudflare-pages', 'firebase-hosting'],
+            reason: 'GAS ต้อง deploy ผ่าน Google Apps Script เท่านั้น'
+        },
+        'react-vercel': {
+            allowed: ['vercel'],
+            blocked: ['gas-deploy', 'netlify'],
+            reason: 'React + Vercel แนะนำ deploy บน Vercel'
+        },
+        'nextjs-vercel': {
+            allowed: ['vercel'],
+            blocked: ['gas-deploy', 'netlify', 'cloudflare-pages'],
+            reason: 'Next.js แนะนำ deploy บน Vercel (รองรับ SSR เต็มที่)'
+        },
+        'vue-netlify': {
+            allowed: ['netlify'],
+            blocked: ['gas-deploy', 'vercel'],
+            reason: 'Vue + Netlify แนะนำ deploy บน Netlify'
+        }
+    },
     pageType: {}
 };
 
@@ -282,30 +354,30 @@ function fetchSkills() {
     relevantTags.add('web');
     relevantTags.add('frontend');
 
-    if (platform === 'google-apps-script') {
-        relevantTags.add('gas');
-        relevantTags.add('google');
-        relevantTags.add('sheets');
-    } else {
-        relevantTags.add('react');
-        relevantTags.add('vercel');
-        relevantTags.add('deploy');
-    }
+    const platformTags = {
+        'google-apps-script': ['gas', 'google', 'sheets'],
+        'react-vercel': ['react', 'vercel', 'deploy'],
+        'nextjs-vercel': ['react', 'vercel', 'deploy', 'ssr'],
+        'vue-netlify': ['vue', 'netlify', 'deploy'],
+        'static-html': ['html', 'vanilla']
+    };
+    (platformTags[platform] || []).forEach(t => relevantTags.add(t));
 
-    if (database === 'google-sheets') {
-        relevantTags.add('google');
-        relevantTags.add('sheets');
-    } else {
-        relevantTags.add('supabase');
-        relevantTags.add('database');
-        relevantTags.add('auth');
-    }
+    const dbTags = {
+        'google-sheets': ['google', 'sheets'],
+        'supabase': ['supabase', 'database', 'auth'],
+        'firebase-firestore': ['firebase', 'database', 'nosql'],
+        'mongodb-atlas': ['mongodb', 'database', 'nosql'],
+        'turso': ['sqlite', 'database', 'edge']
+    };
+    (dbTags[database] || []).forEach(t => relevantTags.add(t));
 
-    if (cssFramework === 'bootstrap') {
-        relevantTags.add('bootstrap');
-    } else {
-        relevantTags.add('tailwind');
-    }
+    const cssTags = {
+        'bootstrap': ['bootstrap'], 'tailwind': ['tailwind'],
+        'daisyui': ['tailwind', 'daisyui'], 'shadcn-ui': ['tailwind', 'react'],
+        'material-ui': ['react', 'material']
+    };
+    (cssTags[cssFramework] || []).forEach(t => relevantTags.add(t));
 
     if (pageType === 'spa') {
         relevantTags.add('spa');
@@ -374,6 +446,168 @@ function fetchSkills() {
     }, 800);
 }
 
+// ===== Magic Wizard =====
+
+let wizardSelections = {};
+
+async function openMagicWizard() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        showToast('กรุณาใส่ Gemini API Key ก่อนใช้ Magic Wizard');
+        return;
+    }
+    const projectName = document.getElementById('projectName').value.trim();
+    const projectDesc = document.getElementById('projectDesc').value.trim();
+    if (!projectName || !projectDesc) {
+        showToast('กรุณาใส่ชื่อโปรเจกต์และคำอธิบายก่อน');
+        return;
+    }
+
+    // Show modal with loading
+    const overlay = document.getElementById('wizardOverlay');
+    const body = document.getElementById('wizardBody');
+    const footer = document.getElementById('wizardFooter');
+    overlay.classList.add('active');
+    footer.style.display = 'none';
+    body.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Gemini กำลังวิเคราะห์โปรเจกต์ของคุณ...</span></div>';
+
+    const wizardPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน web development tech stack
+วิเคราะห์โปรเจกต์นี้และแนะนำ tech stack ที่เหมาะสมที่สุด
+
+โปรเจกต์: ${projectName}
+คำอธิบาย: ${projectDesc}
+
+ตอบเป็น JSON เท่านั้น (ไม่ต้องครอบด้วย code block) ตามรูปแบบนี้:
+{
+  "summary": "สรุปสั้นๆ ว่าทำไมถึงแนะนำ stack นี้",
+  "recommendations": {
+    "platform": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "database": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "cssFramework": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "language": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "pageType": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "pwa": { "value": "...", "reason": "..." },
+    "responsive": { "value": "...", "reason": "..." },
+    "authentication": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "apiStyle": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "packageManager": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "testing": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
+    "hosting": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." }
+  }
+}
+
+ค่า value ที่ใช้ได้:
+- platform: google-apps-script, react-vercel, nextjs-vercel, vue-netlify, static-html
+- database: google-sheets, supabase, firebase-firestore, mongodb-atlas, turso
+- cssFramework: bootstrap, tailwind, daisyui, shadcn-ui, material-ui
+- language: javascript, typescript
+- pageType: single-page, spa
+- pwa: yes, no
+- responsive: responsive, desktop-only
+- authentication: none, firebase-auth, supabase-auth, clerk
+- apiStyle: rest, graphql, trpc
+- packageManager: none, npm, pnpm, bun
+- testing: none, vitest, jest, playwright
+- hosting: gas-deploy, vercel, netlify, cloudflare-pages, firebase-hosting
+
+ตอบเป็น JSON เท่านั้น`;
+
+    try {
+        const raw = await callGeminiAPI(apiKey, wizardPrompt);
+        const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const data = JSON.parse(jsonStr);
+        renderWizardResults(data);
+    } catch (err) {
+        body.innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p><button class="btn btn-outline btn-sm" onclick="openMagicWizard()">ลองใหม่</button></div>`;
+    }
+}
+
+const WIZARD_LABELS = {
+    platform: 'แพลตฟอร์ม', database: 'ฐานข้อมูล', cssFramework: 'CSS Framework',
+    language: 'ภาษา', pageType: 'รูปแบบหน้าเว็บ', pwa: 'PWA',
+    responsive: 'การแสดงผล', authentication: 'Authentication', apiStyle: 'API Style',
+    packageManager: 'Package Manager', testing: 'Testing', hosting: 'Hosting'
+};
+
+function renderWizardResults(data) {
+    const body = document.getElementById('wizardBody');
+    const footer = document.getElementById('wizardFooter');
+    wizardSelections = {};
+
+    let html = '';
+    if (data.summary) {
+        html += `<div class="wizard-summary">${data.summary}</div>`;
+    }
+
+    for (const [field, rec] of Object.entries(data.recommendations)) {
+        const label = WIZARD_LABELS[field] || field;
+        wizardSelections[field] = rec.value;
+
+        html += `<div class="wizard-item"><div class="wizard-item-label">${label}</div><div class="wizard-item-options">`;
+
+        // Recommended option
+        html += `<button class="wizard-option selected" data-field="${field}" data-value="${rec.value}" onclick="selectWizardOption(this)">
+            <div class="wizard-option-radio"></div>
+            <div class="wizard-option-content">
+                <div class="wizard-option-header">
+                    <span class="wizard-option-title">${rec.value}</span>
+                    <span class="wizard-option-badge recommended">แนะนำ</span>
+                </div>
+                <span class="wizard-option-reason">${rec.reason}</span>
+            </div>
+        </button>`;
+
+        // Alternative option (if exists)
+        if (rec.alt_value) {
+            html += `<button class="wizard-option" data-field="${field}" data-value="${rec.alt_value}" onclick="selectWizardOption(this)">
+                <div class="wizard-option-radio"></div>
+                <div class="wizard-option-content">
+                    <div class="wizard-option-header">
+                        <span class="wizard-option-title">${rec.alt_value}</span>
+                        <span class="wizard-option-badge alternative">ทางเลือก</span>
+                    </div>
+                    <span class="wizard-option-reason">${rec.alt_reason}</span>
+                </div>
+            </button>`;
+        }
+
+        html += '</div></div>';
+    }
+
+    body.innerHTML = html;
+    footer.style.display = 'flex';
+}
+
+function selectWizardOption(btn) {
+    const field = btn.dataset.field;
+    const value = btn.dataset.value;
+    wizardSelections[field] = value;
+
+    // Toggle selected state within same wizard-item
+    const parent = btn.closest('.wizard-item-options');
+    parent.querySelectorAll('.wizard-option').forEach(opt => opt.classList.remove('selected'));
+    btn.classList.add('selected');
+}
+
+function applyWizardSelections() {
+    for (const [field, value] of Object.entries(wizardSelections)) {
+        const radio = document.querySelector(`input[name="${field}"][value="${value}"]`);
+        if (radio && !radio.disabled) {
+            radio.checked = true;
+        }
+    }
+    applyValidationRules();
+    closeWizard();
+    showToast('ใช้ Tech Stack ที่เลือกแล้ว!');
+
+    // Scroll to tech section
+    document.getElementById('tech-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeWizard() {
+    document.getElementById('wizardOverlay').classList.remove('active');
+}
+
 // ===== Generate Prompt =====
 
 async function generatePrompt() {
@@ -398,9 +632,15 @@ async function generatePrompt() {
     const platform = getRadioValue('platform');
     const database = getRadioValue('database');
     const cssFramework = getRadioValue('cssFramework');
+    const language = getRadioValue('language');
     const pageType = getRadioValue('pageType');
     const pwa = getRadioValue('pwa');
     const responsive = getRadioValue('responsive');
+    const authentication = getRadioValue('authentication');
+    const apiStyle = getRadioValue('apiStyle');
+    const packageManager = getRadioValue('packageManager');
+    const testing = getRadioValue('testing');
+    const hosting = getRadioValue('hosting');
     const targetAI = getRadioValue('targetAI');
     const otherAiName = document.getElementById('otherAiName').value.trim();
 
@@ -433,25 +673,47 @@ async function generatePrompt() {
     };
     const fileName = fileNames[targetAI];
 
-    // Platform names
     const platformNames = {
         'google-apps-script': 'Google Apps Script (GAS)',
-        'react-vercel': 'React + Vercel'
+        'react-vercel': 'React + Vercel',
+        'nextjs-vercel': 'Next.js + Vercel',
+        'vue-netlify': 'Vue.js + Netlify',
+        'static-html': 'Static HTML/JS'
     };
-
     const dbNames = {
         'google-sheets': 'Google Sheets',
-        'supabase': 'Supabase (PostgreSQL)'
+        'supabase': 'Supabase (PostgreSQL)',
+        'firebase-firestore': 'Firebase Firestore',
+        'mongodb-atlas': 'MongoDB Atlas',
+        'turso': 'Turso (SQLite Edge)'
     };
-
     const cssNames = {
         'bootstrap': 'Bootstrap',
-        'tailwind': 'Tailwind CSS'
+        'tailwind': 'Tailwind CSS',
+        'daisyui': 'DaisyUI (Tailwind)',
+        'shadcn-ui': 'Shadcn/ui',
+        'material-ui': 'Material UI'
     };
-
+    const langNames = { 'javascript': 'JavaScript', 'typescript': 'TypeScript' };
     const pageNames = {
         'single-page': 'Single Page (หน้าเดียว)',
         'spa': 'SPA - Single Page Application (หลายหน้า มี routing)'
+    };
+    const authNames = {
+        'none': 'ไม่มี Authentication',
+        'firebase-auth': 'Firebase Auth',
+        'supabase-auth': 'Supabase Auth',
+        'clerk': 'Clerk'
+    };
+    const apiNames = { 'rest': 'REST API', 'graphql': 'GraphQL', 'trpc': 'tRPC' };
+    const pkgNames = { 'none': 'ไม่ใช้ (CDN)', 'npm': 'npm', 'pnpm': 'pnpm', 'bun': 'Bun' };
+    const testNames = { 'none': 'ไม่มี Testing', 'vitest': 'Vitest', 'jest': 'Jest', 'playwright': 'Playwright' };
+    const hostNames = {
+        'gas-deploy': 'GAS Web App Deploy',
+        'vercel': 'Vercel',
+        'netlify': 'Netlify',
+        'cloudflare-pages': 'Cloudflare Pages',
+        'firebase-hosting': 'Firebase Hosting'
     };
 
     // Build context-aware notes based on combo selections
@@ -491,9 +753,15 @@ async function generatePrompt() {
 - **แพลตฟอร์ม**: ${platformNames[platform]}
 - **ฐานข้อมูล**: ${dbNames[database]}
 - **CSS Framework**: ${cssNames[cssFramework]}
+- **ภาษา**: ${langNames[language]}
 - **รูปแบบหน้าเว็บ**: ${pageNames[pageType]}${platform === 'google-apps-script' && pageType === 'spa' ? ' (ใช้ Alpine.js สำหรับ routing/state)' : ''}
 - **PWA**: ${pwa === 'yes' ? 'ต้องการ PWA (Progressive Web App)' : 'ไม่ต้องการ PWA'}
 - **การแสดงผล**: ${responsive === 'responsive' ? 'Responsive (รองรับทุกขนาดหน้าจอ)' : 'Desktop Only'}
+- **Authentication**: ${authNames[authentication]}
+- **API Style**: ${apiNames[apiStyle]}
+- **Package Manager**: ${pkgNames[packageManager]}
+- **Testing**: ${testNames[testing]}
+- **Hosting**: ${hostNames[hosting]}
 ${comboNotesText}
 ## Skills ที่เกี่ยวข้อง
 ${skillsText}
