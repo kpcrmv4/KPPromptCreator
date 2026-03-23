@@ -94,81 +94,81 @@ const COMPAT_RULES = {
         'google-apps-script': {
             allowed: ['google-sheets', 'supabase', 'firebase-firestore'],
             blocked: ['mongodb-atlas', 'turso'],
-            reason: 'GAS ใช้ Google Sheets, Supabase, Firebase ได้ผ่าน UrlFetchApp (MongoDB/Turso ต้องการ driver ที่ GAS ไม่รองรับ)'
+            reason: t('reasonGASDB')
         },
         'static-html': {
             allowed: ['google-sheets', 'firebase-firestore', 'supabase'],
             blocked: ['mongodb-atlas', 'turso'],
-            reason: 'Static HTML ใช้ Supabase/Firebase ได้โดยตรง หรือใช้ Google Sheets ผ่าน GAS API เป็น backend'
+            reason: t('reasonStaticDB')
         }
     },
     cssFramework: {
         'google-apps-script': {
             allowed: ['bootstrap', 'tailwind', 'daisyui'],
             blocked: ['shadcn-ui', 'material-ui'],
-            reason: 'GAS ใช้ CDN-based framework ได้ (Bootstrap/Tailwind/DaisyUI) ส่วน Shadcn/MUI ต้องมี React build step'
+            reason: t('reasonGASCSS')
         }
     },
     language: {
         'google-apps-script': {
             allowed: ['javascript'],
             blocked: ['typescript'],
-            reason: 'Google Apps Script ใช้ JavaScript เท่านั้น'
+            reason: t('reasonGASLang')
         }
     },
     authentication: {
         'google-apps-script': {
             allowed: ['none', 'firebase-auth', 'supabase-auth'],
             blocked: ['clerk'],
-            reason: 'GAS ใช้ Firebase Auth / Supabase Auth ได้ผ่าน client-side JS ใน HTML template (Clerk ต้องการ framework integration)'
+            reason: t('reasonGASAuth')
         }
     },
     apiStyle: {
         'google-apps-script': {
             allowed: ['rest', 'graphql'],
             blocked: ['trpc'],
-            reason: 'GAS ใช้ REST (doGet/doPost) หรือเรียก GraphQL ผ่าน UrlFetchApp ได้ (tRPC ต้องการ TypeScript build)'
+            reason: t('reasonGASAPI')
         }
     },
     packageManager: {
         'google-apps-script': {
             allowed: ['none'],
             blocked: ['npm', 'pnpm', 'bun'],
-            reason: 'GAS ไม่รองรับ package manager ใช้ CDN แทน'
+            reason: t('reasonGASPkg')
         },
         'static-html': {
             allowed: ['none'],
             blocked: ['pnpm', 'bun'],
-            reason: 'Static HTML แนะนำใช้ CDN หรือ npm เท่านั้น'
+            reason: t('reasonStaticPkg')
         }
     },
     testing: {
         'google-apps-script': {
             allowed: ['none'],
             blocked: ['vitest', 'jest', 'playwright'],
-            reason: 'GAS ไม่มี testing framework มาตรฐาน'
+            reason: t('reasonGASTest')
         }
     },
     hosting: {
         'google-apps-script': {
             allowed: ['gas-deploy'],
             blocked: ['vercel', 'netlify', 'cloudflare-pages', 'firebase-hosting'],
-            reason: 'GAS ต้อง deploy ผ่าน Google Apps Script เท่านั้น'
+            reason: t('reasonGASHost')
         },
         'react-vercel': {
             allowed: ['vercel'],
             blocked: ['gas-deploy', 'netlify'],
-            reason: 'React + Vercel แนะนำ deploy บน Vercel'
+            reason: t('reasonReactHost')
         },
         'nextjs-vercel': {
             allowed: ['vercel'],
             blocked: ['gas-deploy', 'netlify', 'cloudflare-pages'],
-            reason: 'Next.js แนะนำ deploy บน Vercel (รองรับ SSR เต็มที่)'
+            reason: t('reasonNextHost')
         },
         'vue-netlify': {
             allowed: ['netlify'],
             blocked: ['gas-deploy', 'vercel'],
-            reason: 'Vue + Netlify แนะนำ deploy บน Netlify'
+            reason: t('reasonVueHost')
         }
     },
     pageType: {}
@@ -444,7 +444,7 @@ function fetchSkills() {
         loadingEl.style.display = 'none';
 
         if (topSkills.length === 0) {
-            listEl.innerHTML = '<p class="form-hint">ไม่พบ skills ที่เกี่ยวข้อง ลองอธิบายโปรเจกต์ให้ละเอียดขึ้น</p>';
+            listEl.innerHTML = '<p class="form-hint">' + t('skillsEmpty') + '</p>';
             return;
         }
 
@@ -472,13 +472,13 @@ let wizardSelections = {};
 async function openMagicWizard() {
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) {
-        showToast('กรุณาใส่ Gemini API Key ก่อนใช้ Magic Wizard');
+        showToast(t('toastNoApiKeyWizard'));
         return;
     }
     const projectName = document.getElementById('projectName').value.trim();
     const projectDesc = document.getElementById('projectDesc').value.trim();
     if (!projectName || !projectDesc) {
-        showToast('กรุณาใส่ชื่อโปรเจกต์และคำอธิบายก่อน');
+        showToast(t('toastNoProjectWizard'));
         return;
     }
 
@@ -488,7 +488,7 @@ async function openMagicWizard() {
     const footer = document.getElementById('wizardFooter');
     overlay.classList.add('active');
     footer.style.display = 'none';
-    body.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Gemini กำลังวิเคราะห์โปรเจกต์ของคุณ...</span></div>';
+    body.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>' + t('wizardLoading') + '</span></div>';
 
     const wizardPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน web development tech stack
 วิเคราะห์โปรเจกต์นี้และแนะนำ tech stack ที่เหมาะสมที่สุด
@@ -537,16 +537,18 @@ async function openMagicWizard() {
         const data = JSON.parse(jsonStr);
         renderWizardResults(data);
     } catch (err) {
-        body.innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p><button class="btn btn-outline btn-sm" onclick="openMagicWizard()">ลองใหม่</button></div>`;
+        body.innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p><button class="btn btn-outline btn-sm" onclick="openMagicWizard()">${t('retryBtn')}</button></div>`;
     }
 }
 
-const WIZARD_LABELS = {
-    platform: 'แพลตฟอร์ม', database: 'ฐานข้อมูล', cssFramework: 'CSS Framework',
-    language: 'ภาษา', pageType: 'รูปแบบหน้าเว็บ', pwa: 'PWA',
-    responsive: 'การแสดงผล', authentication: 'Authentication', apiStyle: 'API Style',
-    packageManager: 'Package Manager', testing: 'Testing', hosting: 'Hosting'
-};
+function getWizardLabels() {
+    return {
+        platform: t('wlPlatform'), database: t('wlDatabase'), cssFramework: t('wlCSSFramework'),
+        language: t('wlLanguage'), pageType: t('wlPageType'), pwa: t('wlPWA'),
+        responsive: t('wlResponsive'), authentication: t('wlAuthentication'), apiStyle: t('wlAPIStyle'),
+        packageManager: t('wlPackageManager'), testing: t('wlTesting'), hosting: t('wlHosting')
+    };
+}
 
 function renderWizardResults(data) {
     const body = document.getElementById('wizardBody');

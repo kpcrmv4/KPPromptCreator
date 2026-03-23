@@ -13,11 +13,14 @@
         <!-- Header -->
         <header class="app-header">
             <div class="header-content">
-                <div class="logo">
-                    <img src="images/logo.png" alt="KP Webapp Studio" class="logo-img">
-                    <h1>KP Prompt Creator</h1>
+                <div class="header-top">
+                    <div class="logo">
+                        <img src="images/logo.png" alt="KP Webapp Studio" class="logo-img">
+                        <h1>KP Prompt Creator</h1>
+                    </div>
+                    <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()" title="เปลี่ยนเป็นภาษาอังกฤษ">EN</button>
                 </div>
-                <p class="tagline">สร้างไฟล์แนะนำโปรเจกต์ให้ AI <br class="mobile-br">เข้าใจงานของคุณได้ทันที</p>
+                <p class="tagline" data-i18n="tagline">สร้างไฟล์แนะนำโปรเจกต์ให้ AI <br class="mobile-br">เข้าใจงานของคุณได้ทันที</p>
             </div>
         </header>
 
@@ -31,14 +34,14 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label for="apiKey">API Key <a href="https://aistudio.google.com/apikey" target="_blank" class="link-small">(รับ API Key ฟรี)</a></label>
+                        <label for="apiKey" data-i18n="apiKeyLabel">API Key <a href="https://aistudio.google.com/apikey" target="_blank" class="link-small">(รับ API Key ฟรี)</a></label>
                         <div class="input-with-icon">
-                            <input type="password" id="apiKey" placeholder="ใส่ Gemini API Key ของคุณ" autocomplete="off">
-                            <button type="button" class="btn-icon" id="toggleApiKey" title="แสดง/ซ่อน">
+                            <input type="password" id="apiKey" placeholder="ใส่ Gemini API Key ของคุณ" data-i18n-placeholder="apiKeyPlaceholder" autocomplete="off">
+                            <button type="button" class="btn-icon" id="toggleApiKey" title="แสดง/ซ่อน" data-i18n-title="apiKeyToggleTitle">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
-                        <small class="form-hint">API Key จะถูกเก็บไว้ใน browser ของคุณเท่านั้น ไม่ถูกส่งไปที่อื่น</small>
+                        <small class="form-hint" data-i18n="apiKeyHint">API Key จะถูกเก็บไว้ใน browser ของคุณเท่านั้น ไม่ถูกส่งไปที่อื่น</small>
                     </div>
                 </div>
             </section>
@@ -47,7 +50,7 @@
             <section class="card" id="mode-section">
                 <div class="card-header">
                     <span class="step-badge">2</span>
-                    <h2>เลือกโหมดการใช้งาน</h2>
+                    <h2 data-i18n="stepMode">เลือกโหมดการใช้งาน</h2>
                 </div>
                 <div class="card-body">
                     <div class="mode-toggle">
@@ -55,21 +58,21 @@
                             <i class="bi bi-sliders"></i>
                             <div>
                                 <span class="mode-title">Manual Mode</span>
-                                <span class="mode-desc">เลือก tech stack เอง</span>
+                                <span class="mode-desc" data-i18n="modeManualDesc">เลือก tech stack เอง</span>
                             </div>
                         </button>
                         <button class="mode-btn" data-mode="ai-chat" id="modeChatBtn">
                             <i class="bi bi-chat-dots"></i>
                             <div>
                                 <span class="mode-title">AI Chat</span>
-                                <span class="mode-desc">คุยกับ AI ทีละขั้นตอน</span>
+                                <span class="mode-desc" data-i18n="modeChatDesc">คุยกับ AI ทีละขั้นตอน</span>
                             </div>
                         </button>
                         <button class="mode-btn" data-mode="ai-wizard" id="modeWizardBtn">
                             <i class="bi bi-list-check"></i>
                             <div>
                                 <span class="mode-title">AI Wizard</span>
-                                <span class="mode-desc">AI วิเคราะห์เป็น step cards</span>
+                                <span class="mode-desc" data-i18n="modeWizardDesc">AI วิเคราะห์เป็น step cards</span>
                             </div>
                         </button>
                     </div>
@@ -82,13 +85,13 @@
                     <span class="step-badge"><i class="bi bi-chat-dots"></i></span>
                     <h2>AI Assistant - Chat Mode</h2>
                     <button class="btn btn-outline btn-sm" id="chatResetBtn">
-                        <i class="bi bi-arrow-counterclockwise"></i> เริ่มใหม่
+                        <i class="bi bi-arrow-counterclockwise"></i> <span data-i18n="chatResetBtn">เริ่มใหม่</span>
                     </button>
                 </div>
                 <div class="card-body chat-body">
                     <div class="chat-messages" id="chatMessages"></div>
                     <div class="chat-input-area">
-                        <textarea id="chatInput" rows="2" placeholder="พิมพ์คำตอบของคุณ..." disabled></textarea>
+                        <textarea id="chatInput" rows="2" placeholder="พิมพ์คำตอบของคุณ..." data-i18n-placeholder="chatPlaceholder" disabled></textarea>
                         <button class="btn btn-primary" id="chatSendBtn" disabled>
                             <i class="bi bi-send"></i>
                         </button>
@@ -107,19 +110,19 @@
                     <div class="wizard-step active" id="wizStep1">
                         <div class="wiz-step-header">
                             <span class="wiz-step-num">1</span>
-                            <span class="wiz-step-title">อธิบายโปรเจกต์ของคุณ</span>
+                            <span class="wiz-step-title" data-i18n="wizStep1Title">อธิบายโปรเจกต์ของคุณ</span>
                         </div>
                         <div class="wiz-step-body">
                             <div class="form-group">
-                                <label for="wizProjectName">ชื่อโปรเจกต์</label>
-                                <input type="text" id="wizProjectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า">
+                                <label for="wizProjectName" data-i18n="wizProjectNameLabel">ชื่อโปรเจกต์</label>
+                                <input type="text" id="wizProjectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า" data-i18n-placeholder="wizProjectNamePlaceholder">
                             </div>
                             <div class="form-group">
-                                <label for="wizProjectDesc">อธิบายสิ่งที่ต้องการ ยิ่งละเอียดยิ่งดี</label>
-                                <textarea id="wizProjectDesc" rows="5" placeholder="เช่น ต้องการเว็บจัดการสินค้า มีระบบ login, เพิ่ม/แก้ไข/ลบสินค้า, แดชบอร์ดสรุปยอดขาย, export เป็น Excel..."></textarea>
+                                <label for="wizProjectDesc" data-i18n="wizProjectDescLabel">อธิบายสิ่งที่ต้องการ ยิ่งละเอียดยิ่งดี</label>
+                                <textarea id="wizProjectDesc" rows="5" placeholder="เช่น ต้องการเว็บจัดการสินค้า มีระบบ login, เพิ่ม/แก้ไข/ลบสินค้า, แดชบอร์ดสรุปยอดขาย, export เป็น Excel..." data-i18n-placeholder="wizProjectDescPlaceholder"></textarea>
                             </div>
                             <div class="form-group">
-                                <label for="wizTargetAI">AI ที่จะนำไปใช้</label>
+                                <label for="wizTargetAI" data-i18n="wizTargetAILabel">AI ที่จะนำไปใช้</label>
                                 <select id="wizTargetAI">
                                     <option value="claude">Claude (Anthropic)</option>
                                     <option value="gemini-cli">Gemini CLI</option>
@@ -127,11 +130,11 @@
                                     <option value="github-copilot">GitHub Copilot</option>
                                     <option value="codex">OpenAI Codex</option>
                                     <option value="windsurf">Windsurf</option>
-                                    <option value="other">อื่นๆ</option>
+                                    <option value="other" data-i18n="wizTargetAIOther">อื่นๆ</option>
                                 </select>
                             </div>
                             <button class="btn btn-primary" id="wizAnalyzeBtn">
-                                <i class="bi bi-cpu"></i> วิเคราะห์โปรเจกต์
+                                <i class="bi bi-cpu"></i> <span data-i18n="wizAnalyzeBtn">วิเคราะห์โปรเจกต์</span>
                             </button>
                         </div>
                     </div>
@@ -140,12 +143,12 @@
                     <div class="wizard-step" id="wizStep2">
                         <div class="wiz-step-header">
                             <span class="wiz-step-num">2</span>
-                            <span class="wiz-step-title">AI วิเคราะห์ความต้องการ</span>
+                            <span class="wiz-step-title" data-i18n="wizStep2Title">AI วิเคราะห์ความต้องการ</span>
                         </div>
                         <div class="wiz-step-body" id="wizAnalysisBody">
                             <div class="loading-state" id="wizAnalysisLoading" style="display: none;">
                                 <div class="spinner"></div>
-                                <span>AI กำลังวิเคราะห์โปรเจกต์...</span>
+                                <span data-i18n="wizAnalysisLoading">AI กำลังวิเคราะห์โปรเจกต์...</span>
                             </div>
                             <div id="wizAnalysisContent"></div>
                         </div>
@@ -155,12 +158,12 @@
                     <div class="wizard-step" id="wizStep3">
                         <div class="wiz-step-header">
                             <span class="wiz-step-num">3</span>
-                            <span class="wiz-step-title">Tech Stack ที่แนะนำ</span>
+                            <span class="wiz-step-title" data-i18n="wizStep3Title">Tech Stack ที่แนะนำ</span>
                         </div>
                         <div class="wiz-step-body" id="wizTechBody">
                             <div class="loading-state" id="wizTechLoading" style="display: none;">
                                 <div class="spinner"></div>
-                                <span>AI กำลังแนะนำ Tech Stack...</span>
+                                <span data-i18n="wizTechLoading">AI กำลังแนะนำ Tech Stack...</span>
                             </div>
                             <div id="wizTechContent"></div>
                         </div>
@@ -170,7 +173,7 @@
                     <div class="wizard-step" id="wizStep4">
                         <div class="wiz-step-header">
                             <span class="wiz-step-num">4</span>
-                            <span class="wiz-step-title">สร้าง Prompt</span>
+                            <span class="wiz-step-title" data-i18n="wizStep4Title">สร้าง Prompt</span>
                         </div>
                         <div class="wiz-step-body" id="wizGenerateBody" style="display: none;">
                             <div class="wiz-summary-box" id="wizFinalSummary"></div>
@@ -186,19 +189,19 @@
             <section class="card manual-section" id="project-section">
                 <div class="card-header">
                     <span class="step-badge">3</span>
-                    <h2>ข้อมูลโปรเจกต์</h2>
+                    <h2 data-i18n="stepProjectInfo">ข้อมูลโปรเจกต์</h2>
                     <button class="btn btn-outline btn-sm btn-magic" id="magicWizardBtn">
                         <i class="bi bi-stars"></i> Magic Wizard
                     </button>
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label for="projectName">ชื่อเว็บไซต์ / โปรเจกต์</label>
-                        <input type="text" id="projectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า">
+                        <label for="projectName" data-i18n="projectNameLabel">ชื่อเว็บไซต์ / โปรเจกต์</label>
+                        <input type="text" id="projectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า" data-i18n-placeholder="projectNamePlaceholder">
                     </div>
                     <div class="form-group">
-                        <label for="projectDesc">อธิบายหลักการทำงาน</label>
-                        <textarea id="projectDesc" rows="4" placeholder="อธิบายว่าเว็บไซต์นี้ทำอะไร มีฟีเจอร์อะไรบ้าง เช่น ระบบล็อกอิน, CRUD สินค้า, แดชบอร์ดสรุปยอด..."></textarea>
+                        <label for="projectDesc" data-i18n="projectDescLabel">อธิบายหลักการทำงาน</label>
+                        <textarea id="projectDesc" rows="4" placeholder="อธิบายว่าเว็บไซต์นี้ทำอะไร มีฟีเจอร์อะไรบ้าง เช่น ระบบล็อกอิน, CRUD สินค้า, แดชบอร์ดสรุปยอด..." data-i18n-placeholder="projectDescPlaceholder"></textarea>
                     </div>
                 </div>
             </section>
@@ -207,19 +210,19 @@
             <section class="card manual-section" id="tech-section">
                 <div class="card-header">
                     <span class="step-badge">4</span>
-                    <h2>เลือก Tech Stack</h2>
+                    <h2 data-i18n="stepTechStack">เลือก Tech Stack</h2>
                 </div>
                 <div class="card-body">
                     <!-- Platform -->
                     <div class="form-group">
-                        <label>แพลตฟอร์ม</label>
+                        <label data-i18n="labelPlatform">แพลตฟอร์ม</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="platform" value="google-apps-script" checked>
                                 <div class="option-content">
                                     <i class="bi bi-google"></i>
                                     <span class="option-title">Google Apps Script</span>
-                                    <span class="option-desc">ใช้งานง่าย โฮสต์ฟรีบน Google</span>
+                                    <span class="option-desc" data-i18n="gasDesc">ใช้งานง่าย โฮสต์ฟรีบน Google</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -227,7 +230,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-arrow-repeat"></i>
                                     <span class="option-title">React + Vercel</span>
-                                    <span class="option-desc">Modern framework, deploy ง่าย</span>
+                                    <span class="option-desc" data-i18n="reactVercelDesc">Modern framework, deploy ง่าย</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -243,7 +246,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-code-square"></i>
                                     <span class="option-title">Vue + Netlify</span>
-                                    <span class="option-desc">Progressive framework ยืดหยุ่น</span>
+                                    <span class="option-desc" data-i18n="vueNetlifyDesc">Progressive framework ยืดหยุ่น</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -251,7 +254,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-filetype-html"></i>
                                     <span class="option-title">Static HTML/JS</span>
-                                    <span class="option-desc">ไม่ใช้ framework, เบาและเร็ว</span>
+                                    <span class="option-desc" data-i18n="staticHtmlDesc">ไม่ใช้ framework, เบาและเร็ว</span>
                                 </div>
                             </label>
                         </div>
@@ -259,14 +262,14 @@
 
                     <!-- Database -->
                     <div class="form-group">
-                        <label>ฐานข้อมูล</label>
+                        <label data-i18n="labelDatabase">ฐานข้อมูล</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="database" value="google-sheets" checked>
                                 <div class="option-content">
                                     <i class="bi bi-table"></i>
                                     <span class="option-title">Google Sheets</span>
-                                    <span class="option-desc">เหมาะกับ GAS, ใช้งานง่าย</span>
+                                    <span class="option-desc" data-i18n="googleSheetsDesc">เหมาะกับ GAS, ใช้งานง่าย</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -298,7 +301,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-lightning"></i>
                                     <span class="option-title">Turso</span>
-                                    <span class="option-desc">SQLite Edge, เร็วมาก</span>
+                                    <span class="option-desc" data-i18n="tursoDesc">SQLite Edge, เร็วมาก</span>
                                 </div>
                             </label>
                         </div>
@@ -306,14 +309,14 @@
 
                     <!-- CSS Framework -->
                     <div class="form-group">
-                        <label>CSS Framework</label>
+                        <label data-i18n="labelCSSFramework">CSS Framework</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="cssFramework" value="bootstrap" checked>
                                 <div class="option-content">
                                     <i class="bi bi-bootstrap"></i>
                                     <span class="option-title">Bootstrap</span>
-                                    <span class="option-desc">Component-rich, เรียนรู้ง่าย</span>
+                                    <span class="option-desc" data-i18n="bootstrapDesc">Component-rich, เรียนรู้ง่าย</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -321,7 +324,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-wind"></i>
                                     <span class="option-title">Tailwind CSS</span>
-                                    <span class="option-desc">Utility-first, ยืดหยุ่นสูง</span>
+                                    <span class="option-desc" data-i18n="tailwindDesc">Utility-first, ยืดหยุ่นสูง</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -329,7 +332,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-flower1"></i>
                                     <span class="option-title">DaisyUI</span>
-                                    <span class="option-desc">Tailwind + Components สวยๆ</span>
+                                    <span class="option-desc" data-i18n="daisyuiDesc">Tailwind + Components สวยๆ</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -353,14 +356,14 @@
 
                     <!-- Language -->
                     <div class="form-group">
-                        <label>ภาษา</label>
+                        <label data-i18n="labelLanguage">ภาษา</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="language" value="javascript" checked>
                                 <div class="option-content">
                                     <i class="bi bi-filetype-js"></i>
                                     <span class="option-title">JavaScript</span>
-                                    <span class="option-desc">ใช้งานได้ทุกที่ ไม่ต้อง compile</span>
+                                    <span class="option-desc" data-i18n="jsDesc">ใช้งานได้ทุกที่ ไม่ต้อง compile</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -368,7 +371,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-filetype-tsx"></i>
                                     <span class="option-title">TypeScript</span>
-                                    <span class="option-desc">Type-safe, จับ bug ได้ตั้งแต่เขียน</span>
+                                    <span class="option-desc" data-i18n="tsDesc">Type-safe, จับ bug ได้ตั้งแต่เขียน</span>
                                 </div>
                             </label>
                         </div>
@@ -376,14 +379,14 @@
 
                     <!-- Page Type -->
                     <div class="form-group">
-                        <label>รูปแบบหน้าเว็บ</label>
+                        <label data-i18n="labelPageType">รูปแบบหน้าเว็บ</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="pageType" value="single-page" checked>
                                 <div class="option-content">
                                     <i class="bi bi-file-earmark"></i>
                                     <span class="option-title">Single Page</span>
-                                    <span class="option-desc">หน้าเดียว เรียบง่าย</span>
+                                    <span class="option-desc" data-i18n="singlePageDesc">หน้าเดียว เรียบง่าย</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -391,7 +394,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-layers"></i>
                                     <span class="option-title">SPA (Multi-page)</span>
-                                    <span class="option-desc">หลายหน้า มี routing</span>
+                                    <span class="option-desc" data-i18n="spaDesc">หลายหน้า มี routing</span>
                                 </div>
                             </label>
                         </div>
@@ -399,22 +402,22 @@
 
                     <!-- PWA -->
                     <div class="form-group">
-                        <label>Progressive Web App (PWA)</label>
+                        <label data-i18n="labelPWA">Progressive Web App (PWA)</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="pwa" value="no" checked>
                                 <div class="option-content">
                                     <i class="bi bi-x-circle"></i>
-                                    <span class="option-title">ไม่ต้องการ</span>
-                                    <span class="option-desc">เว็บปกติ</span>
+                                    <span class="option-title" data-i18n="pwaNo">ไม่ต้องการ</span>
+                                    <span class="option-desc" data-i18n="pwaNoDesc">เว็บปกติ</span>
                                 </div>
                             </label>
                             <label class="option-card">
                                 <input type="radio" name="pwa" value="yes">
                                 <div class="option-content">
                                     <i class="bi bi-phone"></i>
-                                    <span class="option-title">ต้องการ PWA</span>
-                                    <span class="option-desc">ติดตั้งได้เหมือนแอป</span>
+                                    <span class="option-title" data-i18n="pwaYes">ต้องการ PWA</span>
+                                    <span class="option-desc" data-i18n="pwaYesDesc">ติดตั้งได้เหมือนแอป</span>
                                 </div>
                             </label>
                         </div>
@@ -422,14 +425,14 @@
 
                     <!-- Responsive -->
                     <div class="form-group">
-                        <label>การแสดงผล</label>
+                        <label data-i18n="labelResponsive">การแสดงผล</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="responsive" value="desktop-only">
                                 <div class="option-content">
                                     <i class="bi bi-display"></i>
                                     <span class="option-title">Desktop Only</span>
-                                    <span class="option-desc">แสดงผลบนเดสก์ท็อปเท่านั้น</span>
+                                    <span class="option-desc" data-i18n="desktopOnlyDesc">แสดงผลบนเดสก์ท็อปเท่านั้น</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -437,7 +440,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-phone-landscape"></i>
                                     <span class="option-title">Responsive</span>
-                                    <span class="option-desc">รองรับทุกขนาดหน้าจอ</span>
+                                    <span class="option-desc" data-i18n="responsiveDesc">รองรับทุกขนาดหน้าจอ</span>
                                 </div>
                             </label>
                         </div>
@@ -445,14 +448,14 @@
 
                     <!-- Authentication -->
                     <div class="form-group">
-                        <label>Authentication</label>
+                        <label data-i18n="labelAuthentication">Authentication</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="authentication" value="none" checked>
                                 <div class="option-content">
                                     <i class="bi bi-unlock"></i>
-                                    <span class="option-title">ไม่ต้องการ</span>
-                                    <span class="option-desc">ไม่มีระบบ login</span>
+                                    <span class="option-title" data-i18n="authNone">ไม่ต้องการ</span>
+                                    <span class="option-desc" data-i18n="authNoneDesc">ไม่มีระบบ login</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -484,14 +487,14 @@
 
                     <!-- API Style -->
                     <div class="form-group">
-                        <label>API Style</label>
+                        <label data-i18n="labelAPIStyle">API Style</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="apiStyle" value="rest" checked>
                                 <div class="option-content">
                                     <i class="bi bi-arrow-left-right"></i>
                                     <span class="option-title">REST API</span>
-                                    <span class="option-desc">มาตรฐาน, ใช้งานง่าย</span>
+                                    <span class="option-desc" data-i18n="restDesc">มาตรฐาน, ใช้งานง่าย</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -499,7 +502,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-diagram-3"></i>
                                     <span class="option-title">GraphQL</span>
-                                    <span class="option-desc">Query ยืดหยุ่น, type-safe</span>
+                                    <span class="option-desc" data-i18n="graphqlDesc">Query ยืดหยุ่น, type-safe</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -515,14 +518,14 @@
 
                     <!-- Package Manager -->
                     <div class="form-group">
-                        <label>Package Manager</label>
+                        <label data-i18n="labelPackageManager">Package Manager</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="packageManager" value="none" checked>
                                 <div class="option-content">
                                     <i class="bi bi-x-circle"></i>
-                                    <span class="option-title">ไม่ใช้</span>
-                                    <span class="option-desc">ใช้ CDN / ไม่มี build step</span>
+                                    <span class="option-title" data-i18n="pkgNone">ไม่ใช้</span>
+                                    <span class="option-desc" data-i18n="pkgNoneDesc">ใช้ CDN / ไม่มี build step</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -530,7 +533,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-box"></i>
                                     <span class="option-title">npm</span>
-                                    <span class="option-desc">มาตรฐาน, มาพร้อม Node.js</span>
+                                    <span class="option-desc" data-i18n="npmDesc">มาตรฐาน, มาพร้อม Node.js</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -538,7 +541,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-boxes"></i>
                                     <span class="option-title">pnpm</span>
-                                    <span class="option-desc">เร็ว, ประหยัด disk space</span>
+                                    <span class="option-desc" data-i18n="pnpmDesc">เร็ว, ประหยัด disk space</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -546,7 +549,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-lightning-charge"></i>
                                     <span class="option-title">Bun</span>
-                                    <span class="option-desc">เร็วที่สุด, all-in-one toolkit</span>
+                                    <span class="option-desc" data-i18n="bunDesc">เร็วที่สุด, all-in-one toolkit</span>
                                 </div>
                             </label>
                         </div>
@@ -554,14 +557,14 @@
 
                     <!-- Testing -->
                     <div class="form-group">
-                        <label>Testing</label>
+                        <label data-i18n="labelTesting">Testing</label>
                         <div class="option-grid">
                             <label class="option-card">
                                 <input type="radio" name="testing" value="none" checked>
                                 <div class="option-content">
                                     <i class="bi bi-x-circle"></i>
-                                    <span class="option-title">ไม่ต้องการ</span>
-                                    <span class="option-desc">ไม่ต้องเขียน test</span>
+                                    <span class="option-title" data-i18n="testNone">ไม่ต้องการ</span>
+                                    <span class="option-desc" data-i18n="testNoneDesc">ไม่ต้องเขียน test</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -569,7 +572,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-check2-circle"></i>
                                     <span class="option-title">Vitest</span>
-                                    <span class="option-desc">เร็ว, รองรับ Vite ecosystem</span>
+                                    <span class="option-desc" data-i18n="vitestDesc">เร็ว, รองรับ Vite ecosystem</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -577,7 +580,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-journal-check"></i>
                                     <span class="option-title">Jest</span>
-                                    <span class="option-desc">ได้รับความนิยมสูง, ครบครัน</span>
+                                    <span class="option-desc" data-i18n="jestDesc">ได้รับความนิยมสูง, ครบครัน</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -593,7 +596,7 @@
 
                     <!-- Hosting -->
                     <div class="form-group">
-                        <label>Hosting / Deployment</label>
+                        <label data-i18n="labelHosting">Hosting / Deployment</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="hosting" value="gas-deploy" checked>
@@ -608,7 +611,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-triangle"></i>
                                     <span class="option-title">Vercel</span>
-                                    <span class="option-desc">เร็ว, CI/CD อัตโนมัติ</span>
+                                    <span class="option-desc" data-i18n="vercelDesc">เร็ว, CI/CD อัตโนมัติ</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -616,7 +619,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-cloud-upload"></i>
                                     <span class="option-title">Netlify</span>
-                                    <span class="option-desc">ใช้งานง่าย, Functions</span>
+                                    <span class="option-desc" data-i18n="netlifyDesc">ใช้งานง่าย, Functions</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -624,7 +627,7 @@
                                 <div class="option-content">
                                     <i class="bi bi-cloud"></i>
                                     <span class="option-title">Cloudflare Pages</span>
-                                    <span class="option-desc">Edge network, เร็วทั่วโลก</span>
+                                    <span class="option-desc" data-i18n="cloudflareDesc">Edge network, เร็วทั่วโลก</span>
                                 </div>
                             </label>
                             <label class="option-card">
@@ -644,11 +647,11 @@
             <section class="card manual-section" id="ai-section">
                 <div class="card-header">
                     <span class="step-badge">5</span>
-                    <h2>เลือก AI ที่จะนำไปใช้</h2>
+                    <h2 data-i18n="stepTargetAI">เลือก AI ที่จะนำไปใช้</h2>
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label>AI ที่จะนำไฟล์ .md ไปสั่งงาน</label>
+                        <label data-i18n="targetAILabel">AI ที่จะนำไฟล์ .md ไปสั่งงาน</label>
                         <div class="option-grid three-cols">
                             <label class="option-card">
                                 <input type="radio" name="targetAI" value="claude" checked>
