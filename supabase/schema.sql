@@ -211,6 +211,139 @@ AFTER INSERT OR UPDATE ON reviews
 FOR EACH ROW EXECUTE FUNCTION update_prompt_rating();
 
 -- =============================================
+-- Function: Atomic Purchase (ป้องกัน race condition)
+-- =============================================
+CREATE OR REPLACE FUNCTION purchase_prompt(
+  p_buyer_id UUID,
+  p_prompt_id UUID,
+  p_commission_rate DECIMAL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_prompt RECORD;
+  v_buyer RECORD;
+  v_seller RECORD;
+  v_commission DECIMAL;
+  v_seller_amount DECIMAL;
+  v_new_buyer_balance DECIMAL;
+  v_new_seller_balance DECIMAL;
+  v_order_id UUID;
+BEGIN
+  -- Lock buyer row for update
+  SELECT * INTO v_buyer FROM users WHERE id = p_buyer_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'buyer_not_found'; END IF;
+
+  -- Get prompt
+  SELECT * INTO v_prompt FROM prompts WHERE id = p_prompt_id AND status = 'approved';
+  IF NOT FOUND THEN RAISE EXCEPTION 'prompt_not_found'; END IF;
+  IF v_prompt.seller_id = p_buyer_id THEN RAISE EXCEPTION 'cannot_buy_own'; END IF;
+
+  -- Check duplicate purchase
+  IF EXISTS (SELECT 1 FROM orders WHERE buyer_id = p_buyer_id AND prompt_id = p_prompt_id) THEN
+    RAISE EXCEPTION 'already_purchased';
+  END IF;
+
+  -- Check balance
+  IF v_buyer.credit_balance < v_prompt.price THEN
+    RAISE EXCEPTION 'insufficient_balance';
+  END IF;
+
+  -- Lock seller row
+  SELECT * INTO v_seller FROM users WHERE id = v_prompt.seller_id FOR UPDATE;
+
+  -- Calculate
+  v_commission := ROUND(v_prompt.price * p_commission_rate, 2);
+  v_seller_amount := v_prompt.price - v_commission;
+  v_new_buyer_balance := v_buyer.credit_balance - v_prompt.price;
+  v_new_seller_balance := v_seller.credit_balance + v_seller_amount;
+
+  -- Update balances
+  UPDATE users SET credit_balance = v_new_buyer_balance WHERE id = p_buyer_id;
+  UPDATE users SET credit_balance = v_new_seller_balance WHERE id = v_prompt.seller_id;
+
+  -- Create order
+  INSERT INTO orders (buyer_id, prompt_id, seller_id, amount, commission, seller_amount)
+  VALUES (p_buyer_id, p_prompt_id, v_prompt.seller_id, v_prompt.price, v_commission, v_seller_amount)
+  RETURNING id INTO v_order_id;
+
+  -- Transactions
+  INSERT INTO transactions (user_id, type, amount, balance_after, ref_id, description)
+  VALUES
+    (p_buyer_id, 'purchase', -v_prompt.price, v_new_buyer_balance, v_order_id::text, 'ซื้อ "' || v_prompt.title || '"'),
+    (v_prompt.seller_id, 'sale', v_seller_amount, v_new_seller_balance, v_order_id::text, 'ขาย "' || v_prompt.title || '" (หักค่าคอม ฿' || v_commission || ')');
+
+  -- Update purchase count
+  UPDATE prompts SET purchase_count = purchase_count + 1 WHERE id = p_prompt_id;
+
+  RETURN jsonb_build_object(
+    'order_id', v_order_id,
+    'amount', v_prompt.price,
+    'commission', v_commission,
+    'seller_amount', v_seller_amount,
+    'new_buyer_balance', v_new_buyer_balance,
+    'prompt_title', v_prompt.title,
+    'seller_id', v_prompt.seller_id
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================
+-- Function: Atomic Payout Request (ป้องกัน double submit)
+-- =============================================
+CREATE OR REPLACE FUNCTION request_payout(
+  p_seller_id UUID,
+  p_amount DECIMAL,
+  p_payment_account TEXT,
+  p_min_amount DECIMAL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_seller RECORD;
+  v_new_balance DECIMAL;
+  v_payout_id UUID;
+BEGIN
+  -- Lock seller row
+  SELECT * INTO v_seller FROM users WHERE id = p_seller_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'user_not_found'; END IF;
+
+  -- Check min amount
+  IF p_amount < p_min_amount THEN
+    RAISE EXCEPTION 'below_minimum';
+  END IF;
+
+  -- Check balance
+  IF v_seller.credit_balance < p_amount THEN
+    RAISE EXCEPTION 'insufficient_balance';
+  END IF;
+
+  -- Check pending payout
+  IF EXISTS (SELECT 1 FROM payouts WHERE seller_id = p_seller_id AND status = 'pending') THEN
+    RAISE EXCEPTION 'pending_exists';
+  END IF;
+
+  -- Deduct balance
+  v_new_balance := v_seller.credit_balance - p_amount;
+  UPDATE users SET credit_balance = v_new_balance WHERE id = p_seller_id;
+
+  -- Create payout
+  INSERT INTO payouts (seller_id, amount, payment_method, payment_account, status)
+  VALUES (p_seller_id, p_amount, 'truemoney', p_payment_account, 'pending')
+  RETURNING id INTO v_payout_id;
+
+  -- Transaction
+  INSERT INTO transactions (user_id, type, amount, balance_after, ref_id, description)
+  VALUES (p_seller_id, 'payout', -p_amount, v_new_balance, v_payout_id::text,
+          'ถอนเงิน ฿' || p_amount || ' ไปที่ ' || p_payment_account);
+
+  RETURN jsonb_build_object(
+    'payout_id', v_payout_id,
+    'amount', p_amount,
+    'new_balance', v_new_balance
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- =============================================
 -- Supabase Storage: Bucket + Policies
 -- =============================================
 

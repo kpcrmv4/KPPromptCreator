@@ -142,3 +142,19 @@ Admin แนบรูปหลักฐาน + หมายเหตุ → ก
        ↓
 Seller เห็นในประวัติการถอน + ดูรูปหลักฐานได้
 ```
+
+## Phase 13: Gap Analysis Fixes ✅ (Vercel + Supabase Best Practices)
+- [x] 13.1 **CRITICAL**: Atomic purchase via DB function `purchase_prompt()` (SELECT FOR UPDATE, ป้องกัน race condition)
+- [x] 13.2 **CRITICAL**: Atomic payout via DB function `request_payout()` (ป้องกัน double submit)
+- [x] 13.3 **CRITICAL**: สร้าง `orders.html` — หน้าประวัติคำสั่งซื้อ (buyer) + ปุ่มดาวน์โหลด
+- [x] 13.4 **CRITICAL**: สร้าง `account.html` — หน้าตั้งค่าบัญชี + เปลี่ยนรหัสผ่าน
+- [x] 13.5 สร้าง `api/auth/update-profile.js` — แก้ชื่อ/bio + เปลี่ยนรหัสผ่าน
+- [x] 13.6 **HIGH**: เพิ่ม notification เมื่อ admin approve/reject prompt → แจ้ง seller
+- [x] 13.7 **HIGH**: เพิ่ม notification เมื่อมีคนซื้อ prompt → แจ้ง seller
+- [x] 13.8 **HIGH**: แสดงรูปตัวอย่างใน prompt-detail.html (image gallery)
+- [x] 13.9 **HIGH**: Admin prompt tabs (pending/approved/rejected) — ดู prompt ทุกสถานะ
+- [x] 13.10 **HIGH**: Settings validation backend (commission 0-100%, phone format, etc.)
+- [x] 13.11 **HIGH**: Responsive hamburger menu ทุกหน้า (auto-inject via JS)
+- [x] 13.12 **HIGH**: Responsive table (horizontal scroll on mobile)
+- [x] 13.13 **HIGH**: Responsive modal, toast, detail page, stats cards
+- [x] 13.14 เพิ่มลิงก์ orders + account ใน navbar

@@ -256,6 +256,12 @@ async function loadPromptDetail() {
         </div>
       </div>
 
+      ${prompt.images?.length ? `
+        <div class="detail-images">
+          ${prompt.images.map(img => `<img src="${escapeHtml(img.image_url)}" alt="Preview" class="detail-img">`).join('')}
+        </div>
+      ` : ''}
+
       <div class="detail-body">
         <h2>รายละเอียด</h2>
         <div class="detail-description">${escapeHtml(prompt.description).replace(/\n/g, '<br>')}</div>
@@ -1119,6 +1125,130 @@ async function handleSaveSettings(e) {
 }
 
 // =============================================
+// Orders Page (Buyer)
+// =============================================
+async function loadOrders() {
+  const container = document.getElementById('orders-list');
+  if (!container) return;
+
+  try {
+    const { orders } = await api('/orders');
+    if (!orders || orders.length === 0) {
+      container.innerHTML = '<div class="empty-state"><i class="bi bi-bag"></i><p>ยังไม่มีคำสั่งซื้อ</p><a href="/marketplace.html" class="btn btn-primary">เลือกซื้อ Prompt</a></div>';
+      return;
+    }
+    container.innerHTML = orders.map(o => `
+      <div class="admin-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <h3 style="margin:0;">${escapeHtml(o.prompt?.title || 'Prompt')}</h3>
+            <small class="text-muted">${new Date(o.created_at).toLocaleDateString('th-TH')} | ฿${parseFloat(o.amount).toFixed(0)}</small>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn btn-primary btn-sm" onclick="downloadPrompt('${o.prompt?.id}')"><i class="bi bi-download"></i> ดาวน์โหลด</button>
+            <a href="/prompt-detail.html?id=${o.prompt?.id}" class="btn btn-outline btn-sm"><i class="bi bi-eye"></i></a>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+// =============================================
+// Account Page
+// =============================================
+async function loadAccountForm() {
+  const container = document.getElementById('account-form');
+  if (!container || !currentUser) return;
+
+  const { data: fullUser } = await fetch(`${API_BASE}/auth/me`, {
+    headers: { Authorization: `Bearer ${authToken}` }
+  }).then(r => r.json()).catch(() => ({ data: null }));
+
+  const u = fullUser?.user || currentUser;
+  container.innerHTML = `
+    <form onsubmit="handleUpdateProfile(event)">
+      <div class="form-group">
+        <label>อีเมล</label>
+        <input type="email" value="${escapeHtml(u.email)}" disabled style="background:#f1f5f9;">
+      </div>
+      <div class="form-group">
+        <label>ชื่อที่แสดง</label>
+        <input type="text" name="display_name" value="${escapeHtml(u.display_name)}" required>
+      </div>
+      <div class="form-group">
+        <label>สิทธิ์</label>
+        <input type="text" value="${u.role}" disabled style="background:#f1f5f9;">
+      </div>
+      <div class="form-group">
+        <label>เครดิตคงเหลือ</label>
+        <input type="text" value="฿${parseFloat(u.credit_balance).toFixed(2)}" disabled style="background:#f1f5f9;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">บันทึก</button>
+    </form>
+  `;
+}
+
+async function handleUpdateProfile(e) {
+  e.preventDefault();
+  const form = e.target;
+  try {
+    const { user } = await api('/auth/update-profile', {
+      method: 'PUT',
+      body: JSON.stringify({ display_name: form.display_name.value })
+    });
+    currentUser.display_name = user.display_name;
+    updateAuthUI();
+    showToast('บันทึกสำเร็จ', 'success');
+  } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const form = e.target;
+  try {
+    await api('/auth/update-profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        current_password: form.current_password.value,
+        new_password: form.new_password.value
+      })
+    });
+    showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
+    form.reset();
+  } catch (err) { showToast(err.error || 'เปลี่ยนไม่สำเร็จ', 'error'); }
+}
+
+// =============================================
+// Admin — Prompt Status Tabs
+// =============================================
+async function loadAdminPromptsByStatus(status) {
+  const container = document.getElementById('admin-prompts');
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const { prompts } = await api(`/admin/prompts?status=${status}`);
+    container.innerHTML = prompts.length ? prompts.map(p => `
+      <div class="admin-card">
+        <h3>${escapeHtml(p.title)}</h3>
+        <p>${escapeHtml(p.description).substring(0, 200)}...</p>
+        <p><strong>ผู้ขาย:</strong> ${escapeHtml(p.seller?.display_name)} | <strong>ราคา:</strong> ฿${parseFloat(p.price).toFixed(0)} | <strong>หมวด:</strong> ${p.category}</p>
+        ${p.rejection_reason ? `<p class="text-danger"><strong>เหตุผลปฏิเสธ:</strong> ${escapeHtml(p.rejection_reason)}</p>` : ''}
+        ${status === 'pending' ? `
+          <div class="admin-actions">
+            <button class="btn btn-primary btn-sm" onclick="moderatePrompt('${p.id}', 'approve')">อนุมัติ</button>
+            <button class="btn btn-danger btn-sm" onclick="moderatePrompt('${p.id}', 'reject')">ปฏิเสธ</button>
+          </div>
+        ` : ''}
+      </div>
+    `).join('') : `<p class="text-muted">ไม่มี Prompt สถานะ ${status}</p>`;
+  } catch { container.innerHTML = '<p>โหลดไม่สำเร็จ</p>'; }
+}
+
+// =============================================
 // Utils
 // =============================================
 function escapeHtml(str) {
@@ -1134,9 +1264,28 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth();
 
+  // Hamburger menu toggle
+  const navbar = document.querySelector('.mp-navbar');
+  if (navbar) {
+    const navLinks = navbar.querySelector('.nav-links');
+    if (navLinks && !navbar.querySelector('.nav-toggle')) {
+      const toggle = document.createElement('button');
+      toggle.className = 'nav-toggle';
+      toggle.innerHTML = '<i class="bi bi-list"></i>';
+      toggle.onclick = () => navLinks.classList.toggle('show');
+      navbar.querySelector('.nav-brand').after(toggle);
+    }
+  }
+
   const page = window.location.pathname;
 
-  if (page.includes('marketplace')) {
+  if (page.includes('orders') && !page.includes('admin')) {
+    if (!currentUser) { window.location.href = '/auth.html'; return; }
+    loadOrders();
+  } else if (page.includes('account')) {
+    if (!currentUser) { window.location.href = '/auth.html'; return; }
+    loadAccountForm();
+  } else if (page.includes('marketplace')) {
     loadPrompts();
   } else if (page.includes('prompt-detail')) {
     loadPromptDetail();

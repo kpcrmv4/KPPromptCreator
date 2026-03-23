@@ -43,9 +43,14 @@
       </div>
     </div>
 
-    <!-- Pending Prompts -->
+    <!-- Prompts Management -->
     <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-clock-history"></i> Prompt รออนุมัติ</h2>
+      <h2><i class="bi bi-collection"></i> จัดการ Prompt</h2>
+      <div class="auth-tabs" style="margin-bottom:1rem;">
+        <button class="auth-tab active" onclick="loadAdminPromptsByStatus('pending');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">รออนุมัติ</button>
+        <button class="auth-tab" onclick="loadAdminPromptsByStatus('approved');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">อนุมัติแล้ว</button>
+        <button class="auth-tab" onclick="loadAdminPromptsByStatus('rejected');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">ปฏิเสธ</button>
+      </div>
       <div id="admin-prompts">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>

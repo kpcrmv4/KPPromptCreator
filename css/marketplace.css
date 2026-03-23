@@ -545,13 +545,98 @@
   font-size: 0.7rem;
 }
 
+/* ---- Detail Images ---- */
+.detail-images {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+.detail-img {
+  height: 200px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+/* ---- Table Wrapper (scroll on mobile) ---- */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---- Hamburger Menu ---- */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #1a1a2e;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
+  /* Navbar */
   .mp-navbar { padding: 0.5rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
-  .mp-navbar .nav-links { gap: 0.5rem; font-size: 0.8rem; }
-  .mp-container { padding: 1rem; }
-  .prompts-grid { grid-template-columns: 1fr; }
-  .detail-header { flex-direction: column; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-toggle { display: block; }
+  .mp-navbar .nav-links {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  .mp-navbar .nav-links.show { display: flex; }
+  .mp-navbar .nav-links a { padding: 0.5rem 0; font-size: 0.9rem; }
+
+  /* Container */
+  .mp-container { padding: 0.75rem; }
+  .mp-container-sm { padding: 0.75rem; }
+
+  /* Page Header */
+  .mp-page-header h1 { font-size: 1.3rem; }
+
+  /* Filters */
   .mp-filters { flex-direction: column; }
+  .mp-filters select, .mp-filters input { min-width: 100%; }
+
+  /* Grid */
+  .prompts-grid { grid-template-columns: 1fr; }
+
+  /* Detail */
+  .detail-header { flex-direction: column; }
+  .detail-price { font-size: 1.5rem; }
+  .detail-action { text-align: left; min-width: auto; }
+  .detail-img { height: 150px; }
+
+  /* Stats */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-card .stat-value { font-size: 1.2rem; }
+
+  /* Tables — horizontal scroll */
+  .mp-form { overflow-x: auto; }
+  .data-table { min-width: 500px; }
+  .data-table th, .data-table td { padding: 0.5rem; font-size: 0.8rem; white-space: nowrap; }
+
+  /* Modal */
+  .modal-content { max-width: 95vw; padding: 1rem; }
+  .modal-header h2 { font-size: 1rem; }
+
+  /* Admin */
+  .admin-card { padding: 1rem; }
+  .admin-actions { flex-wrap: wrap; }
+
+  /* Auth tabs */
+  .auth-tab { font-size: 0.85rem; padding: 0.5rem; }
+
+  /* Toast */
+  .toast { right: 1rem; left: 1rem; bottom: 1rem; text-align: center; }
+
+  /* Buttons */
+  .btn-lg { padding: 0.6rem 1.25rem; font-size: 0.9rem; }
 }

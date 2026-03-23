@@ -33,70 +33,35 @@ async function requestPayout(req, res) {
   const err = validateRequired(req.body, ['amount', 'payment_account']);
   if (err) return res.status(400).json({ error: err });
 
-  const payoutAmount = parseFloat(amount);
-
-  // เช็คขั้นต่ำ
+  // ดึงขั้นต่ำ
   const { data: setting } = await supabaseAdmin
     .from('settings').select('value').eq('key', 'min_payout_amount').single();
   const minAmount = parseFloat(setting?.value || 100);
 
-  if (payoutAmount < minAmount) {
-    return res.status(400).json({ error: `ถอนขั้นต่ำ ฿${minAmount}` });
-  }
-
-  // เช็คยอดเครดิต
-  const { data: freshUser } = await supabaseAdmin
-    .from('users').select('credit_balance').eq('id', user.id).single();
-  const balance = parseFloat(freshUser.credit_balance);
-
-  if (balance < payoutAmount) {
-    return res.status(400).json({ error: `เครดิตไม่พอ (มี ฿${balance})` });
-  }
-
-  // เช็คว่ามี payout pending อยู่หรือไม่
-  const { data: pendingPayout } = await supabaseAdmin
-    .from('payouts').select('id').eq('seller_id', user.id).eq('status', 'pending').single();
-  if (pendingPayout) {
-    return res.status(409).json({ error: 'มีคำขอถอนเงินที่รอดำเนินการอยู่แล้ว' });
-  }
-
-  // หักเครดิต
-  const newBalance = balance - payoutAmount;
-  await supabaseAdmin.from('users').update({ credit_balance: newBalance }).eq('id', user.id);
-
-  // สร้าง payout
-  const { data: payout, error } = await supabaseAdmin
-    .from('payouts')
-    .insert({
-      seller_id: user.id,
-      amount: payoutAmount,
-      payment_method: 'truemoney',
-      payment_account,
-      status: 'pending'
-    })
-    .select('id, amount, status, created_at')
-    .single();
-
-  if (error) return res.status(500).json({ error: 'สร้างคำขอถอนเงินไม่สำเร็จ' });
-
-  // บันทึก transaction
-  await supabaseAdmin.from('transactions').insert({
-    user_id: user.id,
-    type: 'payout',
-    amount: -payoutAmount,
-    balance_after: newBalance,
-    ref_id: payout.id,
-    description: `ถอนเงิน ฿${payoutAmount} ไปที่ ${payment_account}`
+  // Atomic payout via DB function (ป้องกัน race condition)
+  const { data, error } = await supabaseAdmin.rpc('request_payout', {
+    p_seller_id: user.id,
+    p_amount: parseFloat(amount),
+    p_payment_account: payment_account,
+    p_min_amount: minAmount
   });
 
-  // แจ้งเตือน admin ทุกคน
+  if (error) {
+    const msg = error.message || '';
+    if (msg.includes('below_minimum')) return res.status(400).json({ error: `ถอนขั้นต่ำ ฿${minAmount}` });
+    if (msg.includes('insufficient_balance')) return res.status(400).json({ error: 'เครดิตไม่พอ' });
+    if (msg.includes('pending_exists')) return res.status(409).json({ error: 'มีคำขอถอนเงินที่รอดำเนินการอยู่แล้ว' });
+    return res.status(500).json({ error: 'สร้างคำขอถอนเงินไม่สำเร็จ' });
+  }
+
+  // แจ้ง admin ทุกคน
   await notifyAdmins({
     type: 'payout_request',
     title: 'คำขอถอนเงินใหม่',
-    message: `${user.display_name} ขอถอนเงิน ฿${payoutAmount} ไปที่ ${payment_account}`,
-    ref_id: payout.id,
+    message: `${user.display_name} ขอถอนเงิน ฿${amount} ไปที่ ${payment_account}`,
+    ref_id: data.payout_id,
     ref_type: 'payout'
   });
 
-  res.json({ payout, new_balance: newBalance });
+  res.json({ payout: { id: data.payout_id, amount: data.amount }, new_balance: data.new_balance });
 }
