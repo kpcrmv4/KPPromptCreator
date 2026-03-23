@@ -23,17 +23,35 @@ module.exports = async function handler(req, res) {
 
     const authUser = authData.user;
 
-    // 2. Fetch profile from public.users
-    let { data: user, error: profileError } = await supabaseAdmin
+    // 2. Fetch profile from public.users (by auth ID)
+    let { data: user } = await supabaseAdmin
       .from('users')
       .select('id, email, display_name, role, credit_balance, status')
       .eq('id', authUser.id)
       .single();
 
-    // 3. If no profile yet (e.g. admin created via Supabase dashboard), auto-create
-    if (!user || profileError) {
+    // 3. If not found by ID, try by email (legacy record with different ID)
+    if (!user) {
+      const { data: legacyUser } = await supabaseAdmin
+        .from('users')
+        .select('id, email, display_name, role, credit_balance, status')
+        .eq('email', authUser.email)
+        .single();
+
+      if (legacyUser) {
+        // Update legacy record to use Supabase Auth ID
+        await supabaseAdmin
+          .from('users')
+          .update({ id: authUser.id, password_hash: 'supabase-auth' })
+          .eq('id', legacyUser.id);
+        user = { ...legacyUser, id: authUser.id };
+      }
+    }
+
+    // 4. If still no profile (e.g. admin created via Supabase dashboard), auto-create
+    if (!user) {
       const displayName = authUser.user_metadata?.display_name || email.split('@')[0];
-      const role = authUser.user_metadata?.role || 'buyer';
+      const role = authUser.user_metadata?.role || 'admin';
 
       const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
@@ -48,8 +66,8 @@ module.exports = async function handler(req, res) {
         .single();
 
       if (createError) {
-        console.error('Auto-create profile error:', createError.message);
-        return res.status(500).json({ error: 'สร้างโปรไฟล์ไม่สำเร็จ' });
+        console.error('Auto-create profile error:', createError.message, createError.code, createError.details);
+        return res.status(500).json({ error: 'สร้างโปรไฟล์ไม่สำเร็จ: ' + createError.message });
       }
       user = newUser;
     }
