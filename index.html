@@ -79,6 +79,49 @@
                 </div>
             </section>
 
+            <!-- Project Templates (Manual Mode) -->
+            <section class="card manual-section" id="template-section">
+                <div class="card-header">
+                    <span class="step-badge"><i class="bi bi-lightning"></i></span>
+                    <h2 data-i18n="stepTemplates">เริ่มต้นง่ายๆ ด้วย Template</h2>
+                </div>
+                <div class="card-body">
+                    <p class="form-hint" data-i18n="templateHint">เลือก template เพื่อกรอกข้อมูลอัตโนมัติ หรือข้ามไปกรอกเอง</p>
+                    <div class="template-grid" id="templateGrid">
+                        <button class="template-card" data-template="ecommerce">
+                            <i class="bi bi-cart3"></i>
+                            <span class="template-title" data-i18n="tplEcommerce">เว็บขายของออนไลน์</span>
+                            <span class="template-desc" data-i18n="tplEcommerceDesc">ร้านค้า ตะกร้าสินค้า ชำระเงิน</span>
+                        </button>
+                        <button class="template-card" data-template="inventory">
+                            <i class="bi bi-box-seam"></i>
+                            <span class="template-title" data-i18n="tplInventory">ระบบจัดการสต็อก</span>
+                            <span class="template-desc" data-i18n="tplInventoryDesc">CRUD สินค้า แดชบอร์ด รายงาน</span>
+                        </button>
+                        <button class="template-card" data-template="portfolio">
+                            <i class="bi bi-person-vcard"></i>
+                            <span class="template-title" data-i18n="tplPortfolio">เว็บ Portfolio</span>
+                            <span class="template-desc" data-i18n="tplPortfolioDesc">แสดงผลงาน ประวัติ ติดต่อ</span>
+                        </button>
+                        <button class="template-card" data-template="booking">
+                            <i class="bi bi-calendar-check"></i>
+                            <span class="template-title" data-i18n="tplBooking">ระบบจองนัดหมาย</span>
+                            <span class="template-desc" data-i18n="tplBookingDesc">จองคิว ปฏิทิน แจ้งเตือน</span>
+                        </button>
+                        <button class="template-card" data-template="dashboard">
+                            <i class="bi bi-graph-up"></i>
+                            <span class="template-title" data-i18n="tplDashboard">แดชบอร์ดข้อมูล</span>
+                            <span class="template-desc" data-i18n="tplDashboardDesc">กราฟ ตาราง สรุปข้อมูล</span>
+                        </button>
+                        <button class="template-card" data-template="blog">
+                            <i class="bi bi-pencil-square"></i>
+                            <span class="template-title" data-i18n="tplBlog">เว็บบล็อก / CMS</span>
+                            <span class="template-desc" data-i18n="tplBlogDesc">เขียนบทความ จัดหมวดหมู่</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- ===== AI Chat Mode ===== -->
             <section class="card ai-mode-section" id="chat-section" style="display: none;">
                 <div class="card-header">
@@ -202,6 +245,17 @@
                     <div class="form-group">
                         <label for="projectDesc" data-i18n="projectDescLabel">อธิบายหลักการทำงาน</label>
                         <textarea id="projectDesc" rows="4" placeholder="อธิบายว่าเว็บไซต์นี้ทำอะไร มีฟีเจอร์อะไรบ้าง เช่น ระบบล็อกอิน, CRUD สินค้า, แดชบอร์ดสรุปยอด..." data-i18n-placeholder="projectDescPlaceholder"></textarea>
+                        <div class="desc-helper" id="descHelper">
+                            <span class="desc-helper-label" data-i18n="descHelperLabel">คลิกเพื่อเพิ่ม:</span>
+                            <button type="button" class="desc-helper-chip" data-append="ระบบ login/สมัครสมาชิก"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipLogin">ระบบ login</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="CRUD (เพิ่ม/แก้ไข/ลบ) ข้อมูล"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipCRUD">CRUD ข้อมูล</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="แดชบอร์ดสรุปข้อมูล/กราฟ"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipDashboard">แดชบอร์ด</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="ค้นหาและกรองข้อมูล"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipSearch">ค้นหา/กรอง</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="แจ้งเตือน/notification"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipNotify">แจ้งเตือน</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="export ข้อมูลเป็น Excel/PDF"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipExport">Export Excel/PDF</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="อัปโหลดรูปภาพ/ไฟล์"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipUpload">อัปโหลดไฟล์</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="รองรับหลายภาษา"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipMultilang">หลายภาษา</span></button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -765,6 +819,12 @@
                     </div>
                     <div id="resultContent" class="result-content" style="display: none;">
                         <pre><code id="resultText"></code></pre>
+                        <!-- Post-generation usage guide -->
+                        <div class="usage-guide" id="usageGuide">
+                            <div class="usage-guide-title"><i class="bi bi-rocket-takeoff"></i> <span data-i18n="guideTitle">เอาไปใช้ยังไง?</span></div>
+                            <ol class="usage-guide-steps" id="usageGuideSteps">
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </section>
