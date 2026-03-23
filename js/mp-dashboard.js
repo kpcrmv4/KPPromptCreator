@@ -573,3 +573,232 @@ async function handleSaveSettings(e) {
     showToast('บันทึกสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
 }
+
+// =============================================
+// Seller Payout (TrueMoney)
+// =============================================
+function initPayoutTrueMoney() {
+  const warningBanner = document.getElementById('truemoney-warning');
+  const infoBanner = document.getElementById('truemoney-info');
+  const phoneInput = document.getElementById('payout-phone');
+  const phoneDisplay = document.getElementById('truemoney-display');
+  if (!warningBanner || !infoBanner || !phoneInput) return;
+
+  const phone = currentUser?.truemoney_phone;
+  if (phone) {
+    infoBanner.style.display = '';
+    warningBanner.style.display = 'none';
+    if (phoneDisplay) phoneDisplay.textContent = phone;
+    phoneInput.value = phone;
+  } else {
+    warningBanner.style.display = '';
+    infoBanner.style.display = 'none';
+  }
+}
+
+async function handlePayoutRequest(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  try {
+    const data = await api('/seller/payouts', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount: Number(form.amount.value),
+        payment_account: form.payment_account.value
+      })
+    });
+    showToast(`ส่งคำขอถอนเงินสำเร็จ! ยอดคงเหลือ: ฿${data.new_balance}`, 'success');
+    currentUser.credit_balance = data.new_balance;
+    updateAuthUI();
+    form.reset();
+    loadSellerPayoutHistory();
+  } catch (err) {
+    showToast(err.error || 'ส่งคำขอไม่สำเร็จ', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadSellerPayoutHistory() {
+  const container = document.getElementById('seller-payout-history');
+  if (!container) return;
+
+  try {
+    const { payouts } = await api('/seller/payouts');
+    if (!payouts || payouts.length === 0) {
+      container.innerHTML = '<p class="text-sm text-slate-400 text-center py-8">ยังไม่มีประวัติการถอน</p>';
+      return;
+    }
+    container.innerHTML = `
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-slate-200">
+            <th class="text-left py-3 px-3 text-slate-500 font-medium">วันที่</th>
+            <th class="text-right py-3 px-3 text-slate-500 font-medium">จำนวน</th>
+            <th class="text-left py-3 px-3 text-slate-500 font-medium">บัญชี</th>
+            <th class="text-left py-3 px-3 text-slate-500 font-medium">สถานะ</th>
+            <th class="text-left py-3 px-3 text-slate-500 font-medium">หมายเหตุ</th>
+            <th class="text-left py-3 px-3 text-slate-500 font-medium">หลักฐาน</th>
+          </tr></thead>
+          <tbody>${payouts.map(p => `
+            <tr class="border-b border-slate-100 hover:bg-slate-50">
+              <td class="py-2.5 px-3 text-slate-500">${new Date(p.created_at).toLocaleDateString('th-TH')}</td>
+              <td class="py-2.5 px-3 text-right font-medium text-slate-800">฿${parseFloat(p.amount).toFixed(2)}</td>
+              <td class="py-2.5 px-3 text-slate-600">${escapeHtml(p.payment_account || '')}</td>
+              <td class="py-2.5 px-3"><span class="text-xs font-medium px-2 py-0.5 rounded-full ${
+                p.status === 'paid' ? 'bg-emerald-50 text-emerald-600' :
+                p.status === 'rejected' ? 'bg-rose-50 text-rose-600' :
+                'bg-amber-50 text-amber-600'
+              }">${p.status === 'paid' ? 'โอนแล้ว' : p.status === 'rejected' ? 'ปฏิเสธ' : 'รอดำเนินการ'}</span></td>
+              <td class="py-2.5 px-3 text-slate-500 text-xs">${escapeHtml(p.admin_note || '—')}</td>
+              <td class="py-2.5 px-3">${p.proof_image_url
+                ? `<a href="${escapeHtml(p.proof_image_url)}" target="_blank" class="text-indigo-600 hover:underline text-xs">ดูหลักฐาน</a>`
+                : '<span class="text-slate-400 text-xs">—</span>'
+              }</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      </div>
+    `;
+  } catch { container.innerHTML = '<p class="text-sm text-slate-400">โหลดไม่สำเร็จ</p>'; }
+}
+
+// =============================================
+// Admin Payouts
+// =============================================
+async function loadAdminPayouts() {
+  const container = document.getElementById('admin-payouts');
+  if (!container) return;
+
+  try {
+    const { payouts } = await api('/admin/payouts?status=pending');
+    container.innerHTML = payouts.length ? payouts.map(p => `
+      <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
+        <div class="flex justify-between items-start gap-3 flex-wrap mb-3">
+          <div>
+            <div class="font-semibold text-slate-800">${escapeHtml(p.seller?.display_name)}</div>
+            <div class="text-xs text-slate-500">${escapeHtml(p.seller?.email)}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-bold text-emerald-600">฿${parseFloat(p.amount).toFixed(2)}</div>
+            <div class="text-xs text-slate-400">${new Date(p.created_at).toLocaleString('th-TH')}</div>
+          </div>
+        </div>
+        <div class="px-3 py-2 bg-indigo-50 rounded-lg text-sm mb-3">
+          <strong>TrueMoney:</strong> ${escapeHtml(p.payment_account)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">หลักฐานการโอน</label>
+            <input type="file" id="proof-${p.id}" accept="image/jpeg,image/png,image/webp" class="w-full text-xs border border-slate-200 rounded-lg px-2 py-1.5">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">หมายเหตุ</label>
+            <input type="text" id="note-${p.id}" placeholder="หมายเหตุ (ถ้ามี)" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="processPayout('${p.id}', 'approve')" class="px-3 py-1.5 bg-emerald-500 text-white text-xs rounded-lg font-medium hover:bg-emerald-600 transition-colors">อนุมัติ + โอนแล้ว</button>
+          <button onclick="processPayout('${p.id}', 'reject')" class="px-3 py-1.5 bg-rose-500 text-white text-xs rounded-lg font-medium hover:bg-rose-600 transition-colors">ปฏิเสธ</button>
+        </div>
+      </div>
+    `).join('') : '<p class="text-sm text-slate-400 text-center py-8">ไม่มีคำขอถอนเงิน</p>';
+  } catch (err) { showToast('โหลดไม่สำเร็จ', 'error'); }
+}
+
+async function processPayout(payoutId, action) {
+  const noteInput = document.getElementById(`note-${payoutId}`);
+  const admin_note = noteInput ? noteInput.value : '';
+
+  let proof_image_base64 = null;
+  let proof_filename = null;
+
+  if (action === 'approve') {
+    const fileInput = document.getElementById(`proof-${payoutId}`);
+    const file = fileInput?.files[0];
+    if (file) {
+      proof_image_base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      proof_filename = file.name;
+    }
+    if (!confirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?')) return;
+  } else {
+    if (!confirm('ยืนยันปฏิเสธคำขอถอนเงิน? เครดิตจะถูกคืนให้ผู้ขาย')) return;
+  }
+
+  try {
+    const body = { payout_id: payoutId, action, admin_note };
+    if (proof_image_base64) body.proof_image_base64 = proof_image_base64;
+    if (proof_filename) body.proof_filename = proof_filename;
+
+    await api('/admin/payouts', { method: 'PUT', body: JSON.stringify(body) });
+    showToast(`${action === 'approve' ? 'อนุมัติ + แจ้ง Seller แล้ว' : 'ปฏิเสธ + คืนเครดิตแล้ว'}`, 'success');
+    loadAdminPayouts();
+  } catch (err) { showToast(err.error || 'ดำเนินการไม่สำเร็จ', 'error'); }
+}
+
+// =============================================
+// Admin — User Detail Modal
+// =============================================
+async function openUserDetail(userId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'user-detail-modal';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:650px;">
+      <div class="modal-header">
+        <h2>รายละเอียดสมาชิก</h2>
+        <button class="modal-close" onclick="closeModal('user-detail-modal')">&times;</button>
+      </div>
+      <div id="user-detail-body"><div class="flex justify-center py-8"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  try {
+    const { users } = await api(`/admin/users?search=${userId}&limit=50`);
+    const u = users.find(x => x.id === userId);
+
+    let txHtml = '<p class="text-sm text-slate-400">ไม่สามารถโหลดประวัติ</p>';
+    try {
+      const res = await fetch(`${API_BASE}/credits/history?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      const txns = data?.transactions || data?.data?.transactions || [];
+      if (Array.isArray(txns) && txns.length > 0) {
+        txHtml = `<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b border-slate-200"><th class="text-left py-2 px-2 text-slate-500 text-xs">วันที่</th><th class="text-left py-2 px-2 text-slate-500 text-xs">รายการ</th><th class="text-right py-2 px-2 text-slate-500 text-xs">จำนวน</th><th class="text-right py-2 px-2 text-slate-500 text-xs">คงเหลือ</th></tr></thead><tbody>${txns.slice(0, 20).map(t => `
+          <tr class="border-b border-slate-100">
+            <td class="py-1.5 px-2 text-xs text-slate-500">${new Date(t.created_at).toLocaleDateString('th-TH')}</td>
+            <td class="py-1.5 px-2 text-xs text-slate-700">${escapeHtml(t.description || t.type || '—')}</td>
+            <td class="py-1.5 px-2 text-xs text-right font-medium ${parseFloat(t.amount) >= 0 ? 'text-emerald-600' : 'text-rose-500'}">${parseFloat(t.amount) >= 0 ? '+' : ''}฿${parseFloat(t.amount).toFixed(2)}</td>
+            <td class="py-1.5 px-2 text-xs text-right text-slate-600">฿${parseFloat(t.balance_after).toFixed(2)}</td>
+          </tr>
+        `).join('')}</tbody></table></div>`;
+      } else {
+        txHtml = '<p class="text-sm text-slate-400">ยังไม่มีรายการ</p>';
+      }
+    } catch {}
+
+    document.getElementById('user-detail-body').innerHTML = u ? `
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">ชื่อ</div><div class="font-semibold text-slate-800">${escapeHtml(u.display_name)}</div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">อีเมล</div><div class="text-sm font-medium text-slate-700">${escapeHtml(u.email)}</div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">TrueMoney</div><div class="font-semibold ${u.truemoney_phone ? 'text-indigo-600' : 'text-slate-400'}">${u.truemoney_phone || 'ยังไม่ผูก'}</div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">เครดิต</div><div class="font-bold text-emerald-600">฿${parseFloat(u.credit_balance).toFixed(2)}</div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">สิทธิ์ / สถานะ</div><div class="flex gap-1"><span class="text-xs font-medium px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}">${u.role}</span><span class="text-xs font-medium px-2 py-0.5 rounded-full ${u.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${u.status}</span></div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">วันที่สมัคร</div><div class="text-sm">${new Date(u.created_at).toLocaleString('th-TH')}</div></div>
+      </div>
+      <h3 class="text-sm font-semibold text-slate-700 mb-2">ประวัติ Transaction (ล่าสุด 20)</h3>
+      ${txHtml}
+    ` : '<p class="text-sm text-slate-400">ไม่พบข้อมูลสมาชิก</p>';
+  } catch {
+    document.getElementById('user-detail-body').innerHTML = '<p class="text-sm text-slate-400">โหลดไม่สำเร็จ</p>';
+  }
+}

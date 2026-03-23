@@ -224,6 +224,19 @@ function setupFilePreview(inputId, previewId, options = {}) {
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth();
 
+  // Hamburger menu toggle (auto-inject for mp-navbar)
+  const navbar = document.querySelector('.mp-navbar');
+  if (navbar) {
+    const navLinks = navbar.querySelector('.nav-links');
+    if (navLinks && !navbar.querySelector('.nav-toggle')) {
+      const toggle = document.createElement('button');
+      toggle.className = 'nav-toggle';
+      toggle.innerHTML = '<i class="bi bi-list"></i>';
+      toggle.onclick = () => navLinks.classList.toggle('show');
+      navbar.querySelector('.nav-brand')?.after(toggle);
+    }
+  }
+
   const page = window.location.pathname;
 
   if (page.includes('marketplace')) {
@@ -248,8 +261,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
     setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
     setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
+    initPayoutTrueMoney();
     loadSellerDashboard();
     loadSellerIncomeHistory();
+    loadSellerPayoutHistory();
     loadSellerNotifications();
   } else if (page.includes('admin')) {
     if (!currentUser || currentUser.role !== 'admin') {
@@ -259,6 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAdminOverview();
     loadAdminNotifications();
     loadAdminPendingPrompts();
+    loadAdminPayouts();
     loadAdminUsers();
     loadAdminSettings();
   }
