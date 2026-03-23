@@ -1356,10 +1356,3 @@ textarea {
 .usage-guide-steps li + li {
     border-top: 1px solid rgba(108, 92, 231, 0.1);
 }
-
-/* ===== Template Grid Responsive ===== */
-@media (max-width: 600px) {
-    .template-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
