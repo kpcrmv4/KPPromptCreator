@@ -18,7 +18,7 @@ async function getOrders(req, res) {
 
   const { data, count, error } = await supabaseAdmin
     .from('orders')
-    .select('id, amount, commission, status, created_at, prompt:prompts!prompt_id(id, title, category, price)', { count: 'exact' })
+    .select('id, amount, commission, status, created_at, prompt:prompts!prompt_id(id, title, category, price), review:reviews!order_id(id, rating, comment)', { count: 'exact' })
     .eq('buyer_id', user.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);

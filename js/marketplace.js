@@ -1137,22 +1137,104 @@ async function loadOrders() {
       container.innerHTML = '<div class="empty-state"><i class="bi bi-bag"></i><p>ยังไม่มีคำสั่งซื้อ</p><a href="/marketplace.html" class="btn btn-primary">เลือกซื้อ Prompt</a></div>';
       return;
     }
-    container.innerHTML = orders.map(o => `
+    container.innerHTML = orders.map(o => {
+      const review = Array.isArray(o.review) ? o.review[0] : o.review;
+      return `
       <div class="admin-card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
           <div>
             <h3 style="margin:0;">${escapeHtml(o.prompt?.title || 'Prompt')}</h3>
             <small class="text-muted">${new Date(o.created_at).toLocaleDateString('th-TH')} | ฿${parseFloat(o.amount).toFixed(0)}</small>
           </div>
-          <div style="display:flex;gap:0.5rem;">
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="downloadPrompt('${o.prompt?.id}')"><i class="bi bi-download"></i> ดาวน์โหลด</button>
             <a href="/prompt-detail.html?id=${o.prompt?.id}" class="btn btn-outline btn-sm"><i class="bi bi-eye"></i></a>
+            ${review
+              ? `<span class="badge badge-success"><i class="bi bi-star-fill"></i> รีวิวแล้ว (${review.rating}/5)</span>`
+              : `<button class="btn btn-sm btn-outline" onclick="openReviewModal('${o.id}', '${o.prompt?.id}', '${escapeHtml(o.prompt?.title || '')}')"><i class="bi bi-star"></i> รีวิว</button>`
+            }
           </div>
         </div>
-      </div>
-    `).join('');
+        ${review ? `<div style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid #f1f5f9;"><span style="color:#f59e0b;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span> <span class="text-muted">${escapeHtml(review.comment || '')}</span></div>` : ''}
+      </div>`;
+    }).join('');
   } catch {
     container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+// =============================================
+// Review Modal
+// =============================================
+function openReviewModal(orderId, promptId, promptTitle) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'review-modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="bi bi-star"></i> รีวิว "${escapeHtml(promptTitle)}"</h2>
+        <button class="modal-close" onclick="closeModal('review-modal')">&times;</button>
+      </div>
+      <form onsubmit="handleCreateReview(event, '${orderId}', '${promptId}')">
+        <div class="form-group">
+          <label>คะแนน</label>
+          <div class="star-rating" id="star-rating">
+            ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn" onclick="setRating(${n})"><i class="bi bi-star"></i></button>`).join('')}
+          </div>
+          <input type="hidden" name="rating" id="review-rating" required value="">
+        </div>
+        <div class="form-group">
+          <label>ความคิดเห็น (ไม่บังคับ)</label>
+          <textarea name="comment" rows="3" placeholder="แชร์ประสบการณ์ของคุณ..."></textarea>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button type="submit" class="btn btn-primary" style="flex:1">ส่งรีวิว</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('review-modal')">ยกเลิก</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function setRating(n) {
+  document.getElementById('review-rating').value = n;
+  const stars = document.querySelectorAll('#star-rating .star-btn i');
+  stars.forEach((s, i) => {
+    s.className = i < n ? 'bi bi-star-fill' : 'bi bi-star';
+  });
+}
+
+async function handleCreateReview(e, orderId, promptId) {
+  e.preventDefault();
+  const form = e.target;
+  const rating = Number(form.rating.value);
+  if (!rating || rating < 1 || rating > 5) {
+    showToast('กรุณาเลือกคะแนน 1-5 ดาว', 'error');
+    return;
+  }
+
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  try {
+    await api('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({
+        order_id: orderId,
+        prompt_id: promptId,
+        rating,
+        comment: form.comment.value || ''
+      })
+    });
+    showToast('ส่งรีวิวสำเร็จ!', 'success');
+    closeModal('review-modal');
+    loadOrders(); // reload orders to show review
+  } catch (err) {
+    showToast(err.error || 'ส่งรีวิวไม่สำเร็จ', 'error');
+  } finally {
+    btn.disabled = false;
   }
 }
 

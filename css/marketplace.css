@@ -545,6 +545,22 @@
   font-size: 0.7rem;
 }
 
+/* ---- Star Rating ---- */
+.star-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #f59e0b;
+  padding: 0;
+  transition: transform 0.1s;
+}
+.star-btn:hover { transform: scale(1.2); }
+
 /* ---- Detail Images ---- */
 .detail-images {
   display: flex;
