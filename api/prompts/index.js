@@ -17,7 +17,7 @@ async function listPrompts(req, res) {
 
   let query = supabaseAdmin
     .from('prompts')
-    .select('id, title, description, category, tech_stack, price, preview_text, tags, status, view_count, purchase_count, avg_rating, created_at, seller:users!seller_id(id, display_name, avatar_url)', { count: 'exact' })
+    .select('id, title, description, category, tech_stack, price, preview_text, preview_image_url, tags, status, view_count, purchase_count, avg_rating, created_at, seller:users!seller_id(id, display_name, avatar_url)', { count: 'exact' })
     .eq('status', 'approved');
 
   if (category) query = query.eq('category', category);
@@ -41,9 +41,23 @@ async function createPrompt(req, res) {
   const user = await requireRole(req, res, ['seller', 'admin']);
   if (!user) return;
 
-  const { title, description, category, tech_stack, price, prompt_content, demo_url, preview_text, tags } = req.body;
-  const err = validateRequired(req.body, ['title', 'description', 'category', 'price', 'prompt_content']);
+  const { title, description, category, tech_stack, price, prompt_file_base64, prompt_filename, preview_image_base64, preview_image_filename, demo_url, preview_text, tags, detail_images } = req.body;
+  const err = validateRequired(req.body, ['title', 'description', 'category', 'price', 'prompt_file_base64', 'prompt_filename']);
   if (err) return res.status(400).json({ error: err });
+
+  // ===== 0. ตรวจสอบไฟล์ .md =====
+  const fileExt = prompt_filename.split('.').pop().toLowerCase();
+  if (!['md', 'txt'].includes(fileExt)) {
+    return res.status(400).json({ error: 'รองรับเฉพาะไฟล์ .md หรือ .txt' });
+  }
+
+  // ถอด base64 prefix ถ้ามี แล้วแปลงเป็น text
+  const base64Clean = prompt_file_base64.replace(/^data:[^;]+;base64,/, '');
+  const prompt_content = Buffer.from(base64Clean, 'base64').toString('utf-8');
+
+  if (!prompt_content.trim()) {
+    return res.status(400).json({ error: 'ไฟล์ prompt ว่างเปล่า' });
+  }
 
   // ===== 1. ตรวจสอบ KP Fingerprint =====
   const verification = verifyKPFingerprint(prompt_content);
@@ -75,12 +89,12 @@ async function createPrompt(req, res) {
   const { data: existingPrompts } = await supabaseAdmin
     .from('prompts')
     .select('id, title, prompt_content, seller_id, seller:users!seller_id(display_name)')
-    .neq('seller_id', user.id)  // ไม่ต้องเช็คกับของตัวเอง
+    .neq('seller_id', user.id)
     .in('status', ['approved', 'pending'])
-    .limit(100);  // เช็ค 100 prompt ล่าสุด
+    .limit(100);
 
   let similarPrompt = null;
-  const SIMILARITY_THRESHOLD = 0.7; // 70% ขึ้นไป = น่าสงสัย
+  const SIMILARITY_THRESHOLD = 0.7;
 
   if (existingPrompts) {
     for (const existing of existingPrompts) {
@@ -97,13 +111,69 @@ async function createPrompt(req, res) {
     }
   }
 
-  // ===== 5. สร้าง prompt =====
+  // ===== 5. อัปโหลดไฟล์ .md ไป Storage =====
+  const fileBuffer = Buffer.from(base64Clean, 'base64');
+  const filePath = `${user.id}/${Date.now()}_${prompt_filename}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('prompt-files')
+    .upload(filePath, fileBuffer, {
+      contentType: 'text/markdown',
+      upsert: false
+    });
+
+  if (uploadError) {
+    console.error('Prompt file upload error:', uploadError);
+    return res.status(500).json({ error: 'อัปโหลดไฟล์ prompt ไม่สำเร็จ' });
+  }
+
+  // สร้าง signed URL (private bucket)
+  const { data: signedData } = await supabaseAdmin.storage
+    .from('prompt-files')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365 * 10); // 10 years
+
+  const prompt_file_url = signedData?.signedUrl || filePath;
+
+  // ===== 6. อัปโหลดรูป preview (ถ้ามี) =====
+  let preview_image_url = null;
+  if (preview_image_base64 && preview_image_filename) {
+    const imgExt = preview_image_filename.split('.').pop().toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(imgExt)) {
+      return res.status(400).json({ error: 'รูป preview รองรับเฉพาะ jpg, png, webp, gif' });
+    }
+
+    const imgBase64 = preview_image_base64.replace(/^data:image\/\w+;base64,/, '');
+    const imgBuffer = Buffer.from(imgBase64, 'base64');
+
+    if (imgBuffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'รูป preview ต้องมีขนาดไม่เกิน 5MB' });
+    }
+
+    const imgPath = `${user.id}/preview_${Date.now()}_${preview_image_filename}`;
+    const contentType = `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`;
+
+    const { error: imgUploadError } = await supabaseAdmin.storage
+      .from('prompt-images')
+      .upload(imgPath, imgBuffer, { contentType, upsert: false });
+
+    if (!imgUploadError) {
+      const { data: imgUrlData } = supabaseAdmin.storage
+        .from('prompt-images')
+        .getPublicUrl(imgPath);
+      preview_image_url = imgUrlData.publicUrl;
+    }
+  }
+
+  // ===== 7. สร้าง prompt =====
   const promptData = {
     seller_id: user.id,
     title, description, category,
     tech_stack: tech_stack || [],
     price: Number(price),
-    prompt_content, demo_url,
+    prompt_content,
+    prompt_file_url: filePath,  // เก็บ path สำหรับ download ผ่าน API
+    preview_image_url,
+    demo_url,
     preview_text: preview_text || description.substring(0, 200),
     tags: tags || [],
     content_hash,
@@ -119,7 +189,42 @@ async function createPrompt(req, res) {
 
   if (error) return res.status(500).json({ error: 'สร้าง prompt ไม่สำเร็จ' });
 
-  // ===== 6. สร้าง response พร้อม warnings =====
+  // ===== 8. อัปโหลดรูปรายละเอียด (detail_images, สูงสุด 5 รูป) =====
+  if (detail_images && Array.isArray(detail_images)) {
+    const maxImages = Math.min(detail_images.length, 5);
+    for (let i = 0; i < maxImages; i++) {
+      const img = detail_images[i];
+      if (!img.image_base64 || !img.filename) continue;
+
+      const dImgExt = img.filename.split('.').pop().toLowerCase();
+      if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(dImgExt)) continue;
+
+      const dImgBase64 = img.image_base64.replace(/^data:image\/\w+;base64,/, '');
+      const dImgBuffer = Buffer.from(dImgBase64, 'base64');
+      if (dImgBuffer.length > 5 * 1024 * 1024) continue;
+
+      const dImgPath = `${user.id}/${data.id}/${Date.now()}_${img.filename}`;
+      const dContentType = `image/${dImgExt === 'jpg' ? 'jpeg' : dImgExt}`;
+
+      const { error: dUploadError } = await supabaseAdmin.storage
+        .from('prompt-images')
+        .upload(dImgPath, dImgBuffer, { contentType: dContentType, upsert: false });
+
+      if (!dUploadError) {
+        const { data: dUrlData } = supabaseAdmin.storage
+          .from('prompt-images')
+          .getPublicUrl(dImgPath);
+
+        await supabaseAdmin.from('prompt_images').insert({
+          prompt_id: data.id,
+          image_url: dUrlData.publicUrl,
+          sort_order: i
+        });
+      }
+    }
+  }
+
+  // ===== 9. สร้าง response พร้อม warnings =====
   const warnings = [];
   if (!kp_verified) {
     warnings.push('ไม่พบ KP Signature — ไฟล์นี้อาจไม่ได้สร้างจาก KP Prompt Creator');

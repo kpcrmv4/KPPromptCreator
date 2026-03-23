@@ -29,6 +29,8 @@ CREATE TABLE prompts (
   tech_stack JSONB DEFAULT '[]',
   price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
   prompt_content TEXT NOT NULL,  -- เนื้อหา prompt จริง (เข้าถึงได้เฉพาะคนซื้อ)
+  prompt_file_url TEXT,         -- URL ไฟล์ .md ใน Storage (สำหรับดาวน์โหลด)
+  preview_image_url TEXT,       -- รูป preview สำหรับแสดงหน้า listing
   content_hash TEXT,            -- SHA256 hash ของเนื้อหา (ใช้เช็คซ้ำ)
   kp_signature TEXT,            -- KP Fingerprint signature (พิสูจน์ว่าสร้างจากระบบ)
   demo_url TEXT,
@@ -351,6 +353,16 @@ $$ LANGUAGE plpgsql;
 -- Supabase Storage: Bucket + Policies
 -- =============================================
 
+-- สร้าง bucket สำหรับเก็บไฟล์ prompt (.md)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'prompt-files',
+  'prompt-files',
+  false,  -- private — เข้าถึงผ่าน API เท่านั้น
+  10485760,  -- 10MB max
+  ARRAY['text/markdown', 'text/plain', 'application/octet-stream']
+);
+
 -- สร้าง bucket สำหรับเก็บรูปตัวอย่าง prompt
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
@@ -379,6 +391,30 @@ VALUES (
   true,  -- seller ต้องเห็นหลักฐานได้
   5242880,  -- 5MB max
   ARRAY['image/jpeg', 'image/png', 'image/webp']
+);
+
+-- Policy: seller upload ไฟล์ prompt ได้
+CREATE POLICY "prompt_files_seller_upload"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'prompt-files'
+  AND auth.role() = 'authenticated'
+);
+
+-- Policy: seller ลบไฟล์ prompt ตัวเองได้
+CREATE POLICY "prompt_files_seller_delete"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'prompt-files'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: อ่านไฟล์ prompt ผ่าน service role เท่านั้น (ไม่ public)
+CREATE POLICY "prompt_files_service_read"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'prompt-files'
+  AND auth.role() = 'service_role'
 );
 
 -- Policy: ทุกคนอ่านรูป prompt-images ได้
