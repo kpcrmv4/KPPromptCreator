@@ -126,6 +126,7 @@
                                     <option value="cursor">Cursor</option>
                                     <option value="github-copilot">GitHub Copilot</option>
                                     <option value="codex">OpenAI Codex</option>
+                                    <option value="windsurf">Windsurf</option>
                                     <option value="other">อื่นๆ</option>
                                 </select>
                             </div>
@@ -690,6 +691,14 @@
                                 </div>
                             </label>
                             <label class="option-card">
+                                <input type="radio" name="targetAI" value="windsurf">
+                                <div class="option-content">
+                                    <i class="bi bi-wind"></i>
+                                    <span class="option-title">Windsurf</span>
+                                    <span class="option-desc">Windsurf AI Editor</span>
+                                </div>
+                            </label>
+                            <label class="option-card">
                                 <input type="radio" name="targetAI" value="other">
                                 <div class="option-content">
                                     <i class="bi bi-three-dots"></i>
@@ -701,7 +710,7 @@
                     </div>
                     <div class="form-group" id="otherAiGroup" style="display: none;">
                         <label for="otherAiName">ระบุชื่อ AI</label>
-                        <input type="text" id="otherAiName" placeholder="เช่น Windsurf, Aider...">
+                        <input type="text" id="otherAiName" placeholder="เช่น Aider, Cline...">
                     </div>
                 </div>
             </section>
