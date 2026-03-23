@@ -396,6 +396,34 @@ async function loadCreditHistory() {
 }
 
 // =============================================
+// Dashboard Tabs
+// =============================================
+function initDashboardTabs() {
+  const tabs = document.querySelectorAll('.dash-tab');
+  const contents = document.querySelectorAll('.dash-tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.dataset.tab;
+
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+
+      tab.classList.add('active');
+      const target = document.getElementById(targetId);
+      if (target) target.classList.add('active');
+    });
+  });
+
+  // Support hash-based tab navigation (e.g. dashboard.html#tab-payout)
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const tabBtn = document.querySelector(`.dash-tab[data-tab="${hash}"]`);
+    if (tabBtn) tabBtn.click();
+  }
+}
+
+// =============================================
 // Seller Dashboard
 // =============================================
 async function loadSellerDashboard() {
@@ -466,6 +494,9 @@ async function handleCreatePrompt(e) {
     );
     form.reset();
     loadSellerDashboard();
+    // Switch to prompts tab after creation
+    const promptsTab = document.querySelector('.dash-tab[data-tab="tab-prompts"]');
+    if (promptsTab) promptsTab.click();
   } catch (err) {
     showToast(err.error || 'สร้างไม่สำเร็จ', 'error');
   } finally {
@@ -1394,6 +1425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!currentUser || !['seller', 'admin'].includes(currentUser.role)) {
       window.location.href = '/auth.html'; return;
     }
+    initDashboardTabs();
     loadSellerDashboard();
     loadSellerIncomeHistory();
     loadSellerPayoutHistory();

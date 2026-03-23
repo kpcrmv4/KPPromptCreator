@@ -34,7 +34,7 @@
       <p>จัดการ Prompt และดูยอดขายของคุณ</p>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats (always visible) -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-value" id="stat-prompts">0</div>
@@ -58,9 +58,49 @@
       </div>
     </div>
 
-    <!-- Create Prompt -->
-    <div style="margin-bottom: 2rem;">
-      <h2><i class="bi bi-plus-circle"></i> สร้าง Prompt ใหม่</h2>
+    <!-- Dashboard Tabs -->
+    <div class="dash-tabs">
+      <button class="dash-tab active" data-tab="tab-prompts">
+        <i class="bi bi-collection"></i>
+        <span>Prompt ของฉัน</span>
+      </button>
+      <button class="dash-tab" data-tab="tab-create">
+        <i class="bi bi-plus-circle"></i>
+        <span>สร้าง Prompt</span>
+      </button>
+      <button class="dash-tab" data-tab="tab-income">
+        <i class="bi bi-graph-up-arrow"></i>
+        <span>รายรับ</span>
+      </button>
+      <button class="dash-tab" data-tab="tab-payout">
+        <i class="bi bi-cash-stack"></i>
+        <span>ถอนเงิน</span>
+      </button>
+      <button class="dash-tab" data-tab="tab-notifications">
+        <i class="bi bi-bell"></i>
+        <span>แจ้งเตือน</span>
+        <span id="notif-badge" class="badge badge-danger" style="display:none;"></span>
+      </button>
+    </div>
+
+    <!-- Tab: Prompt ของฉัน -->
+    <div class="dash-tab-content active" id="tab-prompts">
+      <div class="mp-form">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr><th>ชื่อ</th><th>ราคา</th><th>สถานะ</th><th>ยอดขาย</th><th>คะแนน</th><th></th></tr>
+            </thead>
+            <tbody id="seller-prompts">
+              <tr><td colspan="6" class="loading-state"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: สร้าง Prompt ใหม่ -->
+    <div class="dash-tab-content" id="tab-create">
       <div class="mp-form">
         <form onsubmit="handleCreatePrompt(event)">
           <div class="form-group">
@@ -115,39 +155,17 @@
       </div>
     </div>
 
-    <!-- My Prompts -->
-    <h2><i class="bi bi-collection"></i> Prompt ของฉัน</h2>
-    <div class="mp-form">
-      <table class="data-table">
-        <thead>
-          <tr><th>ชื่อ</th><th>ราคา</th><th>สถานะ</th><th>ยอดขาย</th><th>คะแนน</th><th></th></tr>
-        </thead>
-        <tbody id="seller-prompts">
-          <tr><td colspan="6" class="loading-state"><div class="spinner"></div></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ประวัติรายรับจากการขาย -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-graph-up-arrow"></i> ประวัติรายรับ</h2>
+    <!-- Tab: ประวัติรายรับ -->
+    <div class="dash-tab-content" id="tab-income">
       <div id="seller-income-history" class="mp-form">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <!-- การแจ้งเตือน -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-bell"></i> การแจ้งเตือน <span id="notif-badge" class="badge badge-danger" style="display:none;"></span></h2>
-      <div id="seller-notifications" class="mp-form">
-        <div class="loading-state"><div class="spinner"></div></div>
-      </div>
-    </div>
-
-    <!-- Payout -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-cash-stack"></i> ถอนเงิน</h2>
-      <div class="mp-form">
+    <!-- Tab: ถอนเงิน -->
+    <div class="dash-tab-content" id="tab-payout">
+      <div class="mp-form" style="margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;"><i class="bi bi-send"></i> ส่งคำขอถอนเงิน</h3>
         <form onsubmit="handlePayoutRequest(event)">
           <div class="form-group">
             <label>จำนวนเงิน (บาท)</label>
@@ -162,12 +180,17 @@
           </button>
         </form>
       </div>
+      <div class="mp-form">
+        <h3 style="margin-bottom: 1rem;"><i class="bi bi-clock-history"></i> ประวัติการถอนเงิน</h3>
+        <div id="seller-payout-history">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
     </div>
 
-    <!-- ประวัติการถอนเงิน -->
-    <div style="margin-top: 2rem;">
-      <h2><i class="bi bi-clock-history"></i> ประวัติการถอนเงิน</h2>
-      <div id="seller-payout-history" class="mp-form">
+    <!-- Tab: แจ้งเตือน -->
+    <div class="dash-tab-content" id="tab-notifications">
+      <div id="seller-notifications" class="mp-form">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
     </div>
