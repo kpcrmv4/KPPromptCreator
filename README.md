@@ -13,31 +13,31 @@
 
 ## Features | ฟีเจอร์
 
-- **Multi-language** - Thai / English UI toggle
-- **3 Modes** - Manual, AI Chat, AI Wizard
-- **Tech Stack Selection** - Platform, Database, CSS Framework, Language, and more
+- **Multi-language | หลายภาษา** - สลับ UI ไทย / อังกฤษ ได้ทันที
+- **3 โหมด** - Manual, AI Chat, AI Wizard
+- **เลือก Tech Stack** - Platform, Database, CSS Framework, Language และอื่นๆ
 - **Target AI** - Claude, Gemini CLI, Cursor, GitHub Copilot, Codex, Windsurf
-- **Magic Wizard** - AI analyzes your project and recommends the best Tech Stack
-- **Skills Integration** - Auto-suggest relevant skills from skills.sh
-- **Generate `.md`** - Ready-to-use instruction file for your AI
-- **Mobile Responsive** - Works on all screen sizes
+- **Magic Wizard** - AI วิเคราะห์โปรเจกต์และแนะนำ Tech Stack ที่เหมาะสมที่สุด
+- **Skills Integration** - แนะนำ skills ที่เกี่ยวข้องจาก skills.sh อัตโนมัติ
+- **สร้างไฟล์ `.md`** - ไฟล์คำสั่งพร้อมใช้สำหรับ AI ของคุณ
+- **Mobile Responsive** - ใช้งานได้ทุกขนาดหน้าจอ
 
 ## How to Use | วิธีใช้งาน
 
-1. Enter your Gemini API Key (free)
-2. Choose a mode: Manual, AI Chat, or AI Wizard
-3. Describe your project
-4. Select your preferred Tech Stack
-5. Choose the target AI
-6. Click **Generate Prompt** and copy the result to your AI
+1. ใส่ Gemini API Key (ฟรี)
+2. เลือกโหมด: Manual, AI Chat, หรือ AI Wizard
+3. อธิบายโปรเจกต์ของคุณ
+4. เลือก Tech Stack ที่ต้องการ
+5. เลือก Target AI
+6. กด **Generate Prompt** แล้วคัดลอกผลลัพธ์ไปใช้กับ AI ของคุณ
 
-## Tech Stack
+## Tech Stack | เทคโนโลยีที่ใช้
 
 - HTML / CSS / JavaScript (Vanilla)
-- Gemini API (for AI features)
+- Gemini API (สำหรับฟีเจอร์ AI)
 - Bootstrap Icons
 - Google Fonts (Inter + Noto Sans Thai)
 
-## License
+## License | สัญญาอนุญาต
 
 [MIT](LICENSE)
