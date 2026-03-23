@@ -171,6 +171,9 @@ function initApp() {
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
 
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', resetForm);
+
     // Copy button
     document.getElementById('copyBtn').addEventListener('click', copyResult);
 
@@ -1102,19 +1105,25 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
 
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
-        resultText.textContent = responseWithFingerprint;
+        resultText.value = responseWithFingerprint;
+
+        // Show signature warning
+        document.getElementById('signatureWarning').style.display = 'flex';
+
+        // Auto-resize textarea
+        resultText.style.height = 'auto';
+        resultText.style.height = Math.min(resultText.scrollHeight, 600) + 'px';
 
         // Show usage guide for the target AI
         renderUsageGuide(targetAI);
 
-        // Store for download
-        resultSection.dataset.content = responseWithFingerprint;
+        // Store filename for download
         resultSection.dataset.fileName = fileName;
 
     } catch (error) {
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
-        resultText.textContent = `Error: ${error.message}\n\n${t('errorPrefix')}`;
+        resultText.value = `Error: ${error.message}\n\n${t('errorPrefix')}`;
     } finally {
         generateBtn.disabled = false;
         generateBtn.innerHTML = '<i class="bi bi-magic"></i> Generate Prompt';
@@ -1167,26 +1176,23 @@ async function callGeminiAPI(apiKey, prompt) {
 // ===== Copy & Download =====
 
 function copyResult() {
-    const content = document.getElementById('result-section').dataset.content;
+    const content = document.getElementById('resultText').value;
     if (!content) return;
 
     navigator.clipboard.writeText(content).then(() => {
         showToast(t('toastCopied'));
     }).catch(() => {
         // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = content;
-        document.body.appendChild(textarea);
-        textarea.select();
+        const resultText = document.getElementById('resultText');
+        resultText.select();
         document.execCommand('copy');
-        document.body.removeChild(textarea);
         showToast(t('toastCopied'));
     });
 }
 
 function downloadResult() {
     const resultSection = document.getElementById('result-section');
-    const content = resultSection.dataset.content;
+    const content = document.getElementById('resultText').value;
     const fileName = resultSection.dataset.fileName || 'CLAUDE.md';
     if (!content) return;
 
@@ -1846,6 +1852,50 @@ async function wizardGenerate() {
     document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
 }
 
+// ===== Reset Form =====
+
+function resetForm() {
+    if (!confirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?\n(API Key จะไม่ถูกลบ)')) return;
+
+    // Reset text inputs (except API key)
+    document.getElementById('projectName').value = '';
+    document.getElementById('projectDesc').value = '';
+    document.getElementById('otherAiName').value = '';
+
+    // Reset wizard fields
+    const wizProjectName = document.getElementById('wizProjectName');
+    const wizProjectDesc = document.getElementById('wizProjectDesc');
+    if (wizProjectName) wizProjectName.value = '';
+    if (wizProjectDesc) wizProjectDesc.value = '';
+    const wizTargetAI = document.getElementById('wizTargetAI');
+    if (wizTargetAI) wizTargetAI.selectedIndex = 0;
+
+    // Reset all radio buttons to first (checked by default in HTML)
+    const radioGroups = ['platform', 'database', 'cssFramework', 'language', 'pageType', 'pwa', 'responsive', 'authentication', 'apiStyle', 'packageManager', 'testing', 'hosting', 'targetAI'];
+    radioGroups.forEach(name => {
+        const radios = document.querySelectorAll(`input[name="${name}"]`);
+        radios.forEach((radio, i) => {
+            radio.checked = radio.defaultChecked;
+        });
+    });
+
+    // Clear skills checkboxes
+    document.querySelectorAll('#skillsList input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+
+    // Hide result section
+    const resultSection = document.getElementById('result-section');
+    resultSection.style.display = 'none';
+    document.getElementById('resultText').value = '';
+    document.getElementById('signatureWarning').style.display = 'none';
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    showToast('รีเซ็ตเรียบร้อยแล้ว');
+}
+
 // ===== KP Fingerprint System =====
 // สร้าง fingerprint เพื่อพิสูจน์ว่าไฟล์นี้สร้างจาก KP Prompt Creator
 
@@ -1860,7 +1910,6 @@ function generateKPFingerprint(content, projectName) {
         `<!-- Generated: ${timestamp} -->`,
         `<!-- Content-Hash: ${contentHash} -->`,
         `<!-- Signature: KP-${signature} -->`,
-        `<!-- Verify: https://your-domain.com/verify?sig=KP-${signature} -->`,
         '<!-- DO NOT REMOVE: This signature verifies this prompt was created by KP Prompt Creator -->'
     ].join('\n');
 }
