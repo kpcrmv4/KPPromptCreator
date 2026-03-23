@@ -43,10 +43,148 @@
                 </div>
             </section>
 
-            <!-- Step 2: Project Info -->
-            <section class="card" id="project-section">
+            <!-- Mode Selector -->
+            <section class="card" id="mode-section">
                 <div class="card-header">
                     <span class="step-badge">2</span>
+                    <h2>เลือกโหมดการใช้งาน</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" data-mode="manual" id="modeManualBtn">
+                            <i class="bi bi-sliders"></i>
+                            <div>
+                                <span class="mode-title">Manual Mode</span>
+                                <span class="mode-desc">เลือก tech stack เอง</span>
+                            </div>
+                        </button>
+                        <button class="mode-btn" data-mode="ai-chat" id="modeChatBtn">
+                            <i class="bi bi-chat-dots"></i>
+                            <div>
+                                <span class="mode-title">AI Chat</span>
+                                <span class="mode-desc">คุยกับ AI ทีละขั้นตอน</span>
+                            </div>
+                        </button>
+                        <button class="mode-btn" data-mode="ai-wizard" id="modeWizardBtn">
+                            <i class="bi bi-list-check"></i>
+                            <div>
+                                <span class="mode-title">AI Wizard</span>
+                                <span class="mode-desc">AI วิเคราะห์เป็น step cards</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== AI Chat Mode ===== -->
+            <section class="card ai-mode-section" id="chat-section" style="display: none;">
+                <div class="card-header">
+                    <span class="step-badge"><i class="bi bi-chat-dots"></i></span>
+                    <h2>AI Assistant - Chat Mode</h2>
+                    <button class="btn btn-outline btn-sm" id="chatResetBtn">
+                        <i class="bi bi-arrow-counterclockwise"></i> เริ่มใหม่
+                    </button>
+                </div>
+                <div class="card-body chat-body">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-area">
+                        <textarea id="chatInput" rows="2" placeholder="พิมพ์คำตอบของคุณ..." disabled></textarea>
+                        <button class="btn btn-primary" id="chatSendBtn" disabled>
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== AI Wizard Mode ===== -->
+            <section class="card ai-mode-section" id="wizard-section" style="display: none;">
+                <div class="card-header">
+                    <span class="step-badge"><i class="bi bi-list-check"></i></span>
+                    <h2>AI Assistant - Wizard Mode</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Wizard Step 1: Describe Project -->
+                    <div class="wizard-step active" id="wizStep1">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">1</span>
+                            <span class="wiz-step-title">อธิบายโปรเจกต์ของคุณ</span>
+                        </div>
+                        <div class="wiz-step-body">
+                            <div class="form-group">
+                                <label for="wizProjectName">ชื่อโปรเจกต์</label>
+                                <input type="text" id="wizProjectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า">
+                            </div>
+                            <div class="form-group">
+                                <label for="wizProjectDesc">อธิบายสิ่งที่ต้องการ ยิ่งละเอียดยิ่งดี</label>
+                                <textarea id="wizProjectDesc" rows="5" placeholder="เช่น ต้องการเว็บจัดการสินค้า มีระบบ login, เพิ่ม/แก้ไข/ลบสินค้า, แดชบอร์ดสรุปยอดขาย, export เป็น Excel..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="wizTargetAI">AI ที่จะนำไปใช้</label>
+                                <select id="wizTargetAI">
+                                    <option value="claude">Claude (Anthropic)</option>
+                                    <option value="gemini-cli">Gemini CLI</option>
+                                    <option value="cursor">Cursor</option>
+                                    <option value="github-copilot">GitHub Copilot</option>
+                                    <option value="codex">OpenAI Codex</option>
+                                    <option value="other">อื่นๆ</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="wizAnalyzeBtn">
+                                <i class="bi bi-cpu"></i> วิเคราะห์โปรเจกต์
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Wizard Step 2: AI Analysis -->
+                    <div class="wizard-step" id="wizStep2">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">2</span>
+                            <span class="wiz-step-title">AI วิเคราะห์ความต้องการ</span>
+                        </div>
+                        <div class="wiz-step-body" id="wizAnalysisBody">
+                            <div class="loading-state" id="wizAnalysisLoading" style="display: none;">
+                                <div class="spinner"></div>
+                                <span>AI กำลังวิเคราะห์โปรเจกต์...</span>
+                            </div>
+                            <div id="wizAnalysisContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Wizard Step 3: Tech Stack Recommendation -->
+                    <div class="wizard-step" id="wizStep3">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">3</span>
+                            <span class="wiz-step-title">Tech Stack ที่แนะนำ</span>
+                        </div>
+                        <div class="wiz-step-body" id="wizTechBody">
+                            <div class="loading-state" id="wizTechLoading" style="display: none;">
+                                <div class="spinner"></div>
+                                <span>AI กำลังแนะนำ Tech Stack...</span>
+                            </div>
+                            <div id="wizTechContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Wizard Step 4: Generate -->
+                    <div class="wizard-step" id="wizStep4">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">4</span>
+                            <span class="wiz-step-title">สร้าง Prompt</span>
+                        </div>
+                        <div class="wiz-step-body" id="wizGenerateBody" style="display: none;">
+                            <div class="wiz-summary-box" id="wizFinalSummary"></div>
+                            <button class="btn btn-primary btn-lg" id="wizGenerateBtn">
+                                <i class="bi bi-magic"></i> Generate Prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Project Info (Manual Mode) -->
+            <section class="card manual-section" id="project-section">
+                <div class="card-header">
+                    <span class="step-badge">3</span>
                     <h2>ข้อมูลโปรเจกต์</h2>
                     <button class="btn btn-outline btn-sm btn-magic" id="magicWizardBtn">
                         <i class="bi bi-stars"></i> Magic Wizard
@@ -64,10 +202,10 @@
                 </div>
             </section>
 
-            <!-- Step 3: Tech Stack -->
-            <section class="card" id="tech-section">
+            <!-- Step 4: Tech Stack -->
+            <section class="card manual-section" id="tech-section">
                 <div class="card-header">
-                    <span class="step-badge">3</span>
+                    <span class="step-badge">4</span>
                     <h2>เลือก Tech Stack</h2>
                 </div>
                 <div class="card-body">
@@ -501,10 +639,10 @@
                 </div>
             </section>
 
-            <!-- Step 4: Target AI -->
-            <section class="card" id="ai-section">
+            <!-- Step 5: Target AI -->
+            <section class="card manual-section" id="ai-section">
                 <div class="card-header">
-                    <span class="step-badge">4</span>
+                    <span class="step-badge">5</span>
                     <h2>เลือก AI ที่จะนำไปใช้</h2>
                 </div>
                 <div class="card-body">
@@ -568,10 +706,10 @@
                 </div>
             </section>
 
-            <!-- Step 5: Skills -->
-            <section class="card" id="skills-section">
+            <!-- Step 6: Skills -->
+            <section class="card manual-section" id="skills-section">
                 <div class="card-header">
-                    <span class="step-badge">5</span>
+                    <span class="step-badge">6</span>
                     <h2>Skills ที่เกี่ยวข้อง</h2>
                     <button class="btn btn-outline btn-sm" id="fetchSkillsBtn">
                         <i class="bi bi-arrow-clockwise"></i> ค้นหา Skills
@@ -587,8 +725,8 @@
                 </div>
             </section>
 
-            <!-- Generate Button -->
-            <div class="generate-section">
+            <!-- Generate Button (Manual Mode) -->
+            <div class="generate-section manual-section" id="manualGenerateSection">
                 <button class="btn btn-primary btn-lg" id="generateBtn">
                     <i class="bi bi-magic"></i> Generate Prompt
                 </button>

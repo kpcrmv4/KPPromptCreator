@@ -65,6 +65,25 @@ function initApp() {
 
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', downloadResult);
+
+    // Mode selector
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+    });
+
+    // Chat mode
+    document.getElementById('chatSendBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    });
+    document.getElementById('chatResetBtn').addEventListener('click', resetChat);
+
+    // Wizard mode
+    document.getElementById('wizAnalyzeBtn').addEventListener('click', startWizardAnalysis);
+    document.getElementById('wizGenerateBtn').addEventListener('click', wizardGenerate);
 }
 
 // ===== Tech Stack Validation =====
@@ -925,4 +944,628 @@ function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ===== Mode Switching =====
+
+let currentMode = 'manual';
+
+function switchMode(mode) {
+    currentMode = mode;
+
+    // Update mode buttons
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    // Toggle manual sections
+    const manualSections = document.querySelectorAll('.manual-section');
+    manualSections.forEach(el => {
+        el.style.display = mode === 'manual' ? '' : 'none';
+    });
+
+    // Toggle AI sections
+    document.getElementById('chat-section').style.display = mode === 'ai-chat' ? '' : 'none';
+    document.getElementById('wizard-section').style.display = mode === 'ai-wizard' ? '' : 'none';
+
+    // Result section stays visible if it has content
+    // Initialize chat on first open
+    if (mode === 'ai-chat' && !chatInitialized) {
+        initChat();
+    }
+}
+
+// ===== AI Chat Mode =====
+
+let chatInitialized = false;
+let chatHistory = [];
+let chatConversation = []; // For Gemini context
+let chatPhase = 0; // 0=intro, 1=project, 2=features, 3=users, 4=constraints, 5=summary
+let chatProjectData = {};
+
+function initChat() {
+    chatInitialized = true;
+    chatHistory = [];
+    chatConversation = [];
+    chatPhase = 0;
+    chatProjectData = {};
+
+    const messagesEl = document.getElementById('chatMessages');
+    messagesEl.innerHTML = '';
+
+    addChatBubble('ai', 'สวัสดีครับ! ผม AI Assistant ที่จะช่วยวิเคราะห์โปรเจกต์ของคุณ แล้วสร้าง prompt ที่เหมาะสมให้');
+    addChatBubble('ai', 'เริ่มต้นเลย - โปรเจกต์ของคุณชื่ออะไร แล้วทำเกี่ยวกับอะไรครับ?', [
+        'ระบบจัดการสต็อกสินค้า',
+        'เว็บขายของออนไลน์',
+        'แดชบอร์ดสรุปข้อมูล',
+        'ระบบจองนัดหมาย'
+    ]);
+
+    enableChatInput();
+}
+
+function resetChat() {
+    chatInitialized = false;
+    initChat();
+}
+
+function enableChatInput() {
+    document.getElementById('chatInput').disabled = false;
+    document.getElementById('chatSendBtn').disabled = false;
+    document.getElementById('chatInput').focus();
+}
+
+function disableChatInput() {
+    document.getElementById('chatInput').disabled = true;
+    document.getElementById('chatSendBtn').disabled = true;
+}
+
+function addChatBubble(type, text, quickReplies) {
+    const messagesEl = document.getElementById('chatMessages');
+
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${type}`;
+
+    if (type === 'ai') {
+        bubble.innerHTML = `<div class="chat-sender">AI Assistant</div>${text}`;
+    } else if (type === 'system') {
+        bubble.textContent = text;
+    } else {
+        bubble.textContent = text;
+    }
+
+    messagesEl.appendChild(bubble);
+
+    // Add quick replies
+    if (quickReplies && quickReplies.length > 0) {
+        const repliesDiv = document.createElement('div');
+        repliesDiv.className = 'chat-quick-replies';
+        quickReplies.forEach(reply => {
+            const btn = document.createElement('button');
+            btn.className = 'chat-quick-reply';
+            btn.textContent = reply;
+            btn.addEventListener('click', () => {
+                document.getElementById('chatInput').value = reply;
+                sendChatMessage();
+                repliesDiv.remove();
+            });
+            repliesDiv.appendChild(btn);
+        });
+        messagesEl.appendChild(repliesDiv);
+    }
+
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function showTypingIndicator() {
+    const messagesEl = document.getElementById('chatMessages');
+    const typing = document.createElement('div');
+    typing.className = 'chat-typing';
+    typing.id = 'chatTyping';
+    typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    messagesEl.appendChild(typing);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const typing = document.getElementById('chatTyping');
+    if (typing) typing.remove();
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        showToast('กรุณาใส่ Gemini API Key ก่อน');
+        return;
+    }
+
+    // Remove any quick replies
+    document.querySelectorAll('.chat-quick-replies').forEach(el => el.remove());
+
+    addChatBubble('user', message);
+    input.value = '';
+    disableChatInput();
+    showTypingIndicator();
+
+    // Add to conversation history
+    chatConversation.push({ role: 'user', parts: [{ text: message }] });
+
+    try {
+        const aiResponse = await processChatMessage(apiKey, message);
+        removeTypingIndicator();
+
+        if (aiResponse.message) {
+            addChatBubble('ai', aiResponse.message, aiResponse.quickReplies);
+        }
+        if (aiResponse.system) {
+            addChatBubble('system', aiResponse.system);
+        }
+
+        // Add AI response to conversation
+        if (aiResponse.message) {
+            chatConversation.push({ role: 'model', parts: [{ text: aiResponse.message }] });
+        }
+
+        if (!aiResponse.done) {
+            enableChatInput();
+        }
+    } catch (err) {
+        removeTypingIndicator();
+        addChatBubble('ai', `เกิดข้อผิดพลาด: ${err.message} ลองพิมพ์ใหม่อีกครั้งครับ`);
+        enableChatInput();
+    }
+}
+
+async function processChatMessage(apiKey, userMessage) {
+    chatPhase++;
+
+    if (chatPhase === 1) {
+        // User described their project - ask about features
+        chatProjectData.description = userMessage;
+
+        const prompt = `คุณเป็น AI ที่ช่วยวิเคราะห์โปรเจกต์เว็บ ผู้ใช้อธิบายโปรเจกต์ว่า: "${userMessage}"
+
+ให้ถามคำถามต่อเกี่ยวกับฟีเจอร์หลักที่ต้องการ เช่น ระบบ login, CRUD, แดชบอร์ด, แจ้งเตือน, export ข้อมูล เป็นต้น
+ตอบเป็นภาษาไทยสั้นๆ ไม่เกิน 3 ประโยค ถามเฉพาะเรื่องฟีเจอร์`;
+
+        const response = await callGeminiAPI(apiKey, prompt);
+        return { message: response, quickReplies: ['มีระบบ login, CRUD, แดชบอร์ด', 'เน้น CRUD อย่างเดียว', 'ครบทุกอย่าง login, CRUD, export, แจ้งเตือน'] };
+    }
+
+    if (chatPhase === 2) {
+        // User described features - ask about users/scale
+        chatProjectData.features = userMessage;
+
+        const prompt = `คุณเป็น AI ที่ช่วยวิเคราะห์โปรเจกต์เว็บ
+โปรเจกต์: ${chatProjectData.description}
+ฟีเจอร์: ${userMessage}
+
+ให้ถามคำถามเกี่ยวกับ:
+- ใครเป็นผู้ใช้ (คนเดียว, ทีมเล็ก, องค์กร, สาธารณะ)
+- ข้อมูลมากแค่ไหน
+ตอบเป็นภาษาไทยสั้นๆ ไม่เกิน 2 ประโยค`;
+
+        const response = await callGeminiAPI(apiKey, prompt);
+        return { message: response, quickReplies: ['ใช้คนเดียว ข้อมูลไม่มาก', 'ทีมเล็ก 5-10 คน', 'หลายคนใช้พร้อมกัน ข้อมูลเยอะ'] };
+    }
+
+    if (chatPhase === 3) {
+        // User described users - ask about constraints/preferences
+        chatProjectData.users = userMessage;
+
+        const prompt = `คุณเป็น AI ที่ช่วยวิเคราะห์โปรเจกต์เว็บ
+โปรเจกต์: ${chatProjectData.description}
+ฟีเจอร์: ${chatProjectData.features}
+ผู้ใช้: ${userMessage}
+
+ให้ถามคำถามสุดท้ายเกี่ยวกับ:
+- มีข้อจำกัดหรือ preference อะไรไหม (ฟรี, ง่าย, ใช้ Google, ต้องรัน offline)
+- จะใช้ AI ตัวไหนสั่งงาน (Claude, Cursor, Gemini CLI ฯลฯ)
+ตอบเป็นภาษาไทยสั้นๆ ไม่เกิน 2 ประโยค`;
+
+        const response = await callGeminiAPI(apiKey, prompt);
+        return { message: response, quickReplies: ['อยากใช้ฟรี ง่ายที่สุด ใช้ Claude', 'ใช้ฟรี อยู่บน Google ใช้ Claude', 'ไม่จำกัด budget ใช้ Cursor'] };
+    }
+
+    if (chatPhase === 4) {
+        // Final - AI analyzes everything and generates prompt
+        chatProjectData.constraints = userMessage;
+
+        addChatBubble('system', 'AI กำลังวิเคราะห์ทั้งหมดและสร้าง prompt...');
+
+        const analysisPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน web development ช่วยวิเคราะห์โปรเจกต์นี้:
+
+โปรเจกต์: ${chatProjectData.description}
+ฟีเจอร์ที่ต้องการ: ${chatProjectData.features}
+ผู้ใช้/ขนาด: ${chatProjectData.users}
+ข้อจำกัด/preference: ${chatProjectData.constraints}
+
+ให้วิเคราะห์และตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+{
+  "projectName": "ชื่อโปรเจกต์ที่เหมาะ",
+  "summary": "สรุปวิเคราะห์ 2-3 ประโยค ว่าทำไมเลือก stack นี้",
+  "features": ["ฟีเจอร์ 1", "ฟีเจอร์ 2"],
+  "techStack": {
+    "platform": "google-apps-script | react-vercel | nextjs-vercel | vue-netlify | static-html",
+    "database": "google-sheets | supabase | firebase-firestore | mongodb-atlas | turso",
+    "cssFramework": "bootstrap | tailwind | daisyui | shadcn-ui | material-ui",
+    "language": "javascript | typescript",
+    "pageType": "single-page | spa",
+    "pwa": "yes | no",
+    "responsive": "responsive | desktop-only",
+    "authentication": "none | firebase-auth | supabase-auth | clerk",
+    "apiStyle": "rest | graphql | trpc",
+    "packageManager": "none | npm | pnpm | bun",
+    "testing": "none | vitest | jest | playwright",
+    "hosting": "gas-deploy | vercel | netlify | cloudflare-pages | firebase-hosting"
+  },
+  "targetAI": "claude | gemini-cli | cursor | github-copilot | codex",
+  "reasoning": {
+    "platform": "เหตุผล",
+    "database": "เหตุผล"
+  }
+}`;
+
+        const raw = await callGeminiAPI(apiKey, analysisPrompt);
+        const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const analysis = JSON.parse(jsonStr);
+
+        chatProjectData.analysis = analysis;
+
+        // Show analysis
+        let summaryHtml = `<strong>${analysis.projectName}</strong><br><br>${analysis.summary}<br><br>`;
+        summaryHtml += `<strong>Tech Stack ที่แนะนำ:</strong><br>`;
+
+        const labelMap = {
+            platform: 'แพลตฟอร์ม', database: 'ฐานข้อมูล', cssFramework: 'CSS',
+            language: 'ภาษา', pageType: 'หน้าเว็บ', authentication: 'Auth',
+            hosting: 'Hosting', pwa: 'PWA', responsive: 'การแสดงผล'
+        };
+
+        for (const [key, val] of Object.entries(analysis.techStack)) {
+            const label = labelMap[key] || key;
+            const reason = analysis.reasoning?.[key] || '';
+            summaryHtml += `• <strong>${label}:</strong> ${val}${reason ? ` <em>(${reason})</em>` : ''}<br>`;
+        }
+
+        addChatBubble('ai', summaryHtml);
+        addChatBubble('ai', 'ต้องการปรับอะไรไหม? ถ้าโอเคแล้ว พิมพ์ "ตกลง" หรือ "generate" ได้เลยครับ', ['ตกลง generate เลย', 'เปลี่ยน platform', 'เปลี่ยน database']);
+
+        enableChatInput();
+        chatPhase = 5; // Wait for confirmation
+        return { done: false };
+    }
+
+    if (chatPhase >= 5) {
+        const lower = userMessage.toLowerCase();
+        if (lower.includes('ตกลง') || lower.includes('generate') || lower.includes('ok') || lower.includes('โอเค') || lower.includes('เลย')) {
+            // Generate the prompt
+            addChatBubble('system', 'กำลังสร้าง prompt...');
+            await generateFromChatData(apiKey);
+            return { done: true };
+        } else {
+            // User wants to adjust - send to Gemini for adjustment
+            const adjustPrompt = `ผู้ใช้ต้องการปรับ tech stack:
+ข้อมูลปัจจุบัน: ${JSON.stringify(chatProjectData.analysis.techStack)}
+คำขอปรับ: ${userMessage}
+
+ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+{"adjusted": {เฉพาะ field ที่เปลี่ยน}, "message": "อธิบายสิ่งที่เปลี่ยนสั้นๆ ภาษาไทย"}`;
+
+            const raw = await callGeminiAPI(apiKey, adjustPrompt);
+            const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const adj = JSON.parse(jsonStr);
+
+            // Apply adjustments
+            Object.assign(chatProjectData.analysis.techStack, adj.adjusted);
+
+            return {
+                message: `${adj.message}<br><br>ต้องการปรับอะไรเพิ่มไหม? ถ้าโอเคแล้วพิมพ์ "ตกลง" ครับ`,
+                quickReplies: ['ตกลง generate เลย', 'ปรับอีก']
+            };
+        }
+    }
+
+    return { message: 'เกิดข้อผิดพลาด ลองเริ่มใหม่ครับ' };
+}
+
+async function generateFromChatData(apiKey) {
+    const analysis = chatProjectData.analysis;
+    const ts = analysis.techStack;
+    const targetAI = analysis.targetAI || 'claude';
+
+    // Set form values to match analysis (so generatePrompt works)
+    setRadioIfExists('platform', ts.platform);
+    setRadioIfExists('database', ts.database);
+    setRadioIfExists('cssFramework', ts.cssFramework);
+    setRadioIfExists('language', ts.language);
+    setRadioIfExists('pageType', ts.pageType);
+    setRadioIfExists('pwa', ts.pwa);
+    setRadioIfExists('responsive', ts.responsive);
+    setRadioIfExists('authentication', ts.authentication);
+    setRadioIfExists('apiStyle', ts.apiStyle);
+    setRadioIfExists('packageManager', ts.packageManager);
+    setRadioIfExists('testing', ts.testing);
+    setRadioIfExists('hosting', ts.hosting);
+    setRadioIfExists('targetAI', targetAI);
+
+    // Set project info
+    document.getElementById('projectName').value = analysis.projectName || chatProjectData.description;
+    document.getElementById('projectDesc').value = `${chatProjectData.description}\n\nฟีเจอร์: ${chatProjectData.features}\nผู้ใช้: ${chatProjectData.users}\nข้อจำกัด: ${chatProjectData.constraints}`;
+
+    // Trigger generate
+    await generatePrompt();
+
+    addChatBubble('system', 'สร้าง prompt สำเร็จแล้ว! เลื่อนลงดูผลลัพธ์ด้านล่างได้เลย');
+}
+
+function setRadioIfExists(name, value) {
+    const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (radio) radio.checked = true;
+}
+
+// ===== AI Wizard Mode =====
+
+let wizardData = {};
+
+async function startWizardAnalysis() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        showToast('กรุณาใส่ Gemini API Key ก่อน');
+        return;
+    }
+
+    const name = document.getElementById('wizProjectName').value.trim();
+    const desc = document.getElementById('wizProjectDesc').value.trim();
+    const targetAI = document.getElementById('wizTargetAI').value;
+
+    if (!name || !desc) {
+        showToast('กรุณาใส่ชื่อโปรเจกต์และคำอธิบาย');
+        return;
+    }
+
+    wizardData = { name, desc, targetAI };
+
+    // Mark step 1 as completed, activate step 2
+    document.getElementById('wizStep1').className = 'wizard-step completed';
+    document.getElementById('wizStep2').className = 'wizard-step active';
+    document.getElementById('wizAnalysisLoading').style.display = 'flex';
+    document.getElementById('wizAnalysisContent').innerHTML = '';
+
+    // Step 2: Analyze requirements
+    const analysisPrompt = `คุณเป็นนักวิเคราะห์ระบบ (Business Analyst / System Analyst) ที่เก่งมาก
+วิเคราะห์โปรเจกต์เว็บนี้แล้วตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+
+ชื่อ: ${name}
+คำอธิบาย: ${desc}
+
+{
+  "summary": "สรุปโปรเจกต์ 2-3 ประโยค",
+  "features": [
+    {"name": "ชื่อฟีเจอร์", "description": "อธิบายสั้นๆ", "priority": "high|medium|low"}
+  ],
+  "userTypes": [
+    {"name": "ประเภทผู้ใช้", "description": "อธิบาย"}
+  ],
+  "dataModels": [
+    {"name": "ชื่อ model/ตาราง", "fields": ["field1", "field2"]}
+  ],
+  "nonFunctional": ["ความต้องการที่ไม่ใช่ฟีเจอร์ เช่น performance, security"],
+  "estimatedComplexity": "simple|moderate|complex",
+  "risks": ["ความเสี่ยงที่ต้องระวัง"]
+}`;
+
+    try {
+        const raw = await callGeminiAPI(apiKey, analysisPrompt);
+        const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const analysis = JSON.parse(jsonStr);
+        wizardData.analysis = analysis;
+
+        document.getElementById('wizAnalysisLoading').style.display = 'none';
+        renderWizardAnalysis(analysis);
+
+        // Auto-proceed to step 3
+        setTimeout(() => startWizardTechRecommendation(apiKey), 500);
+    } catch (err) {
+        document.getElementById('wizAnalysisLoading').style.display = 'none';
+        document.getElementById('wizAnalysisContent').innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p></div>`;
+    }
+}
+
+function renderWizardAnalysis(analysis) {
+    let html = `<div class="wiz-summary-box">${analysis.summary}</div>`;
+
+    // Features
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ฟีเจอร์ที่วิเคราะห์ได้</h4><ul>`;
+    analysis.features.forEach(f => {
+        const badge = f.priority === 'high' ? '🔴' : f.priority === 'medium' ? '🟡' : '🟢';
+        html += `<li>${badge} <strong>${f.name}</strong> - ${f.description}</li>`;
+    });
+    html += `</ul></div>`;
+
+    // User types
+    if (analysis.userTypes && analysis.userTypes.length > 0) {
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-people"></i> ประเภทผู้ใช้</h4><ul>`;
+        analysis.userTypes.forEach(u => {
+            html += `<li><strong>${u.name}</strong> - ${u.description}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+
+    // Data models
+    if (analysis.dataModels && analysis.dataModels.length > 0) {
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4><ul>`;
+        analysis.dataModels.forEach(m => {
+            html += `<li><strong>${m.name}</strong>: ${m.fields.join(', ')}</li>`;
+        });
+        html += `</ul></div>`;
+    }
+
+    // Complexity & Risks
+    const complexityLabel = { simple: 'ง่าย', moderate: 'ปานกลาง', complex: 'ซับซ้อน' };
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-speedometer2"></i> ความซับซ้อน: ${complexityLabel[analysis.estimatedComplexity] || analysis.estimatedComplexity}</h4>`;
+    if (analysis.risks && analysis.risks.length > 0) {
+        html += `<ul>`;
+        analysis.risks.forEach(r => { html += `<li>${r}</li>`; });
+        html += `</ul>`;
+    }
+    html += `</div>`;
+
+    document.getElementById('wizAnalysisContent').innerHTML = html;
+}
+
+async function startWizardTechRecommendation(apiKey) {
+    document.getElementById('wizStep2').className = 'wizard-step completed';
+    document.getElementById('wizStep3').className = 'wizard-step active';
+    document.getElementById('wizTechLoading').style.display = 'flex';
+    document.getElementById('wizTechContent').innerHTML = '';
+
+    const analysis = wizardData.analysis;
+
+    const techPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน web development tech stack
+จากการวิเคราะห์โปรเจกต์นี้:
+
+ชื่อ: ${wizardData.name}
+คำอธิบาย: ${wizardData.desc}
+ฟีเจอร์: ${analysis.features.map(f => f.name).join(', ')}
+ความซับซ้อน: ${analysis.estimatedComplexity}
+ผู้ใช้: ${analysis.userTypes.map(u => u.name).join(', ')}
+
+แนะนำ tech stack ที่เหมาะสม ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+{
+  "summary": "สรุปว่าทำไมถึงแนะนำ stack นี้ 2-3 ประโยค",
+  "techStack": {
+    "platform": {"value": "...", "reason": "..."},
+    "database": {"value": "...", "reason": "..."},
+    "cssFramework": {"value": "...", "reason": "..."},
+    "language": {"value": "...", "reason": "..."},
+    "pageType": {"value": "...", "reason": "..."},
+    "pwa": {"value": "...", "reason": "..."},
+    "responsive": {"value": "...", "reason": "..."},
+    "authentication": {"value": "...", "reason": "..."},
+    "apiStyle": {"value": "...", "reason": "..."},
+    "packageManager": {"value": "...", "reason": "..."},
+    "testing": {"value": "...", "reason": "..."},
+    "hosting": {"value": "...", "reason": "..."}
+  }
+}
+
+ค่า value ที่ใช้ได้:
+- platform: google-apps-script, react-vercel, nextjs-vercel, vue-netlify, static-html
+- database: google-sheets, supabase, firebase-firestore, mongodb-atlas, turso
+- cssFramework: bootstrap, tailwind, daisyui, shadcn-ui, material-ui
+- language: javascript, typescript
+- pageType: single-page, spa
+- pwa: yes, no
+- responsive: responsive, desktop-only
+- authentication: none, firebase-auth, supabase-auth, clerk
+- apiStyle: rest, graphql, trpc
+- packageManager: none, npm, pnpm, bun
+- testing: none, vitest, jest, playwright
+- hosting: gas-deploy, vercel, netlify, cloudflare-pages, firebase-hosting`;
+
+    try {
+        const raw = await callGeminiAPI(apiKey, techPrompt);
+        const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const techData = JSON.parse(jsonStr);
+        wizardData.techRecommendation = techData;
+
+        document.getElementById('wizTechLoading').style.display = 'none';
+        renderWizardTech(techData);
+
+        // Activate step 4
+        document.getElementById('wizStep3').className = 'wizard-step completed';
+        document.getElementById('wizStep4').className = 'wizard-step active';
+        document.getElementById('wizGenerateBody').style.display = 'block';
+        renderWizardFinalSummary();
+    } catch (err) {
+        document.getElementById('wizTechLoading').style.display = 'none';
+        document.getElementById('wizTechContent').innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p></div>`;
+    }
+}
+
+function renderWizardTech(techData) {
+    const labelMap = {
+        platform: 'แพลตฟอร์ม', database: 'ฐานข้อมูล', cssFramework: 'CSS Framework',
+        language: 'ภาษา', pageType: 'รูปแบบหน้าเว็บ', pwa: 'PWA',
+        responsive: 'การแสดงผล', authentication: 'Authentication', apiStyle: 'API Style',
+        packageManager: 'Package Manager', testing: 'Testing', hosting: 'Hosting'
+    };
+
+    let html = `<div class="wiz-summary-box">${techData.summary}</div>`;
+
+    for (const [key, rec] of Object.entries(techData.techStack)) {
+        html += `<div class="wiz-tech-item">
+            <div class="wiz-tech-label">${labelMap[key] || key}</div>
+            <div>
+                <div class="wiz-tech-value">${rec.value}</div>
+                <div class="wiz-tech-reason">${rec.reason}</div>
+            </div>
+        </div>`;
+    }
+
+    document.getElementById('wizTechContent').innerHTML = html;
+}
+
+function renderWizardFinalSummary() {
+    const analysis = wizardData.analysis;
+    const tech = wizardData.techRecommendation;
+
+    let html = `<strong>${wizardData.name}</strong><br>`;
+    html += `${analysis.summary}<br><br>`;
+    html += `<strong>ฟีเจอร์:</strong> ${analysis.features.map(f => f.name).join(', ')}<br>`;
+    html += `<strong>Tech Stack:</strong> ${tech.techStack.platform.value} + ${tech.techStack.database.value} + ${tech.techStack.cssFramework.value}<br>`;
+    html += `<strong>Target AI:</strong> ${wizardData.targetAI}`;
+
+    document.getElementById('wizFinalSummary').innerHTML = html;
+}
+
+async function wizardGenerate() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        showToast('กรุณาใส่ Gemini API Key');
+        return;
+    }
+
+    const tech = wizardData.techRecommendation.techStack;
+
+    // Set form values
+    for (const [key, rec] of Object.entries(tech)) {
+        setRadioIfExists(key, rec.value);
+    }
+    setRadioIfExists('targetAI', wizardData.targetAI);
+
+    // Set project info
+    document.getElementById('projectName').value = wizardData.name;
+
+    const analysis = wizardData.analysis;
+    let richDesc = wizardData.desc;
+    richDesc += `\n\n## ฟีเจอร์ที่วิเคราะห์ได้:\n`;
+    analysis.features.forEach(f => {
+        richDesc += `- ${f.name} (${f.priority}): ${f.description}\n`;
+    });
+    if (analysis.userTypes) {
+        richDesc += `\n## ผู้ใช้งาน:\n`;
+        analysis.userTypes.forEach(u => {
+            richDesc += `- ${u.name}: ${u.description}\n`;
+        });
+    }
+    if (analysis.dataModels) {
+        richDesc += `\n## Data Models:\n`;
+        analysis.dataModels.forEach(m => {
+            richDesc += `- ${m.name}: ${m.fields.join(', ')}\n`;
+        });
+    }
+
+    document.getElementById('projectDesc').value = richDesc;
+
+    // Make manual sections visible briefly for generatePrompt to work
+    await generatePrompt();
+
+    showToast('สร้าง prompt สำเร็จ!');
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
 }
