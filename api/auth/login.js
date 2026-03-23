@@ -9,20 +9,30 @@ module.exports = async function handler(req, res) {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่าน' });
 
-  const { data: user, error } = await supabaseAdmin
-    .from('users')
-    .select('id, email, password_hash, display_name, role, credit_balance, status')
-    .eq('email', email)
-    .single();
+  try {
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('id, email, password_hash, display_name, role, credit_balance, status')
+      .eq('email', email)
+      .single();
 
-  if (!user || error) return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-  if (user.status === 'suspended') return res.status(403).json({ error: 'บัญชีถูกระงับ' });
+    if (error) {
+      console.error('Login DB error:', error.message, error.code);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่' });
+    }
 
-  const valid = verifyPassword(password, user.password_hash);
-  if (!valid) return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    if (!user) return res.status(401).json({ error: 'ไม่พบบัญชีนี้ กรุณาสมัครสมาชิกก่อน' });
+    if (user.status === 'suspended') return res.status(403).json({ error: 'บัญชีถูกระงับ' });
 
-  const token = createToken({ sub: user.id, role: user.role });
+    const valid = verifyPassword(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'รหัสผ่านไม่ถูกต้อง' });
 
-  const { password_hash, ...safeUser } = user;
-  res.json({ user: safeUser, token });
+    const token = createToken({ sub: user.id, role: user.role });
+
+    const { password_hash, ...safeUser } = user;
+    res.json({ user: safeUser, token });
+  } catch (err) {
+    console.error('Login unexpected error:', err);
+    return res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่' });
+  }
 };
