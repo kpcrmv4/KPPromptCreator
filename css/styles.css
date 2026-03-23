@@ -436,7 +436,10 @@ textarea {
 
 /* ===== Generate Section ===== */
 .generate-section {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
     padding: 8px 0 16px;
 }
 

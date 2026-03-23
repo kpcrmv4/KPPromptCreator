@@ -171,6 +171,9 @@ function initApp() {
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
 
+    // Reset button
+    document.getElementById('resetBtn').addEventListener('click', resetForm);
+
     // Copy button
     document.getElementById('copyBtn').addEventListener('click', copyResult);
 
@@ -1847,6 +1850,50 @@ async function wizardGenerate() {
 
     showToast(t('toastGenerated'));
     document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== Reset Form =====
+
+function resetForm() {
+    if (!confirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?\n(API Key จะไม่ถูกลบ)')) return;
+
+    // Reset text inputs (except API key)
+    document.getElementById('projectName').value = '';
+    document.getElementById('projectDesc').value = '';
+    document.getElementById('otherAiName').value = '';
+
+    // Reset wizard fields
+    const wizProjectName = document.getElementById('wizProjectName');
+    const wizProjectDesc = document.getElementById('wizProjectDesc');
+    if (wizProjectName) wizProjectName.value = '';
+    if (wizProjectDesc) wizProjectDesc.value = '';
+    const wizTargetAI = document.getElementById('wizTargetAI');
+    if (wizTargetAI) wizTargetAI.selectedIndex = 0;
+
+    // Reset all radio buttons to first (checked by default in HTML)
+    const radioGroups = ['platform', 'database', 'cssFramework', 'language', 'pageType', 'pwa', 'responsive', 'authentication', 'apiStyle', 'packageManager', 'testing', 'hosting', 'targetAI'];
+    radioGroups.forEach(name => {
+        const radios = document.querySelectorAll(`input[name="${name}"]`);
+        radios.forEach((radio, i) => {
+            radio.checked = radio.defaultChecked;
+        });
+    });
+
+    // Clear skills checkboxes
+    document.querySelectorAll('#skillsList input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+
+    // Hide result section
+    const resultSection = document.getElementById('result-section');
+    resultSection.style.display = 'none';
+    document.getElementById('resultText').value = '';
+    document.getElementById('signatureWarning').style.display = 'none';
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    showToast('รีเซ็ตเรียบร้อยแล้ว');
 }
 
 // ===== KP Fingerprint System =====
