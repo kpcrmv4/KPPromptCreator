@@ -29,7 +29,7 @@ const PROJECT_TEMPLATES = {
     dashboard: {
         name: { th: 'แดชบอร์ดสรุปข้อมูล', en: 'Data Dashboard' },
         desc: { th: 'แดชบอร์ดแสดงข้อมูลสรุป มีกราฟ/ชาร์ตหลายรูปแบบ, ตารางข้อมูล, กรองตามช่วงวันที่, export เป็น PDF/Excel, รองรับข้อมูล real-time', en: 'Data summary dashboard with various charts/graphs, data tables, date range filter, PDF/Excel export, real-time data support' },
-        techStack: { platform: 'react-vercel', database: 'firebase-firestore', cssFramework: 'tailwind', language: 'typescript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'firebase-auth', apiStyle: 'rest', packageManager: 'npm', testing: 'vitest', hosting: 'vercel' }
+        techStack: { platform: 'react-vercel', database: 'supabase', cssFramework: 'tailwind', language: 'typescript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'supabase-auth', apiStyle: 'rest', packageManager: 'npm', testing: 'vitest', hosting: 'vercel' }
     },
     blog: {
         name: { th: 'เว็บบล็อก', en: 'Blog Website' },
@@ -210,12 +210,12 @@ function initApp() {
 const COMPAT_RULES = {
     database: {
         'google-apps-script': {
-            allowed: ['google-sheets', 'supabase', 'firebase-firestore'],
+            allowed: ['google-sheets', 'supabase'],
             blocked: ['mongodb-atlas', 'turso'],
             reason: t('reasonGASDB')
         },
         'static-html': {
-            allowed: ['google-sheets', 'firebase-firestore', 'supabase'],
+            allowed: ['google-sheets', 'supabase'],
             blocked: ['mongodb-atlas', 'turso'],
             reason: t('reasonStaticDB')
         }
@@ -236,7 +236,7 @@ const COMPAT_RULES = {
     },
     authentication: {
         'google-apps-script': {
-            allowed: ['none', 'firebase-auth', 'supabase-auth'],
+            allowed: ['none', 'google-sheets-auth', 'supabase-auth'],
             blocked: ['clerk'],
             reason: t('reasonGASAuth')
         }
@@ -270,7 +270,7 @@ const COMPAT_RULES = {
     hosting: {
         'google-apps-script': {
             allowed: ['gas-deploy'],
-            blocked: ['vercel', 'netlify', 'cloudflare-pages', 'firebase-hosting'],
+            blocked: ['vercel', 'netlify', 'cloudflare-pages'],
             reason: t('reasonGASHost')
         },
         'react-vercel': {
@@ -498,7 +498,6 @@ function buildSkillSearchQueries() {
     const dbQueries = {
         'google-sheets': 'google sheets',
         'supabase': 'supabase',
-        'firebase-firestore': 'firebase',
         'mongodb-atlas': 'mongodb',
         'turso': 'sqlite'
     };
@@ -520,7 +519,7 @@ function buildSkillSearchQueries() {
     if (authentication && authentication !== 'none') queries.push(authentication.replace('-', ' '));
     if (testing && testing !== 'none') queries.push(testing);
     if (hosting) {
-        const hostQueries = { 'vercel': 'vercel', 'netlify': 'netlify', 'cloudflare-pages': 'cloudflare', 'firebase-hosting': 'firebase hosting' };
+        const hostQueries = { 'vercel': 'vercel', 'netlify': 'netlify', 'cloudflare-pages': 'cloudflare' };
         if (hostQueries[hosting]) queries.push(hostQueries[hosting]);
     }
 
@@ -632,7 +631,6 @@ function getLocalSkillsFallback() {
     const dbTags = {
         'google-sheets': ['google', 'sheets'],
         'supabase': ['supabase', 'database', 'auth'],
-        'firebase-firestore': ['firebase', 'database', 'nosql'],
         'mongodb-atlas': ['mongodb', 'database', 'nosql'],
         'turso': ['sqlite', 'database', 'edge']
     };
@@ -784,17 +782,17 @@ async function openMagicWizard() {
 
 ค่า value ที่ใช้ได้:
 - platform: google-apps-script, react-vercel, nextjs-vercel, vue-netlify, static-html
-- database: google-sheets, supabase, firebase-firestore, mongodb-atlas, turso
+- database: google-sheets, supabase, mongodb-atlas, turso
 - cssFramework: bootstrap, tailwind, daisyui, shadcn-ui, material-ui
 - language: javascript, typescript
 - pageType: single-page, spa
 - pwa: yes, no
 - responsive: responsive, desktop-only
-- authentication: none, firebase-auth, supabase-auth, clerk
+- authentication: none, google-sheets-auth, supabase-auth, clerk
 - apiStyle: rest, graphql, trpc
 - packageManager: none, npm, pnpm, bun
 - testing: none, vitest, jest, playwright
-- hosting: gas-deploy, vercel, netlify, cloudflare-pages, firebase-hosting
+- hosting: gas-deploy, vercel, netlify, cloudflare-pages
 
 ตอบเป็น JSON เท่านั้น`;
 
@@ -973,7 +971,6 @@ async function generatePrompt() {
     const dbNames = {
         'google-sheets': 'Google Sheets',
         'supabase': 'Supabase (PostgreSQL)',
-        'firebase-firestore': 'Firebase Firestore',
         'mongodb-atlas': 'MongoDB Atlas',
         'turso': 'Turso (SQLite Edge)'
     };
@@ -991,7 +988,7 @@ async function generatePrompt() {
     };
     const authNames = {
         'none': t('authNameNone'),
-        'firebase-auth': 'Firebase Auth',
+        'google-sheets-auth': 'Google Sheets Auth (Hash)',
         'supabase-auth': 'Supabase Auth',
         'clerk': 'Clerk'
     };
@@ -1003,7 +1000,6 @@ async function generatePrompt() {
         'vercel': 'Vercel',
         'netlify': 'Netlify',
         'cloudflare-pages': 'Cloudflare Pages',
-        'firebase-hosting': 'Firebase Hosting'
     };
 
     // Build context-aware notes based on combo selections
@@ -1016,6 +1012,14 @@ async function generatePrompt() {
     }
     if (platform === 'google-apps-script' && pwa === 'yes') {
         comboNotes.push(`- **หมายเหตุ PWA บน GAS**: ต้อง deploy GAS เป็น Web App แล้วใช้ Service Worker แยก, manifest.json จะต้อง serve จาก GAS endpoint`);
+    }
+    if (authentication === 'google-sheets-auth') {
+        comboNotes.push(`- **ระบบ Auth ผ่าน Google Sheets**: เก็บข้อมูล username/password ใน Google Sheets
+- Password ต้อง hash ด้วย SHA-256 (หรือ bcrypt ถ้ามี library) ก่อนบันทึก ห้ามเก็บ plain text
+- ตาราง Users ใน Sheet: columns = username, password_hash, salt, role, created_at
+- Login flow: รับ username+password → hash password+salt → เทียบกับ password_hash ใน Sheet
+- Register flow: สร้าง salt → hash password+salt → เพิ่มแถวใหม่ใน Sheet
+- ใช้ session token (JWT หรือ random token) เก็บใน localStorage หลัง login สำเร็จ`);
     }
     if (platform === 'react-vercel' && pageType === 'spa') {
         comboNotes.push(`- ใช้ React Router สำหรับ client-side routing
@@ -1473,17 +1477,17 @@ async function processChatMessage(apiKey, userMessage) {
   "features": ["ฟีเจอร์ 1", "ฟีเจอร์ 2"],
   "techStack": {
     "platform": "google-apps-script | react-vercel | nextjs-vercel | vue-netlify | static-html",
-    "database": "google-sheets | supabase | firebase-firestore | mongodb-atlas | turso",
+    "database": "google-sheets | supabase | mongodb-atlas | turso",
     "cssFramework": "bootstrap | tailwind | daisyui | shadcn-ui | material-ui",
     "language": "javascript | typescript",
     "pageType": "single-page | spa",
     "pwa": "yes | no",
     "responsive": "responsive | desktop-only",
-    "authentication": "none | firebase-auth | supabase-auth | clerk",
+    "authentication": "none | google-sheets-auth | supabase-auth | clerk",
     "apiStyle": "rest | graphql | trpc",
     "packageManager": "none | npm | pnpm | bun",
     "testing": "none | vitest | jest | playwright",
-    "hosting": "gas-deploy | vercel | netlify | cloudflare-pages | firebase-hosting"
+    "hosting": "gas-deploy | vercel | netlify | cloudflare-pages"
   },
   "targetAI": "claude | gemini-cli | cursor | github-copilot | codex",
   "reasoning": {
@@ -1533,17 +1537,17 @@ async function processChatMessage(apiKey, userMessage) {
 
 สำคัญ: ค่าที่ตอบต้องตรงกับค่าที่อนุญาตเท่านั้น:
 - platform: google-apps-script | react-vercel | nextjs-vercel | vue-netlify | static-html
-- database: google-sheets | supabase | firebase-firestore | mongodb-atlas | turso
+- database: google-sheets | supabase | mongodb-atlas | turso
 - cssFramework: bootstrap | tailwind | daisyui | shadcn-ui | material-ui
 - language: javascript | typescript
 - pageType: single-page | spa
 - pwa: yes | no
 - responsive: responsive | desktop-only
-- authentication: none | firebase-auth | supabase-auth | clerk
+- authentication: none | google-sheets-auth | supabase-auth | clerk
 - apiStyle: rest | graphql | trpc
 - packageManager: none | npm | pnpm | bun
 - testing: none | vitest | jest | playwright
-- hosting: gas-deploy | vercel | netlify | cloudflare-pages | firebase-hosting
+- hosting: gas-deploy | vercel | netlify | cloudflare-pages
 
 ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
 {"adjusted": {เฉพาะ field ที่เปลี่ยน ใช้ค่าที่อนุญาตด้านบนเท่านั้น}, "message": "อธิบายสิ่งที่เปลี่ยนสั้นๆ ภาษาไทย"}`;
@@ -1557,9 +1561,9 @@ async function processChatMessage(apiKey, userMessage) {
             const valueNorms = {
                 'cssFramework': { 'tailwindcss': 'tailwind', 'tailwind-css': 'tailwind', 'tailwind css': 'tailwind', 'daisy-ui': 'daisyui', 'mui': 'material-ui' },
                 'platform': { 'gas': 'google-apps-script', 'react': 'react-vercel', 'nextjs': 'nextjs-vercel', 'next': 'nextjs-vercel', 'vue': 'vue-netlify', 'static': 'static-html', 'html': 'static-html' },
-                'database': { 'sheets': 'google-sheets', 'googlesheets': 'google-sheets', 'firebase': 'firebase-firestore', 'firestore': 'firebase-firestore', 'mongodb': 'mongodb-atlas', 'mongo': 'mongodb-atlas', 'sqlite': 'turso' },
+                'database': { 'sheets': 'google-sheets', 'googlesheets': 'google-sheets', 'mongodb': 'mongodb-atlas', 'mongo': 'mongodb-atlas', 'sqlite': 'turso' },
                 'language': { 'js': 'javascript', 'ts': 'typescript' },
-                'authentication': { 'firebase': 'firebase-auth', 'supabase': 'supabase-auth' },
+                'authentication': { 'sheets-auth': 'google-sheets-auth', 'sheets auth': 'google-sheets-auth', 'supabase': 'supabase-auth' },
                 'hosting': { 'gas': 'gas-deploy', 'cloudflare': 'cloudflare-pages' }
             };
             for (const [field, val] of Object.entries(adjNormalized)) {
@@ -1598,7 +1602,6 @@ async function generateFromChatData(apiKey) {
         'database': {
             'google-sheets': 'google-sheets', 'sheets': 'google-sheets', 'googlesheets': 'google-sheets',
             'supabase': 'supabase',
-            'firebase-firestore': 'firebase-firestore', 'firebase': 'firebase-firestore', 'firestore': 'firebase-firestore',
             'mongodb-atlas': 'mongodb-atlas', 'mongodb': 'mongodb-atlas', 'mongo': 'mongodb-atlas',
             'turso': 'turso', 'sqlite': 'turso'
         },
@@ -1619,7 +1622,7 @@ async function generateFromChatData(apiKey) {
         },
         'authentication': {
             'none': 'none',
-            'firebase-auth': 'firebase-auth', 'firebase': 'firebase-auth',
+            'google-sheets-auth': 'google-sheets-auth', 'sheets-auth': 'google-sheets-auth', 'sheets auth': 'google-sheets-auth',
             'supabase-auth': 'supabase-auth', 'supabase': 'supabase-auth',
             'clerk': 'clerk'
         },
@@ -1628,7 +1631,6 @@ async function generateFromChatData(apiKey) {
             'vercel': 'vercel',
             'netlify': 'netlify',
             'cloudflare-pages': 'cloudflare-pages', 'cloudflare': 'cloudflare-pages',
-            'firebase-hosting': 'firebase-hosting'
         }
     };
 
@@ -1833,17 +1835,17 @@ async function startWizardTechRecommendation(apiKey) {
 
 ค่า value ที่ใช้ได้:
 - platform: google-apps-script, react-vercel, nextjs-vercel, vue-netlify, static-html
-- database: google-sheets, supabase, firebase-firestore, mongodb-atlas, turso
+- database: google-sheets, supabase, mongodb-atlas, turso
 - cssFramework: bootstrap, tailwind, daisyui, shadcn-ui, material-ui
 - language: javascript, typescript
 - pageType: single-page, spa
 - pwa: yes, no
 - responsive: responsive, desktop-only
-- authentication: none, firebase-auth, supabase-auth, clerk
+- authentication: none, google-sheets-auth, supabase-auth, clerk
 - apiStyle: rest, graphql, trpc
 - packageManager: none, npm, pnpm, bun
 - testing: none, vitest, jest, playwright
-- hosting: gas-deploy, vercel, netlify, cloudflare-pages, firebase-hosting`;
+- hosting: gas-deploy, vercel, netlify, cloudflare-pages`;
 
     try {
         const raw = await callGeminiAPI(apiKey, techPrompt);
