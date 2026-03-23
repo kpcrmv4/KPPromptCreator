@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — KP Prompt Creator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/marketplace.css">
+</head>
+<body>
+  <nav class="mp-navbar">
+    <a href="/" class="nav-brand">
+      <img src="images/logo.png" alt="KP">
+      <span>KP Prompt Creator</span>
+    </a>
+    <div class="nav-links">
+      <a href="/marketplace.html">Marketplace</a>
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/admin.html" class="active">Admin</a>
+      <span class="user-menu" style="display:none;">
+        <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i></a>
+      </span>
+    </div>
+  </nav>
+
+  <div class="mp-container">
+    <div class="mp-page-header">
+      <h1><i class="bi bi-shield-lock"></i> Admin Panel</h1>
+      <p>จัดการ Prompt, Users และ Payouts</p>
+    </div>
+
+    <!-- Overview Stats -->
+    <div id="admin-overview">
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Admin Notifications -->
+    <div style="margin-bottom: 2rem;">
+      <h2><i class="bi bi-bell"></i> การแจ้งเตือน <span id="admin-notif-badge" class="badge badge-danger" style="display:none;"></span></h2>
+      <div id="admin-notifications">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Prompts Management -->
+    <div style="margin-top: 2rem;">
+      <h2><i class="bi bi-collection"></i> จัดการ Prompt</h2>
+      <div class="auth-tabs" style="margin-bottom:1rem;">
+        <button class="auth-tab active" onclick="loadAdminPromptsByStatus('pending');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">รออนุมัติ</button>
+        <button class="auth-tab" onclick="loadAdminPromptsByStatus('approved');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">อนุมัติแล้ว</button>
+        <button class="auth-tab" onclick="loadAdminPromptsByStatus('rejected');document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">ปฏิเสธ</button>
+      </div>
+      <div id="admin-prompts">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Pending Payouts -->
+    <div style="margin-top: 2rem;">
+      <h2><i class="bi bi-cash-coin"></i> คำขอถอนเงินรอดำเนินการ</h2>
+      <div id="admin-payouts">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- User Management -->
+    <div style="margin-top: 2rem;">
+      <h2><i class="bi bi-people"></i> จัดการสมาชิก</h2>
+      <div id="admin-users" class="mp-form">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div style="margin-top: 2rem;">
+      <h2><i class="bi bi-gear"></i> ตั้งค่าระบบ</h2>
+      <div id="admin-settings" class="mp-form">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/marketplace.js"></script>
+</body>
+</html>

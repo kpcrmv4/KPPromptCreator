@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เติมเงิน — KP Prompt Creator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/marketplace.css">
+</head>
+<body>
+  <nav class="mp-navbar">
+    <a href="/" class="nav-brand">
+      <img src="images/logo.png" alt="KP">
+      <span>KP Prompt Creator</span>
+    </a>
+    <div class="nav-links">
+      <a href="/marketplace.html">Marketplace</a>
+      <a href="/">สร้าง Prompt</a>
+      <span class="user-menu" style="display:none;">
+        <a href="/topup.html" class="active"><i class="bi bi-wallet2"></i> <span class="user-balance">฿0</span></a>
+        <a href="/orders.html"><i class="bi bi-bag"></i> คำสั่งซื้อ</a>
+        <a href="/dashboard.html" class="seller-only">Dashboard</a>
+        <a href="/account.html"><i class="bi bi-person"></i></a>
+        <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i></a>
+      </span>
+    </div>
+  </nav>
+
+  <div class="mp-container-sm" style="margin-top: 2rem;">
+    <div class="mp-page-header">
+      <h1><i class="bi bi-wallet2"></i> เติมเงิน</h1>
+      <p>เติมเครดิตด้วย TrueMoney อั่งเปา</p>
+    </div>
+
+    <!-- ยอดเครดิต -->
+    <div class="stat-card" style="margin-bottom: 1.5rem;">
+      <div class="stat-value user-balance">฿0</div>
+      <div class="stat-label">เครดิตคงเหลือ</div>
+    </div>
+
+    <!-- วิธีเติม -->
+    <div class="topup-info">
+      <h3><i class="bi bi-info-circle"></i> วิธีเติมเงิน</h3>
+      <ol>
+        <li>เปิดแอป TrueMoney Wallet</li>
+        <li>สร้างซองอั่งเปา จำนวนเงินที่ต้องการ</li>
+        <li>คัดลอกลิงก์อั่งเปามาวางด้านล่าง</li>
+        <li>กดปุ่ม "เติมเงิน" — ระบบจะเติมเครดิตให้อัตโนมัติ</li>
+      </ol>
+    </div>
+
+    <!-- ฟอร์มเติมเงิน -->
+    <div class="mp-form">
+      <form onsubmit="handleTopup(event)">
+        <div class="form-group">
+          <label>ลิงก์อั่งเปา TrueMoney</label>
+          <input type="text" name="angpao_link" required
+                 placeholder="https://gift.truemoney.com/campaign/?v=xxxxxxxxxx"
+                 pattern="https://gift\.truemoney\.com/campaign/\?v=.+"
+                 title="กรุณาวางลิงก์อั่งเปาจาก TrueMoney">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width:100%">
+          <i class="bi bi-cash-coin"></i> เติมเงิน
+        </button>
+      </form>
+    </div>
+
+    <!-- ประวัติเครดิต -->
+    <div style="margin-top: 2rem;">
+      <h2>ประวัติเครดิต</h2>
+      <div id="credit-history">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/marketplace.js"></script>
+</body>
+</html>
