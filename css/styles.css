@@ -79,15 +79,33 @@ body {
 .header-top {
     display: flex;
     align-items: center;
-    justify-content: center;
-    position: relative;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.header-actions-right {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.marketplace-btn {
+    background: #6c5ce7;
+    color: #fff;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.marketplace-btn:hover {
+    background: var(--primary-dark);
 }
 
 .lang-toggle {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
@@ -98,6 +116,7 @@ body {
     cursor: pointer;
     transition: var(--transition);
     font-family: inherit;
+    flex-shrink: 0;
 }
 
 .lang-toggle:hover {
@@ -1179,8 +1198,28 @@ textarea {
         padding: 24px 0 16px;
     }
 
+    .header-top {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .logo {
+        width: 100%;
+        justify-content: center;
+    }
+
     .logo h1 {
         font-size: 22px;
+    }
+
+    .header-actions-right {
+        justify-content: center;
+    }
+
+    .marketplace-btn {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.7rem;
     }
 
     .tagline {
