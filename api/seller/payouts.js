@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
 const { cors, validateRequired } = require('../../lib/helpers');
+const { notifyAdmins } = require('../../lib/notify');
 
 module.exports = async function handler(req, res) {
   if (cors(req, res)) return;
@@ -86,6 +87,15 @@ async function requestPayout(req, res) {
     balance_after: newBalance,
     ref_id: payout.id,
     description: `ถอนเงิน ฿${payoutAmount} ไปที่ ${payment_account}`
+  });
+
+  // แจ้งเตือน admin ทุกคน
+  await notifyAdmins({
+    type: 'payout_request',
+    title: 'คำขอถอนเงินใหม่',
+    message: `${user.display_name} ขอถอนเงิน ฿${payoutAmount} ไปที่ ${payment_account}`,
+    ref_id: payout.id,
+    ref_type: 'payout'
   });
 
   res.json({ payout, new_balance: newBalance });

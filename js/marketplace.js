@@ -457,6 +457,144 @@ async function handleCreatePrompt(e) {
   }
 }
 
+async function loadSellerIncomeHistory() {
+  const container = document.getElementById('seller-income-history');
+  if (!container) return;
+
+  try {
+    const { transactions } = await api('/credits/history?type=sale');
+    if (!transactions || transactions.length === 0) {
+      container.innerHTML = '<p class="text-muted">ยังไม่มีรายรับ</p>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>คงเหลือ</th></tr></thead>
+        <tbody>${transactions.map(t => `
+          <tr>
+            <td>${new Date(t.created_at).toLocaleDateString('th-TH')}</td>
+            <td>${escapeHtml(t.description || 'รายรับจากการขาย')}</td>
+            <td class="text-success">+฿${parseFloat(t.amount).toFixed(2)}</td>
+            <td>฿${parseFloat(t.balance_after).toFixed(2)}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function loadSellerPayoutHistory() {
+  const container = document.getElementById('seller-payout-history');
+  if (!container) return;
+
+  try {
+    const { payouts } = await api('/seller/payouts');
+    if (!payouts || payouts.length === 0) {
+      container.innerHTML = '<p class="text-muted">ยังไม่มีประวัติการถอน</p>';
+      return;
+    }
+    container.innerHTML = `
+      <table class="data-table">
+        <thead><tr><th>วันที่</th><th>จำนวน</th><th>บัญชี</th><th>สถานะ</th><th>หมายเหตุ</th><th>หลักฐาน</th></tr></thead>
+        <tbody>${payouts.map(p => `
+          <tr>
+            <td>${new Date(p.created_at).toLocaleDateString('th-TH')}</td>
+            <td>฿${parseFloat(p.amount).toFixed(2)}</td>
+            <td>${escapeHtml(p.payment_account || '')}</td>
+            <td>
+              <span class="badge badge-${p.status === 'paid' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'}">
+                ${p.status === 'paid' ? 'โอนแล้ว' : p.status === 'rejected' ? 'ปฏิเสธ' : 'รอดำเนินการ'}
+              </span>
+            </td>
+            <td>${escapeHtml(p.admin_note || '—')}</td>
+            <td>
+              ${p.proof_image_url
+                ? `<a href="${escapeHtml(p.proof_image_url)}" target="_blank" class="btn btn-sm btn-outline"><i class="bi bi-image"></i> ดูหลักฐาน</a>`
+                : '<span class="text-muted">—</span>'
+              }
+            </td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function loadSellerNotifications() {
+  const container = document.getElementById('seller-notifications');
+  const badge = document.getElementById('notif-badge');
+  if (!container) return;
+
+  try {
+    const { notifications, unread_count } = await api('/notifications');
+
+    // แสดง badge จำนวนยังไม่อ่าน
+    if (badge) {
+      if (unread_count > 0) {
+        badge.textContent = unread_count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (!notifications || notifications.length === 0) {
+      container.innerHTML = '<p class="text-muted">ไม่มีการแจ้งเตือน</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      ${unread_count > 0 ? '<button class="btn btn-sm btn-outline" onclick="markAllNotificationsRead()" style="margin-bottom:0.75rem;"><i class="bi bi-check-all"></i> อ่านทั้งหมด</button>' : ''}
+      ${notifications.map(n => `
+        <div class="notif-item ${n.is_read ? '' : 'notif-unread'}" onclick="markNotificationRead('${n.id}')">
+          <div class="notif-icon">
+            <i class="bi bi-${getNotifIcon(n.type)}"></i>
+          </div>
+          <div class="notif-body">
+            <strong>${escapeHtml(n.title)}</strong>
+            <p>${escapeHtml(n.message)}</p>
+            <small class="text-muted">${new Date(n.created_at).toLocaleString('th-TH')}</small>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+function getNotifIcon(type) {
+  const icons = {
+    payout_approved: 'check-circle-fill',
+    payout_rejected: 'x-circle-fill',
+    payout_request: 'cash-coin',
+    prompt_approved: 'check-circle',
+    prompt_rejected: 'x-circle',
+    new_sale: 'bag-check-fill',
+    system: 'info-circle'
+  };
+  return icons[type] || 'bell';
+}
+
+async function markNotificationRead(notifId) {
+  try {
+    await api('/notifications', { method: 'PUT', body: JSON.stringify({ notification_id: notifId }) });
+    loadSellerNotifications();
+  } catch {}
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await api('/notifications', { method: 'PUT', body: JSON.stringify({ mark_all: true }) });
+    showToast('อ่านทั้งหมดแล้ว', 'success');
+    loadSellerNotifications();
+  } catch {}
+}
+
 async function handlePayoutRequest(e) {
   e.preventDefault();
   const form = e.target;
@@ -537,10 +675,23 @@ async function loadAdminPayouts() {
       <div class="admin-card">
         <p><strong>ผู้ขาย:</strong> ${escapeHtml(p.seller?.display_name)} (${escapeHtml(p.seller?.email)})</p>
         <p><strong>จำนวน:</strong> ฿${parseFloat(p.amount).toFixed(2)}</p>
-        <p><strong>บัญชี:</strong> ${escapeHtml(p.payment_account)}</p>
+        <p><strong>บัญชี TrueMoney:</strong> ${escapeHtml(p.payment_account)}</p>
+        <p><strong>วันที่ขอ:</strong> ${new Date(p.created_at).toLocaleString('th-TH')}</p>
+        <div class="form-group" style="margin-top:0.75rem;">
+          <label>แนบรูปหลักฐานการโอน (ถ้าอนุมัติ)</label>
+          <input type="file" id="proof-${p.id}" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <div class="form-group">
+          <label>หมายเหตุ</label>
+          <input type="text" id="note-${p.id}" placeholder="หมายเหตุจาก Admin (ถ้ามี)">
+        </div>
         <div class="admin-actions">
-          <button class="btn btn-primary btn-sm" onclick="processPayout('${p.id}', 'approve')">อนุมัติ</button>
-          <button class="btn btn-danger btn-sm" onclick="processPayout('${p.id}', 'reject')">ปฏิเสธ</button>
+          <button class="btn btn-primary btn-sm" onclick="processPayout('${p.id}', 'approve')">
+            <i class="bi bi-check-lg"></i> อนุมัติ + โอนแล้ว
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="processPayout('${p.id}', 'reject')">
+            <i class="bi bi-x-lg"></i> ปฏิเสธ
+          </button>
         </div>
       </div>
     `).join('') : '<p class="text-muted">ไม่มีคำขอถอนเงิน</p>';
@@ -550,19 +701,93 @@ async function loadAdminPayouts() {
 }
 
 async function processPayout(payoutId, action) {
-  const admin_note = prompt(`หมายเหตุ (${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'}):`);
-  if (admin_note === null) return;
+  const noteInput = document.getElementById(`note-${payoutId}`);
+  const admin_note = noteInput ? noteInput.value : '';
+
+  let proof_image_base64 = null;
+  let proof_filename = null;
+
+  if (action === 'approve') {
+    const fileInput = document.getElementById(`proof-${payoutId}`);
+    const file = fileInput?.files[0];
+
+    if (file) {
+      // อ่านไฟล์เป็น base64
+      proof_image_base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+      proof_filename = file.name;
+    }
+
+    if (!confirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?')) return;
+  } else {
+    if (!confirm('ยืนยันปฏิเสธคำขอถอนเงิน? เครดิตจะถูกคืนให้ผู้ขาย')) return;
+  }
 
   try {
+    const body = { payout_id: payoutId, action, admin_note };
+    if (proof_image_base64) body.proof_image_base64 = proof_image_base64;
+    if (proof_filename) body.proof_filename = proof_filename;
+
     await api('/admin/payouts', {
       method: 'PUT',
-      body: JSON.stringify({ payout_id: payoutId, action, admin_note })
+      body: JSON.stringify(body)
     });
-    showToast('ดำเนินการสำเร็จ', 'success');
+    showToast(`${action === 'approve' ? 'อนุมัติ + แจ้ง Seller แล้ว' : 'ปฏิเสธ + คืนเครดิตแล้ว'}`, 'success');
     loadAdminPayouts();
   } catch (err) {
     showToast(err.error || 'ดำเนินการไม่สำเร็จ', 'error');
   }
+}
+
+async function loadAdminNotifications() {
+  const container = document.getElementById('admin-notifications');
+  const badge = document.getElementById('admin-notif-badge');
+  if (!container) return;
+
+  try {
+    const { notifications, unread_count } = await api('/notifications');
+
+    if (badge) {
+      if (unread_count > 0) {
+        badge.textContent = unread_count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (!notifications || notifications.length === 0) {
+      container.innerHTML = '<p class="text-muted">ไม่มีการแจ้งเตือน</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      ${unread_count > 0 ? '<button class="btn btn-sm btn-outline" onclick="markAllAdminNotifsRead()" style="margin-bottom:0.75rem;"><i class="bi bi-check-all"></i> อ่านทั้งหมด</button>' : ''}
+      ${notifications.slice(0, 20).map(n => `
+        <div class="notif-item ${n.is_read ? '' : 'notif-unread'}">
+          <div class="notif-icon"><i class="bi bi-${getNotifIcon(n.type)}"></i></div>
+          <div class="notif-body">
+            <strong>${escapeHtml(n.title)}</strong>
+            <p>${escapeHtml(n.message)}</p>
+            <small class="text-muted">${new Date(n.created_at).toLocaleString('th-TH')}</small>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function markAllAdminNotifsRead() {
+  try {
+    await api('/notifications', { method: 'PUT', body: JSON.stringify({ mark_all: true }) });
+    showToast('อ่านทั้งหมดแล้ว', 'success');
+    loadAdminNotifications();
+  } catch {}
 }
 
 // =============================================
@@ -923,11 +1148,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = '/auth.html'; return;
     }
     loadSellerDashboard();
+    loadSellerIncomeHistory();
+    loadSellerPayoutHistory();
+    loadSellerNotifications();
   } else if (page.includes('admin')) {
     if (!currentUser || currentUser.role !== 'admin') {
       window.location.href = '/auth.html'; return;
     }
     loadAdminOverview();
+    loadAdminNotifications();
     loadAdminPendingPrompts();
     loadAdminPayouts();
     loadAdminUsers();

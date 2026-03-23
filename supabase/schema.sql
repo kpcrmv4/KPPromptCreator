@@ -95,11 +95,25 @@ CREATE TABLE payouts (
   payment_method TEXT DEFAULT 'truemoney',
   payment_account TEXT,
   admin_note TEXT,
+  proof_image_url TEXT,  -- รูปหลักฐานการโอนจาก Admin
   created_at TIMESTAMPTZ DEFAULT NOW(),
   processed_at TIMESTAMPTZ
 );
 
--- 8. Settings (ค่าคอนฟิกระบบ)
+-- 8. Notifications (แจ้งเตือน)
+CREATE TABLE notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),  -- คนที่จะเห็น notification
+  type TEXT NOT NULL CHECK (type IN ('payout_request', 'payout_approved', 'payout_rejected', 'prompt_approved', 'prompt_rejected', 'new_sale', 'system')),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  ref_id TEXT,         -- อ้างอิง payout_id, prompt_id, order_id
+  ref_type TEXT,       -- 'payout', 'prompt', 'order'
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. Settings (ค่าคอนฟิกระบบ)
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
@@ -127,6 +141,8 @@ CREATE INDEX idx_transactions_user ON transactions(user_id);
 CREATE INDEX idx_transactions_ref ON transactions(ref_id);
 CREATE INDEX idx_reviews_prompt ON reviews(prompt_id);
 CREATE INDEX idx_payouts_seller ON payouts(seller_id);
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_unread ON notifications(user_id, is_read) WHERE is_read = false;
 
 -- =============================================
 -- Row Level Security (RLS)
@@ -138,6 +154,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
 -- Users: อ่านได้ทุกคน (public profile), แก้ไขได้เฉพาะตัวเอง
@@ -168,6 +185,10 @@ CREATE POLICY "transactions_select_own" ON transactions FOR SELECT USING (user_i
 
 -- Payouts: เห็นเฉพาะของตัวเอง
 CREATE POLICY "payouts_select_own" ON payouts FOR SELECT USING (seller_id = auth.uid());
+
+-- Notifications: เห็นเฉพาะของตัวเอง
+CREATE POLICY "notifications_select_own" ON notifications FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "notifications_update_own" ON notifications FOR UPDATE USING (user_id = auth.uid());
 
 -- Settings: อ่านได้ทุกคน
 CREATE POLICY "settings_select" ON settings FOR SELECT USING (true);
@@ -213,6 +234,16 @@ VALUES (
   ARRAY['image/jpeg', 'image/png', 'image/webp']
 );
 
+-- สร้าง bucket สำหรับหลักฐานการโอนเงิน (admin only)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'payout-proofs',
+  'payout-proofs',
+  true,  -- seller ต้องเห็นหลักฐานได้
+  5242880,  -- 5MB max
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+);
+
 -- Policy: ทุกคนอ่านรูป prompt-images ได้
 CREATE POLICY "prompt_images_public_read"
 ON storage.objects FOR SELECT
@@ -253,4 +284,17 @@ ON storage.objects FOR DELETE
 USING (
   bucket_id = 'avatars'
   AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: ทุกคนอ่านรูปหลักฐานโอนเงินได้ (seller ต้องเห็น)
+CREATE POLICY "payout_proofs_public_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'payout-proofs');
+
+-- Policy: admin upload หลักฐานโอนเงินได้
+CREATE POLICY "payout_proofs_admin_upload"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'payout-proofs'
+  AND auth.role() = 'authenticated'
 );

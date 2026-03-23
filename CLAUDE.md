@@ -107,3 +107,38 @@ JWT_SECRET=
 - [x] 11.6 Admin Panel: Overview Stats (จำนวนสมาชิก, Prompt อนุมัติ, รออนุมัติ)
 - [x] 11.7 Admin Panel: จัดการสมาชิก (เปลี่ยนสิทธิ์ buyer/seller/admin, ระงับ/เปิดใช้)
 - [x] 11.8 Admin Panel: ตั้งค่าระบบ (commission rate, ถอนขั้นต่ำ, เบอร์ TrueMoney, ชื่อเว็บ)
+
+## Phase 12: Notifications + Payout Proof + Seller History ✅
+- [x] 12.1 DB: เพิ่มตาราง `notifications` (type, title, message, ref_id, is_read)
+- [x] 12.2 DB: เพิ่ม `payouts.proof_image_url` สำหรับหลักฐานการโอน
+- [x] 12.3 DB: เพิ่ม Storage bucket `payout-proofs` + policies
+- [x] 12.4 สร้าง `lib/notify.js` — helper ส่ง notification ให้ user/admins
+- [x] 12.5 สร้าง `api/notifications/index.js` — GET (ดู) / PUT (อ่านแล้ว)
+- [x] 12.6 แก้ `api/seller/payouts.js` — seller กดถอน → แจ้ง admin ทุกคนทันที
+- [x] 12.7 แก้ `api/admin/payouts.js` — admin แนบรูปหลักฐานโอน + บันทึก transaction + แจ้ง seller
+- [x] 12.8 Seller Dashboard: เพิ่มประวัติรายรับจากการขาย (ตาราง)
+- [x] 12.9 Seller Dashboard: เพิ่มประวัติการถอนเงิน + สถานะ + ดูหลักฐานโอน
+- [x] 12.10 Seller Dashboard: เพิ่มแจ้งเตือน (ถอนสำเร็จ/ปฏิเสธ)
+- [x] 12.11 Admin Panel: เพิ่มแจ้งเตือน (คำขอถอนเงินใหม่)
+- [x] 12.12 Admin Panel: ช่องแนบรูปหลักฐานโอนเงินก่อนกดอนุมัติ
+
+## Flow การถอนเงิน (สมบูรณ์)
+```
+Seller กดถอนเงิน (ระบุจำนวน + เบอร์ TrueMoney)
+       ↓
+ระบบหักเครดิต Seller + สร้าง payout (pending)
+       ↓
+ส่ง notification แจ้ง Admin ทุกคน
+       ↓
+Admin เห็นในหน้า Admin Panel
+       ↓
+Admin โอนเงินผ่าน TrueMoney Wallet จริง
+       ↓
+Admin แนบรูปหลักฐาน + หมายเหตุ → กดอนุมัติ
+       ↓
+ระบบบันทึก proof_image_url + transaction
+       ↓
+ส่ง notification แจ้ง Seller "ถอนเงินสำเร็จ"
+       ↓
+Seller เห็นในประวัติการถอน + ดูรูปหลักฐานได้
+```

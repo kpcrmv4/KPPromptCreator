@@ -452,6 +452,36 @@
 .topup-info h3 { color: #6c5ce7; margin-bottom: 0.5rem; }
 .topup-info ol { padding-left: 1.25rem; color: #475569; line-height: 1.8; }
 
+/* ---- Notifications ---- */
+.notif-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.notif-item:hover { background: #f8fafc; }
+.notif-item:last-child { border-bottom: none; }
+.notif-unread {
+  background: #f0edff;
+  border-left: 3px solid #6c5ce7;
+}
+.notif-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #6c5ce7;
+}
+.notif-body { flex: 1; }
+.notif-body strong { font-size: 0.9rem; color: #1a1a2e; }
+.notif-body p { font-size: 0.85rem; color: #64748b; margin: 0.2rem 0; }
+
 /* ---- Modal ---- */
 .modal-overlay {
   position: fixed;
