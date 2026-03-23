@@ -821,7 +821,11 @@
                         <span data-i18n="resultLoading">Gemini กำลังสร้าง prompt...</span>
                     </div>
                     <div id="resultContent" class="result-content" style="display: none;">
-                        <pre><code id="resultText"></code></pre>
+                        <div class="signature-warning" id="signatureWarning" style="display: none;">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>หากต้องการนำ Prompt ไปลงขายใน Marketplace ห้ามลบส่วน <strong>KP-PROMPT-CREATOR-SIGNATURE</strong> ด้านล่าง</span>
+                        </div>
+                        <textarea id="resultText" class="result-textarea" spellcheck="false"></textarea>
                         <!-- Post-generation usage guide -->
                         <div class="usage-guide" id="usageGuide">
                             <div class="usage-guide-title"><i class="bi bi-rocket-takeoff"></i> <span data-i18n="guideTitle">เอาไปใช้ยังไง?</span></div>

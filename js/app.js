@@ -1102,19 +1102,25 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
 
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
-        resultText.textContent = responseWithFingerprint;
+        resultText.value = responseWithFingerprint;
+
+        // Show signature warning
+        document.getElementById('signatureWarning').style.display = 'flex';
+
+        // Auto-resize textarea
+        resultText.style.height = 'auto';
+        resultText.style.height = Math.min(resultText.scrollHeight, 600) + 'px';
 
         // Show usage guide for the target AI
         renderUsageGuide(targetAI);
 
-        // Store for download
-        resultSection.dataset.content = responseWithFingerprint;
+        // Store filename for download
         resultSection.dataset.fileName = fileName;
 
     } catch (error) {
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
-        resultText.textContent = `Error: ${error.message}\n\n${t('errorPrefix')}`;
+        resultText.value = `Error: ${error.message}\n\n${t('errorPrefix')}`;
     } finally {
         generateBtn.disabled = false;
         generateBtn.innerHTML = '<i class="bi bi-magic"></i> Generate Prompt';
@@ -1167,26 +1173,23 @@ async function callGeminiAPI(apiKey, prompt) {
 // ===== Copy & Download =====
 
 function copyResult() {
-    const content = document.getElementById('result-section').dataset.content;
+    const content = document.getElementById('resultText').value;
     if (!content) return;
 
     navigator.clipboard.writeText(content).then(() => {
         showToast(t('toastCopied'));
     }).catch(() => {
         // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = content;
-        document.body.appendChild(textarea);
-        textarea.select();
+        const resultText = document.getElementById('resultText');
+        resultText.select();
         document.execCommand('copy');
-        document.body.removeChild(textarea);
         showToast(t('toastCopied'));
     });
 }
 
 function downloadResult() {
     const resultSection = document.getElementById('result-section');
-    const content = resultSection.dataset.content;
+    const content = document.getElementById('resultText').value;
     const fileName = resultSection.dataset.fileName || 'CLAUDE.md';
     if (!content) return;
 
@@ -1860,7 +1863,6 @@ function generateKPFingerprint(content, projectName) {
         `<!-- Generated: ${timestamp} -->`,
         `<!-- Content-Hash: ${contentHash} -->`,
         `<!-- Signature: KP-${signature} -->`,
-        `<!-- Verify: https://your-domain.com/verify?sig=KP-${signature} -->`,
         '<!-- DO NOT REMOVE: This signature verifies this prompt was created by KP Prompt Creator -->'
     ].join('\n');
 }

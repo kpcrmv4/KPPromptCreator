@@ -545,24 +545,50 @@ textarea {
 
 /* ===== Result ===== */
 .result-content {
-    background: #1e1e2e;
     border-radius: var(--radius-sm);
     overflow: auto;
+}
+
+.result-textarea {
+    width: 100%;
+    min-height: 300px;
     max-height: 600px;
-}
-
-.result-content pre {
-    margin: 0;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
     padding: 20px;
-}
-
-.result-content code {
     font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
     font-size: 13px;
     line-height: 1.6;
-    color: #cdd6f4;
     white-space: pre-wrap;
     word-wrap: break-word;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.result-textarea:focus {
+    border-color: var(--primary);
+}
+
+.signature-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.signature-warning i {
+    font-size: 18px;
+    flex-shrink: 0;
 }
 
 /* ===== Footer ===== */
