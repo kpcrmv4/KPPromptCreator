@@ -18,20 +18,43 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <div class="header-top">
-                    <div class="logo">
-                        <img src="images/logo.png" alt="KP Webapp Studio" class="logo-img">
-                        <h1>KP Prompt Creator</h1>
-                    </div>
-                    <div class="header-actions-right">
-                        <a href="/marketplace.html" class="marketplace-btn"><i class="bi bi-shop"></i> Marketplace</a>
-                        <button class="lang-toggle" id="langToggle" onclick="toggleLanguage()" title="เปลี่ยนเป็นภาษาอังกฤษ">EN</button>
+        <!-- Top Bar -->
+        <div class="kp-topbar">
+            <a href="/" class="kp-topbar-logo">
+                <img src="images/logo.png" alt="KP" class="kp-topbar-logo-img">
+                <span class="kp-topbar-brand">KP Prompt Creator</span>
+            </a>
+            <div class="kp-topbar-actions">
+                <a href="/marketplace.html" class="kp-topbar-btn kp-btn-marketplace">
+                    <i class="bi bi-shop"></i><span class="kp-hide-xs"> Marketplace</span>
+                </a>
+                <button class="kp-topbar-btn kp-btn-lang" id="langToggle" onclick="toggleLanguage()" title="EN">EN</button>
+                <!-- Profile / Auth -->
+                <div class="kp-profile-wrap" id="kpProfileWrap">
+                    <button class="kp-profile-btn" onclick="toggleKpProfile()" id="kpProfileBtn">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <div class="kp-profile-dropdown" id="kpProfileDropdown">
+                        <!-- Filled by JS: logged in or guest -->
+                        <div id="kp-profile-content"></div>
                     </div>
                 </div>
-                <p class="tagline" data-i18n="tagline">สร้างไฟล์แนะนำโปรเจกต์ให้ AI <br class="mobile-br">เข้าใจงานของคุณได้ทันที</p>
+            </div>
+        </div>
+
+        <!-- Hero Header -->
+        <header class="kp-hero">
+            <div class="kp-hero-glow"></div>
+            <div class="kp-hero-content">
+                <div class="kp-hero-badge"><i class="bi bi-stars"></i> AI-Powered</div>
+                <h1 class="kp-hero-title">สร้าง <span class="kp-hero-highlight">AI Prompt</span><br class="mobile-br"> ให้เข้าใจโปรเจกต์ของคุณ</h1>
+                <p class="kp-hero-desc" data-i18n="tagline">สร้างไฟล์แนะนำโปรเจกต์ให้ AI <span class="kp-hide-xs">อย่าง Claude, Gemini, ChatGPT</span> เข้าใจงานของคุณได้ทันที</p>
+                <div class="kp-hero-chips">
+                    <span class="kp-chip"><i class="bi bi-lightning-charge-fill"></i> Claude</span>
+                    <span class="kp-chip"><i class="bi bi-stars"></i> Gemini</span>
+                    <span class="kp-chip"><i class="bi bi-chat-dots-fill"></i> ChatGPT</span>
+                    <span class="kp-chip"><i class="bi bi-cursor-fill"></i> Cursor</span>
+                </div>
             </div>
         </header>
 

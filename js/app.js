@@ -2042,6 +2042,103 @@ async function saveApi(path, options = {}) {
   return data;
 }
 
+// =============================================
+// Top Bar Profile Dropdown
+// =============================================
+let kpUser = null;
+
+function toggleKpProfile() {
+  const dd = document.getElementById('kpProfileDropdown');
+  dd.classList.toggle('show');
+}
+
+// Close dropdown on click outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('kpProfileWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('kpProfileDropdown')?.classList.remove('show');
+  }
+});
+
+async function initKpProfile() {
+  const token = getSavedToken();
+  const contentEl = document.getElementById('kp-profile-content');
+  const profileBtn = document.getElementById('kpProfileBtn');
+  if (!contentEl) return;
+
+  if (!token) {
+    // Guest state
+    contentEl.innerHTML = `
+      <div class="kp-dd-guest">
+        <div style="font-size:32px;color:var(--primary-light);margin-bottom:8px;"><i class="bi bi-person-circle"></i></div>
+        <p>เข้าสู่ระบบเพื่อบันทึก Prompt<br>และเข้าถึง Marketplace</p>
+        <div class="kp-dd-guest-btns">
+          <a href="/auth.html" class="btn-login">เข้าสู่ระบบ</a>
+          <a href="/auth.html?tab=register" class="btn-register">สมัคร</a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  try {
+    const { user } = await saveApi('/auth/me');
+    kpUser = user;
+    profileBtn.classList.add('logged-in');
+    profileBtn.innerHTML = `<span style="font-size:13px;font-weight:700;">${(user.display_name || 'U')[0].toUpperCase()}</span>`;
+
+    contentEl.innerHTML = `
+      <div class="kp-dd-header">
+        <div class="kp-dd-name">${escapeHtmlSimple(user.display_name)}</div>
+        <div class="kp-dd-email">${escapeHtmlSimple(user.email)}</div>
+        <div class="kp-dd-balance"><i class="bi bi-wallet2"></i> ฿${parseFloat(user.credit_balance).toFixed(2)}</div>
+      </div>
+      <div class="kp-dd-links">
+        <a href="/account.html" class="kp-dd-link"><i class="bi bi-person"></i> บัญชีของฉัน</a>
+        <a href="/account.html#tab-my-prompts" class="kp-dd-link"><i class="bi bi-bookmark"></i> Prompt ที่บันทึก</a>
+        <a href="/orders.html" class="kp-dd-link"><i class="bi bi-bag-check"></i> คำสั่งซื้อ</a>
+        <a href="/topup.html" class="kp-dd-link"><i class="bi bi-wallet2"></i> เติมเครดิต</a>
+        <a href="/marketplace.html" class="kp-dd-link"><i class="bi bi-shop"></i> Marketplace</a>
+        ${user.role === 'admin' || user.role === 'seller' ? '<a href="/dashboard.html" class="kp-dd-link"><i class="bi bi-speedometer2"></i> Dashboard</a>' : ''}
+        ${user.role === 'admin' ? '<a href="/admin.html" class="kp-dd-link"><i class="bi bi-shield-check"></i> Admin Panel</a>' : ''}
+        <div class="kp-dd-divider"></div>
+        <a href="#" onclick="kpLogout();return false;" class="kp-dd-link danger"><i class="bi bi-box-arrow-right"></i> ออกจากระบบ</a>
+      </div>
+    `;
+  } catch {
+    // Token expired
+    localStorage.removeItem('kp_token');
+    contentEl.innerHTML = `
+      <div class="kp-dd-guest">
+        <div style="font-size:32px;color:var(--primary-light);margin-bottom:8px;"><i class="bi bi-person-circle"></i></div>
+        <p>เข้าสู่ระบบเพื่อบันทึก Prompt<br>และเข้าถึง Marketplace</p>
+        <div class="kp-dd-guest-btns">
+          <a href="/auth.html" class="btn-login">เข้าสู่ระบบ</a>
+          <a href="/auth.html?tab=register" class="btn-register">สมัคร</a>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function kpLogout() {
+  localStorage.removeItem('kp_token');
+  kpUser = null;
+  showToast('ออกจากระบบแล้ว');
+  initKpProfile();
+  document.getElementById('kpProfileDropdown')?.classList.remove('show');
+}
+
+function escapeHtmlSimple(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', function() {
+  initKpProfile();
+});
+
 function openSavePromptModal() {
   const content = document.getElementById('resultText')?.value;
   if (!content) { showToast('ยังไม่มี Prompt ให้บันทึก'); return; }
