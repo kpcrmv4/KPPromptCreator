@@ -85,9 +85,9 @@ const COMPAT_RULES = {
     },
     cssFramework: {
         'google-apps-script': {
-            allowed: ['bootstrap', 'tailwind'],
-            blocked: ['shadcn-ui', 'material-ui', 'daisyui'],
-            reason: 'GAS ใช้ CDN-based framework ได้ (Bootstrap/Tailwind) ส่วน Shadcn/MUI ต้องมี build step'
+            allowed: ['bootstrap', 'tailwind', 'daisyui'],
+            blocked: ['shadcn-ui', 'material-ui'],
+            reason: 'GAS ใช้ CDN-based framework ได้ (Bootstrap/Tailwind/DaisyUI) ส่วน Shadcn/MUI ต้องมี React build step'
         }
     },
     language: {
@@ -99,16 +99,16 @@ const COMPAT_RULES = {
     },
     authentication: {
         'google-apps-script': {
-            allowed: ['none'],
-            blocked: ['firebase-auth', 'supabase-auth', 'clerk'],
-            reason: 'GAS ใช้ Google Account ในตัว ไม่ต้องเพิ่ม Auth แยก'
+            allowed: ['none', 'firebase-auth', 'supabase-auth'],
+            blocked: ['clerk'],
+            reason: 'GAS ใช้ Firebase Auth / Supabase Auth ได้ผ่าน client-side JS ใน HTML template (Clerk ต้องการ framework integration)'
         }
     },
     apiStyle: {
         'google-apps-script': {
-            allowed: ['rest'],
-            blocked: ['graphql', 'trpc'],
-            reason: 'GAS ใช้ REST (doGet/doPost) เท่านั้น'
+            allowed: ['rest', 'graphql'],
+            blocked: ['trpc'],
+            reason: 'GAS ใช้ REST (doGet/doPost) หรือเรียก GraphQL ผ่าน UrlFetchApp ได้ (tRPC ต้องการ TypeScript build)'
         }
     },
     packageManager: {
