@@ -4,7 +4,118 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
+// ===== Project Templates =====
+const PROJECT_TEMPLATES = {
+    ecommerce: {
+        name: { th: 'ร้านค้าออนไลน์', en: 'Online Store' },
+        desc: { th: 'เว็บขายของออนไลน์ มีระบบสมัครสมาชิก/login, แสดงรายการสินค้า, ตะกร้าสินค้า, ชำระเงิน, ประวัติการสั่งซื้อ, แดชบอร์ดสำหรับ admin จัดการสินค้าและออเดอร์', en: 'Online store with user registration/login, product listing, shopping cart, checkout, order history, admin dashboard for managing products and orders' },
+        techStack: { platform: 'nextjs-vercel', database: 'supabase', cssFramework: 'tailwind', language: 'typescript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'supabase-auth', apiStyle: 'rest', packageManager: 'pnpm', testing: 'vitest', hosting: 'vercel' }
+    },
+    inventory: {
+        name: { th: 'ระบบจัดการสต็อกสินค้า', en: 'Inventory Management System' },
+        desc: { th: 'ระบบจัดการสต็อกสินค้า มีระบบ login, เพิ่ม/แก้ไข/ลบสินค้า, ติดตามจำนวนสต็อก, แจ้งเตือนสินค้าใกล้หมด, แดชบอร์ดสรุปยอดขาย, export รายงานเป็น Excel', en: 'Inventory management system with login, add/edit/delete products, stock tracking, low stock alerts, sales dashboard, Excel report export' },
+        techStack: { platform: 'google-apps-script', database: 'google-sheets', cssFramework: 'bootstrap', language: 'javascript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'none', apiStyle: 'rest', packageManager: 'none', testing: 'none', hosting: 'gas-deploy' }
+    },
+    portfolio: {
+        name: { th: 'เว็บ Portfolio', en: 'Portfolio Website' },
+        desc: { th: 'เว็บแสดงผลงาน Portfolio มีหน้าแนะนำตัว, แสดงผลงาน/โปรเจกต์พร้อมรูปภาพ, ทักษะ/Skills, ประวัติการทำงาน, แบบฟอร์มติดต่อ, ลิงก์ social media', en: 'Portfolio website with intro page, project showcase with images, skills section, work experience, contact form, social media links' },
+        techStack: { platform: 'static-html', database: 'google-sheets', cssFramework: 'tailwind', language: 'javascript', pageType: 'single-page', pwa: 'no', responsive: 'responsive', authentication: 'none', apiStyle: 'rest', packageManager: 'none', testing: 'none', hosting: 'netlify' }
+    },
+    booking: {
+        name: { th: 'ระบบจองนัดหมาย', en: 'Appointment Booking System' },
+        desc: { th: 'ระบบจองนัดหมาย มี login สำหรับลูกค้าและ admin, ปฏิทินแสดงช่วงเวลาว่าง, จองนัด/ยกเลิก, แจ้งเตือนผ่าน email, admin จัดการตารางนัด, ประวัติการจอง', en: 'Appointment booking system with customer/admin login, calendar with available slots, book/cancel appointments, email notifications, admin schedule management, booking history' },
+        techStack: { platform: 'nextjs-vercel', database: 'supabase', cssFramework: 'tailwind', language: 'typescript', pageType: 'spa', pwa: 'yes', responsive: 'responsive', authentication: 'supabase-auth', apiStyle: 'rest', packageManager: 'pnpm', testing: 'vitest', hosting: 'vercel' }
+    },
+    dashboard: {
+        name: { th: 'แดชบอร์ดสรุปข้อมูล', en: 'Data Dashboard' },
+        desc: { th: 'แดชบอร์ดแสดงข้อมูลสรุป มีกราฟ/ชาร์ตหลายรูปแบบ, ตารางข้อมูล, กรองตามช่วงวันที่, export เป็น PDF/Excel, รองรับข้อมูล real-time', en: 'Data summary dashboard with various charts/graphs, data tables, date range filter, PDF/Excel export, real-time data support' },
+        techStack: { platform: 'react-vercel', database: 'firebase-firestore', cssFramework: 'tailwind', language: 'typescript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'firebase-auth', apiStyle: 'rest', packageManager: 'npm', testing: 'vitest', hosting: 'vercel' }
+    },
+    blog: {
+        name: { th: 'เว็บบล็อก', en: 'Blog Website' },
+        desc: { th: 'เว็บบล็อก/CMS มีระบบเขียนบทความพร้อม rich text editor, จัดหมวดหมู่/แท็ก, ค้นหาบทความ, ระบบ comment, admin จัดการบทความ, SEO friendly', en: 'Blog/CMS with rich text editor, categories/tags, article search, comment system, admin article management, SEO friendly' },
+        techStack: { platform: 'nextjs-vercel', database: 'supabase', cssFramework: 'daisyui', language: 'typescript', pageType: 'spa', pwa: 'no', responsive: 'responsive', authentication: 'supabase-auth', apiStyle: 'rest', packageManager: 'pnpm', testing: 'jest', hosting: 'vercel' }
+    }
+};
+
+function applyTemplate(templateId) {
+    const tpl = PROJECT_TEMPLATES[templateId];
+    if (!tpl) return;
+
+    const lang = currentLang || 'th';
+
+    // Fill project name and description
+    document.getElementById('projectName').value = tpl.name[lang] || tpl.name.th;
+    document.getElementById('projectDesc').value = tpl.desc[lang] || tpl.desc.th;
+
+    // Set all radio buttons
+    for (const [name, value] of Object.entries(tpl.techStack)) {
+        const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (radio) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    // Highlight active template
+    document.querySelectorAll('.template-card').forEach(card => card.classList.remove('active'));
+    const activeCard = document.querySelector(`.template-card[data-template="${templateId}"]`);
+    if (activeCard) activeCard.classList.add('active');
+
+    // Scroll to project section
+    document.getElementById('project-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    showToast(t('tplApplied', { name: tpl.name[lang] || tpl.name.th }));
+}
+
+// ===== Description Helper =====
+function initDescHelper() {
+    document.querySelectorAll('.desc-helper-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const textarea = document.getElementById('projectDesc');
+            const appendText = chip.dataset.append;
+            if (textarea.value && !textarea.value.endsWith(', ') && !textarea.value.endsWith('\n')) {
+                textarea.value += ', ';
+            }
+            textarea.value += appendText;
+            textarea.focus();
+        });
+    });
+}
+
+// ===== Usage Guide =====
+function renderUsageGuide(targetAI) {
+    const guideSteps = document.getElementById('usageGuideSteps');
+    if (!guideSteps) return;
+
+    const guideMap = {
+        'claude': 'Claude',
+        'gemini-cli': 'Gemini',
+        'cursor': 'Cursor',
+        'github-copilot': 'Copilot',
+        'codex': 'Codex',
+        'windsurf': 'Windsurf',
+        'other': 'Other'
+    };
+    const prefix = 'guide' + (guideMap[targetAI] || 'Other');
+
+    guideSteps.innerHTML = '';
+    for (let i = 1; i <= 4; i++) {
+        const li = document.createElement('li');
+        li.innerHTML = t(prefix + i);
+        guideSteps.appendChild(li);
+    }
+}
+
 function initApp() {
+    // Template click handlers
+    document.querySelectorAll('.template-card').forEach(card => {
+        card.addEventListener('click', () => applyTemplate(card.dataset.template));
+    });
+
+    // Description helper
+    initDescHelper();
+
     // Load saved API key
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey) {
@@ -839,6 +950,9 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
         resultText.textContent = response;
+
+        // Show usage guide for the target AI
+        renderUsageGuide(targetAI);
 
         // Store for download
         resultSection.dataset.content = response;
