@@ -81,6 +81,10 @@ body {
     font-size: 15px;
 }
 
+.tagline .mobile-br {
+    display: none;
+}
+
 /* ===== Cards ===== */
 .card {
     background: var(--surface);
@@ -1108,6 +1112,10 @@ textarea {
 
     .tagline {
         font-size: 13px;
+    }
+
+    .tagline .mobile-br {
+        display: inline;
     }
 
     .option-grid {
