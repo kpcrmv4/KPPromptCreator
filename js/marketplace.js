@@ -747,6 +747,25 @@ async function markAllNotificationsRead() {
   } catch {}
 }
 
+function initPayoutTrueMoney() {
+  const warningBanner = document.getElementById('truemoney-warning');
+  const infoBanner = document.getElementById('truemoney-info');
+  const phoneInput = document.getElementById('payout-phone');
+  const phoneDisplay = document.getElementById('truemoney-display');
+  if (!warningBanner || !infoBanner || !phoneInput) return;
+
+  const phone = currentUser?.truemoney_phone;
+  if (phone) {
+    infoBanner.style.display = '';
+    warningBanner.style.display = 'none';
+    if (phoneDisplay) phoneDisplay.textContent = phone;
+    phoneInput.value = phone;
+  } else {
+    warningBanner.style.display = '';
+    infoBanner.style.display = 'none';
+  }
+}
+
 async function handlePayoutRequest(e) {
   e.preventDefault();
   const form = e.target;
@@ -1215,33 +1234,115 @@ async function loadAdminUsers() {
   try {
     const { users } = await api('/admin/users?limit=50');
     container.innerHTML = users.length ? `
-      <table class="data-table">
-        <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>เครดิต</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-        <tbody>${users.map(u => `
-          <tr>
-            <td>${escapeHtml(u.display_name)}</td>
-            <td>${escapeHtml(u.email)}</td>
-            <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'seller' ? 'warning' : 'success'}">${u.role}</span></td>
-            <td>฿${parseFloat(u.credit_balance).toFixed(2)}</td>
-            <td><span class="badge badge-${u.status === 'active' ? 'success' : 'danger'}">${u.status}</span></td>
-            <td>
-              <select onchange="updateUserRole('${u.id}', this.value)" style="padding:0.25rem;border-radius:4px;border:1px solid #e2e8f0;font-size:0.8rem;">
-                <option value="" disabled selected>เปลี่ยนสิทธิ์</option>
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-                <option value="admin">Admin</option>
-              </select>
-              <button class="btn btn-sm ${u.status === 'active' ? 'btn-danger' : 'btn-primary'}"
-                      onclick="toggleUserStatus('${u.id}', '${u.status === 'active' ? 'suspended' : 'active'}')">
-                ${u.status === 'active' ? 'ระงับ' : 'เปิดใช้'}
-              </button>
-            </td>
-          </tr>
-        `).join('')}</tbody>
-      </table>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>เครดิต</th><th><i class="bi bi-phone"></i> TrueMoney</th><th>สถานะ</th><th>วันสมัคร</th><th>จัดการ</th></tr></thead>
+          <tbody>${users.map(u => `
+            <tr>
+              <td>${escapeHtml(u.display_name)}</td>
+              <td>${escapeHtml(u.email)}</td>
+              <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'seller' ? 'warning' : 'success'}">${u.role}</span></td>
+              <td>฿${parseFloat(u.credit_balance).toFixed(2)}</td>
+              <td>${u.truemoney_phone ? `<span style="color:#6c5ce7;font-weight:500;">${escapeHtml(u.truemoney_phone)}</span>` : '<span class="text-muted">ยังไม่ผูก</span>'}</td>
+              <td><span class="badge badge-${u.status === 'active' ? 'success' : 'danger'}">${u.status}</span></td>
+              <td style="font-size:0.8rem;color:#64748b;">${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
+              <td>
+                <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+                  <select onchange="updateUserRole('${u.id}', this.value)" style="padding:0.25rem;border-radius:4px;border:1px solid #e2e8f0;font-size:0.8rem;">
+                    <option value="" disabled selected>เปลี่ยนสิทธิ์</option>
+                    <option value="buyer">Buyer</option>
+                    <option value="seller">Seller</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button class="btn btn-sm ${u.status === 'active' ? 'btn-danger' : 'btn-primary'}"
+                          onclick="toggleUserStatus('${u.id}', '${u.status === 'active' ? 'suspended' : 'active'}')">
+                    ${u.status === 'active' ? 'ระงับ' : 'เปิดใช้'}
+                  </button>
+                  <button class="btn btn-sm btn-outline" onclick="openUserDetail('${u.id}')" title="ดูรายละเอียด"><i class="bi bi-eye"></i></button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      </div>
     ` : '<p class="text-muted">ไม่มีสมาชิก</p>';
   } catch {
     container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function openUserDetail(userId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'user-detail-modal';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:650px;">
+      <div class="modal-header">
+        <h2><i class="bi bi-person-circle"></i> รายละเอียดสมาชิก</h2>
+        <button class="modal-close" onclick="closeModal('user-detail-modal')">&times;</button>
+      </div>
+      <div id="user-detail-body"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  try {
+    const { users } = await api(`/admin/users?search=${userId}&limit=50`);
+    const u = users.find(x => x.id === userId);
+
+    // Load credit transactions
+    let txHtml = '<p class="text-muted">ไม่สามารถโหลดประวัติ</p>';
+    try {
+      const { data } = await fetch(`${API_BASE}/credits/history?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      }).then(r => r.json());
+      const txns = data?.transactions || data || [];
+      if (Array.isArray(txns) && txns.length > 0) {
+        txHtml = `<div class="table-wrapper"><table class="data-table"><thead><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th><th>คงเหลือ</th></tr></thead><tbody>${txns.slice(0, 20).map(t => `
+          <tr>
+            <td style="font-size:0.82rem;">${new Date(t.created_at).toLocaleDateString('th-TH')}</td>
+            <td style="font-size:0.82rem;">${escapeHtml(t.description || t.type || '—')}</td>
+            <td style="font-size:0.82rem;" class="${parseFloat(t.amount) >= 0 ? 'text-success' : 'text-danger'}">${parseFloat(t.amount) >= 0 ? '+' : ''}฿${parseFloat(t.amount).toFixed(2)}</td>
+            <td style="font-size:0.82rem;">฿${parseFloat(t.balance_after).toFixed(2)}</td>
+          </tr>
+        `).join('')}</tbody></table></div>`;
+      } else {
+        txHtml = '<p class="text-muted">ยังไม่มีรายการ</p>';
+      }
+    } catch {}
+
+    document.getElementById('user-detail-body').innerHTML = u ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem;">
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;">ชื่อ</div>
+          <div style="font-weight:600;">${escapeHtml(u.display_name)}</div>
+        </div>
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;">อีเมล</div>
+          <div style="font-weight:500;font-size:0.9rem;">${escapeHtml(u.email)}</div>
+        </div>
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;"><i class="bi bi-phone"></i> TrueMoney</div>
+          <div style="font-weight:600;color:${u.truemoney_phone ? '#6c5ce7' : '#94a3b8'};">${u.truemoney_phone || 'ยังไม่ผูก'}</div>
+        </div>
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;">เครดิตคงเหลือ</div>
+          <div style="font-weight:700;color:#16a34a;">฿${parseFloat(u.credit_balance).toFixed(2)}</div>
+        </div>
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;">สิทธิ์ / สถานะ</div>
+          <div><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'seller' ? 'warning' : 'success'}">${u.role}</span> <span class="badge badge-${u.status === 'active' ? 'success' : 'danger'}">${u.status}</span></div>
+        </div>
+        <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
+          <div style="font-size:0.78rem;color:#64748b;">วันที่สมัคร</div>
+          <div style="font-size:0.9rem;">${new Date(u.created_at).toLocaleString('th-TH')}</div>
+        </div>
+      </div>
+      <h3 style="margin-bottom:0.75rem;font-size:0.95rem;"><i class="bi bi-clock-history"></i> ประวัติ Transaction (ล่าสุด 20 รายการ)</h3>
+      ${txHtml}
+    ` : '<p>ไม่พบข้อมูลสมาชิก</p>';
+  } catch {
+    document.getElementById('user-detail-body').innerHTML = '<p>โหลดไม่สำเร็จ</p>';
   }
 }
 
@@ -1451,6 +1552,11 @@ async function loadAccountForm() {
         <input type="text" name="display_name" value="${escapeHtml(u.display_name)}" required>
       </div>
       <div class="form-group">
+        <label><i class="bi bi-phone"></i> เบอร์ TrueMoney Wallet</label>
+        <input type="tel" name="truemoney_phone" value="${escapeHtml(u.truemoney_phone || '')}" placeholder="09xxxxxxxx" pattern="0[0-9]{8,9}">
+        <small style="color:#64748b;">ใช้สำหรับรับเงินจากการขาย Prompt (ต้องตั้งก่อนถอนเงิน)</small>
+      </div>
+      <div class="form-group">
         <label>สิทธิ์</label>
         <input type="text" value="${u.role}" disabled style="background:#f1f5f9;">
       </div>
@@ -1469,9 +1575,13 @@ async function handleUpdateProfile(e) {
   try {
     const { user } = await api('/auth/update-profile', {
       method: 'PUT',
-      body: JSON.stringify({ display_name: form.display_name.value })
+      body: JSON.stringify({
+        display_name: form.display_name.value,
+        truemoney_phone: form.truemoney_phone?.value || ''
+      })
     });
     currentUser.display_name = user.display_name;
+    currentUser.truemoney_phone = user.truemoney_phone;
     updateAuthUI();
     showToast('บันทึกสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
@@ -1585,6 +1695,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
     setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
     setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
+    initPayoutTrueMoney();
     loadSellerDashboard();
     loadSellerIncomeHistory();
     loadSellerPayoutHistory();
