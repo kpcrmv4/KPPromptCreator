@@ -97,3 +97,13 @@ JWT_SECRET=
 → SUCCESS: เติม credit ตาม amount_baht
 → FAILED: แจ้ง error (NOT_FOUND / EXPIRED / REDEEMED)
 ```
+
+## Phase 11: เพิ่มเติม — Storage, Edit Prompt, Admin Overview ✅
+- [x] 11.1 เพิ่ม Supabase Storage Bucket (prompt-images, avatars) + Policies ใน SQL
+- [x] 11.2 สร้าง `api/images/upload.js` — upload รูปตัวอย่าง prompt (base64, max 5 รูป, 5MB)
+- [x] 11.3 สร้าง `api/images/delete.js` — ลบรูปตัวอย่าง
+- [x] 11.4 Seller Dashboard: ปุ่มแก้ไข Prompt (edit modal: ชื่อ, ราคา, รายละเอียด, tags ฯลฯ)
+- [x] 11.5 Seller Dashboard: Image Manager (อัปโหลด/ลบรูปตัวอย่าง)
+- [x] 11.6 Admin Panel: Overview Stats (จำนวนสมาชิก, Prompt อนุมัติ, รออนุมัติ)
+- [x] 11.7 Admin Panel: จัดการสมาชิก (เปลี่ยนสิทธิ์ buyer/seller/admin, ระงับ/เปิดใช้)
+- [x] 11.8 Admin Panel: ตั้งค่าระบบ (commission rate, ถอนขั้นต่ำ, เบอร์ TrueMoney, ชื่อเว็บ)

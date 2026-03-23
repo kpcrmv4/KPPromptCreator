@@ -188,3 +188,69 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_update_rating
 AFTER INSERT OR UPDATE ON reviews
 FOR EACH ROW EXECUTE FUNCTION update_prompt_rating();
+
+-- =============================================
+-- Supabase Storage: Bucket + Policies
+-- =============================================
+
+-- สร้าง bucket สำหรับเก็บรูปตัวอย่าง prompt
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'prompt-images',
+  'prompt-images',
+  true,  -- public read
+  5242880,  -- 5MB max
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+);
+
+-- สร้าง bucket สำหรับ avatar ของ user
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars',
+  'avatars',
+  true,
+  2097152,  -- 2MB max
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+);
+
+-- Policy: ทุกคนอ่านรูป prompt-images ได้
+CREATE POLICY "prompt_images_public_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'prompt-images');
+
+-- Policy: seller upload รูปได้ (ต้อง login)
+CREATE POLICY "prompt_images_seller_upload"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'prompt-images'
+  AND auth.role() = 'authenticated'
+);
+
+-- Policy: seller ลบรูปตัวเองได้ (path เริ่มด้วย user_id)
+CREATE POLICY "prompt_images_seller_delete"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'prompt-images'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: ทุกคนอ่าน avatar ได้
+CREATE POLICY "avatars_public_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+
+-- Policy: user upload avatar ตัวเองได้
+CREATE POLICY "avatars_user_upload"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Policy: user ลบ avatar ตัวเองได้
+CREATE POLICY "avatars_user_delete"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);

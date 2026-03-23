@@ -415,7 +415,9 @@ async function loadSellerDashboard() {
           <td>${p.purchase_count || 0}</td>
           <td>${p.avg_rating || '—'}</td>
           <td>
-            <a href="/prompt-detail.html?id=${p.id}" class="btn btn-sm btn-outline">ดู</a>
+            <button class="btn btn-sm btn-outline" onclick="openEditPrompt('${p.id}')"><i class="bi bi-pencil"></i> แก้ไข</button>
+            <button class="btn btn-sm btn-outline" onclick="openImageManager('${p.id}')"><i class="bi bi-image"></i> รูป</button>
+            <a href="/prompt-detail.html?id=${p.id}" class="btn btn-sm btn-outline"><i class="bi bi-eye"></i></a>
           </td>
         </tr>
       `).join('') : '<tr><td colspan="6">ยังไม่มี Prompt</td></tr>';
@@ -564,6 +566,334 @@ async function processPayout(payoutId, action) {
 }
 
 // =============================================
+// Seller — Edit Prompt (Modal)
+// =============================================
+async function openEditPrompt(promptId) {
+  // ดึงข้อมูล prompt ปัจจุบัน
+  try {
+    const { prompt } = await api(`/prompts/${promptId}`);
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'edit-modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="bi bi-pencil-square"></i> แก้ไข Prompt</h2>
+          <button class="modal-close" onclick="closeModal('edit-modal')">&times;</button>
+        </div>
+        <form onsubmit="handleEditPrompt(event, '${promptId}')">
+          <div class="form-group">
+            <label>ชื่อ Prompt</label>
+            <input type="text" name="title" value="${escapeHtml(prompt.title)}" required>
+          </div>
+          <div class="form-group">
+            <label>รายละเอียด</label>
+            <textarea name="description" required>${escapeHtml(prompt.description)}</textarea>
+          </div>
+          <div class="form-group">
+            <label>หมวดหมู่</label>
+            <select name="category">
+              ${['web-app','mobile-app','api','ecommerce','dashboard','landing-page','automation','other'].map(c =>
+                `<option value="${c}" ${prompt.category === c ? 'selected' : ''}>${c}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ราคา (บาท)</label>
+            <input type="number" name="price" value="${prompt.price}" required min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label>Tech Stack (คั่นด้วย ,)</label>
+            <input type="text" name="tech_stack" value="${(prompt.tech_stack || []).join(', ')}">
+          </div>
+          <div class="form-group">
+            <label>Tags (คั่นด้วย ,)</label>
+            <input type="text" name="tags" value="${(prompt.tags || []).join(', ')}">
+          </div>
+          <div class="form-group">
+            <label>ตัวอย่างสั้นๆ</label>
+            <textarea name="preview_text" rows="3">${escapeHtml(prompt.preview_text || '')}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Demo URL</label>
+            <input type="url" name="demo_url" value="${escapeHtml(prompt.demo_url || '')}">
+          </div>
+          <div class="form-group" style="display:flex;gap:0.5rem;">
+            <button type="submit" class="btn btn-primary" style="flex:1">บันทึก (ส่งอนุมัติใหม่)</button>
+            <button type="button" class="btn btn-outline" onclick="closeModal('edit-modal')">ยกเลิก</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } catch (err) {
+    showToast(err.error || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+  }
+}
+
+async function handleEditPrompt(e, promptId) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  try {
+    const body = {
+      title: form.title.value,
+      description: form.description.value,
+      category: form.category.value,
+      price: Number(form.price.value),
+      demo_url: form.demo_url?.value || '',
+      preview_text: form.preview_text?.value || '',
+      tech_stack: form.tech_stack?.value ? form.tech_stack.value.split(',').map(s => s.trim()) : [],
+      tags: form.tags?.value ? form.tags.value.split(',').map(s => s.trim()) : []
+    };
+
+    await api(`/prompts/${promptId}`, { method: 'PUT', body: JSON.stringify(body) });
+    showToast('แก้ไขสำเร็จ! Prompt จะถูกส่งอนุมัติใหม่', 'success');
+    closeModal('edit-modal');
+    loadSellerDashboard();
+  } catch (err) {
+    showToast(err.error || 'แก้ไขไม่สำเร็จ', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.remove();
+}
+
+// =============================================
+// Image Manager (Modal)
+// =============================================
+async function openImageManager(promptId) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'image-modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="bi bi-images"></i> จัดการรูปตัวอย่าง</h2>
+        <button class="modal-close" onclick="closeModal('image-modal')">&times;</button>
+      </div>
+      <div id="image-list" class="image-grid"><div class="loading-state"><div class="spinner"></div></div></div>
+      <div class="form-group" style="margin-top:1rem;">
+        <label>อัปโหลดรูปใหม่ (สูงสุด 5 รูป, ไม่เกิน 5MB)</label>
+        <input type="file" id="image-input" accept="image/jpeg,image/png,image/webp,image/gif" onchange="handleImageUpload('${promptId}')">
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  loadPromptImages(promptId);
+}
+
+async function loadPromptImages(promptId) {
+  const container = document.getElementById('image-list');
+  if (!container) return;
+
+  try {
+    const { prompt } = await api(`/prompts/${promptId}`);
+    const images = prompt.images || [];
+
+    container.innerHTML = images.length ? images.map(img => `
+      <div class="image-item">
+        <img src="${escapeHtml(img.image_url)}" alt="Preview">
+        <button class="btn btn-danger btn-sm" onclick="deleteImage('${img.id}', '${promptId}')"><i class="bi bi-trash"></i></button>
+      </div>
+    `).join('') : '<p class="text-muted">ยังไม่มีรูป</p>';
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function handleImageUpload(promptId) {
+  const input = document.getElementById('image-input');
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('ไฟล์ต้องมีขนาดไม่เกิน 5MB', 'error');
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    try {
+      await api('/images/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt_id: promptId,
+          image_base64: e.target.result,
+          filename: file.name
+        })
+      });
+      showToast('อัปโหลดสำเร็จ', 'success');
+      input.value = '';
+      loadPromptImages(promptId);
+    } catch (err) {
+      showToast(err.error || 'อัปโหลดไม่สำเร็จ', 'error');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function deleteImage(imageId, promptId) {
+  if (!confirm('ลบรูปนี้?')) return;
+  try {
+    await api(`/images/delete?image_id=${imageId}`, { method: 'DELETE' });
+    showToast('ลบรูปสำเร็จ', 'success');
+    loadPromptImages(promptId);
+  } catch (err) {
+    showToast(err.error || 'ลบไม่สำเร็จ', 'error');
+  }
+}
+
+// =============================================
+// Admin — Overview Stats + User Management + Settings
+// =============================================
+async function loadAdminOverview() {
+  const container = document.getElementById('admin-overview');
+  if (!container) return;
+
+  try {
+    const [usersData, promptsAll, promptsPending] = await Promise.all([
+      api('/admin/users?limit=1'),
+      api('/admin/prompts?status=approved&limit=1'),
+      api('/admin/prompts?status=pending&limit=1')
+    ]);
+
+    container.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">${usersData.total || 0}</div>
+          <div class="stat-label">สมาชิกทั้งหมด</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${promptsAll.total || 0}</div>
+          <div class="stat-label">Prompt อนุมัติแล้ว</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${promptsPending.total || 0}</div>
+          <div class="stat-label">รออนุมัติ</div>
+        </div>
+      </div>
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดภาพรวมไม่สำเร็จ</p>';
+  }
+}
+
+async function loadAdminUsers() {
+  const container = document.getElementById('admin-users');
+  if (!container) return;
+
+  try {
+    const { users } = await api('/admin/users?limit=50');
+    container.innerHTML = users.length ? `
+      <table class="data-table">
+        <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>เครดิต</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody>${users.map(u => `
+          <tr>
+            <td>${escapeHtml(u.display_name)}</td>
+            <td>${escapeHtml(u.email)}</td>
+            <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'seller' ? 'warning' : 'success'}">${u.role}</span></td>
+            <td>฿${parseFloat(u.credit_balance).toFixed(2)}</td>
+            <td><span class="badge badge-${u.status === 'active' ? 'success' : 'danger'}">${u.status}</span></td>
+            <td>
+              <select onchange="updateUserRole('${u.id}', this.value)" style="padding:0.25rem;border-radius:4px;border:1px solid #e2e8f0;font-size:0.8rem;">
+                <option value="" disabled selected>เปลี่ยนสิทธิ์</option>
+                <option value="buyer">Buyer</option>
+                <option value="seller">Seller</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button class="btn btn-sm ${u.status === 'active' ? 'btn-danger' : 'btn-primary'}"
+                      onclick="toggleUserStatus('${u.id}', '${u.status === 'active' ? 'suspended' : 'active'}')">
+                ${u.status === 'active' ? 'ระงับ' : 'เปิดใช้'}
+              </button>
+            </td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    ` : '<p class="text-muted">ไม่มีสมาชิก</p>';
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function updateUserRole(userId, role) {
+  try {
+    await api('/admin/users', { method: 'PUT', body: JSON.stringify({ user_id: userId, role }) });
+    showToast('เปลี่ยนสิทธิ์สำเร็จ', 'success');
+    loadAdminUsers();
+  } catch (err) { showToast(err.error || 'ไม่สำเร็จ', 'error'); }
+}
+
+async function toggleUserStatus(userId, newStatus) {
+  try {
+    await api('/admin/users', { method: 'PUT', body: JSON.stringify({ user_id: userId, status: newStatus }) });
+    showToast(`${newStatus === 'active' ? 'เปิดใช้' : 'ระงับ'}สำเร็จ`, 'success');
+    loadAdminUsers();
+  } catch (err) { showToast(err.error || 'ไม่สำเร็จ', 'error'); }
+}
+
+async function loadAdminSettings() {
+  const container = document.getElementById('admin-settings');
+  if (!container) return;
+
+  try {
+    const { settings } = await api('/admin/settings');
+    container.innerHTML = `
+      <form onsubmit="handleSaveSettings(event)">
+        <div class="form-group">
+          <label>ค่าคอมมิชชั่น (%)</label>
+          <input type="number" name="commission_rate" value="${settings.commission_rate || 10}" min="0" max="100" step="1">
+        </div>
+        <div class="form-group">
+          <label>ถอนขั้นต่ำ (บาท)</label>
+          <input type="number" name="min_payout_amount" value="${settings.min_payout_amount || 100}" min="0" step="1">
+        </div>
+        <div class="form-group">
+          <label>เบอร์ TrueMoney รับอั่งเปา</label>
+          <input type="text" name="truemoney_phone" value="${settings.truemoney_phone || ''}" placeholder="09xxxxxxxx">
+        </div>
+        <div class="form-group">
+          <label>ชื่อเว็บไซต์</label>
+          <input type="text" name="site_name" value="${settings.site_name || 'KP Prompt Creator'}">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%"><i class="bi bi-save"></i> บันทึกการตั้งค่า</button>
+      </form>
+    `;
+  } catch {
+    container.innerHTML = '<p>โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function handleSaveSettings(e) {
+  e.preventDefault();
+  const form = e.target;
+  try {
+    await api('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        settings: {
+          commission_rate: form.commission_rate.value,
+          min_payout_amount: form.min_payout_amount.value,
+          truemoney_phone: form.truemoney_phone.value,
+          site_name: form.site_name.value
+        }
+      })
+    });
+    showToast('บันทึกการตั้งค่าสำเร็จ', 'success');
+  } catch (err) {
+    showToast(err.error || 'บันทึกไม่สำเร็จ', 'error');
+  }
+}
+
+// =============================================
 // Utils
 // =============================================
 function escapeHtml(str) {
@@ -597,7 +927,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!currentUser || currentUser.role !== 'admin') {
       window.location.href = '/auth.html'; return;
     }
+    loadAdminOverview();
     loadAdminPendingPrompts();
     loadAdminPayouts();
+    loadAdminUsers();
+    loadAdminSettings();
   }
 });
