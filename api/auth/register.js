@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../../lib/supabase');
-const { hashPassword, createToken } = require('../../lib/auth');
+const { createToken } = require('../../lib/auth');
 const { cors, validateRequired } = require('../../lib/helpers');
 
 module.exports = async function handler(req, res) {
@@ -14,22 +14,47 @@ module.exports = async function handler(req, res) {
 
   const userRole = ['buyer', 'seller'].includes(role) ? role : 'buyer';
 
-  // Check existing user
-  const { data: existing } = await supabaseAdmin
-    .from('users').select('id').eq('email', email).single();
-  if (existing) return res.status(409).json({ error: 'อีเมลนี้ถูกใช้งานแล้ว' });
+  try {
+    // 1. Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { display_name, role: userRole }
+    });
 
-  const password_hash = hashPassword(password);
+    if (authError) {
+      console.error('Register auth error:', authError.message);
+      if (authError.message.includes('already') || authError.message.includes('exists')) {
+        return res.status(409).json({ error: 'อีเมลนี้ถูกใช้งานแล้ว' });
+      }
+      return res.status(500).json({ error: 'สร้างบัญชีไม่สำเร็จ: ' + authError.message });
+    }
 
-  const { data: user, error } = await supabaseAdmin
-    .from('users')
-    .insert({ email, password_hash, display_name, role: userRole })
-    .select('id, email, display_name, role, credit_balance')
-    .single();
+    // 2. Insert profile in public.users with Supabase Auth ID
+    const { data: user, error: profileError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        email,
+        password_hash: 'supabase-auth',
+        display_name,
+        role: userRole
+      })
+      .select('id, email, display_name, role, credit_balance')
+      .single();
 
-  if (error) return res.status(500).json({ error: 'สร้างบัญชีไม่สำเร็จ' });
+    if (profileError) {
+      console.error('Register profile error:', profileError.message);
+      // Cleanup: delete the auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return res.status(500).json({ error: 'สร้างบัญชีไม่สำเร็จ' });
+    }
 
-  const token = createToken({ sub: user.id, role: user.role });
-
-  res.status(201).json({ user, token });
+    const token = createToken({ sub: user.id, role: user.role });
+    res.status(201).json({ user, token });
+  } catch (err) {
+    console.error('Register unexpected error:', err);
+    return res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่' });
+  }
 };

@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../../lib/supabase');
-const { verifyPassword, createToken } = require('../../lib/auth');
+const { createToken } = require('../../lib/auth');
 const { cors } = require('../../lib/helpers');
 
 module.exports = async function handler(req, res) {
@@ -9,20 +9,57 @@ module.exports = async function handler(req, res) {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'กรุณากรอกอีเมลและรหัสผ่าน' });
 
-  const { data: user, error } = await supabaseAdmin
-    .from('users')
-    .select('id, email, password_hash, display_name, role, credit_balance, status')
-    .eq('email', email)
-    .single();
+  try {
+    // 1. Authenticate via Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  if (!user || error) return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
-  if (user.status === 'suspended') return res.status(403).json({ error: 'บัญชีถูกระงับ' });
+    if (authError) {
+      console.error('Login auth error:', authError.message);
+      return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    }
 
-  const valid = verifyPassword(password, user.password_hash);
-  if (!valid) return res.status(401).json({ error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+    const authUser = authData.user;
 
-  const token = createToken({ sub: user.id, role: user.role });
+    // 2. Fetch profile from public.users
+    let { data: user, error: profileError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, display_name, role, credit_balance, status')
+      .eq('id', authUser.id)
+      .single();
 
-  const { password_hash, ...safeUser } = user;
-  res.json({ user: safeUser, token });
+    // 3. If no profile yet (e.g. admin created via Supabase dashboard), auto-create
+    if (!user || profileError) {
+      const displayName = authUser.user_metadata?.display_name || email.split('@')[0];
+      const role = authUser.user_metadata?.role || 'buyer';
+
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          password_hash: 'supabase-auth',
+          display_name: displayName,
+          role: role
+        })
+        .select('id, email, display_name, role, credit_balance, status')
+        .single();
+
+      if (createError) {
+        console.error('Auto-create profile error:', createError.message);
+        return res.status(500).json({ error: 'สร้างโปรไฟล์ไม่สำเร็จ' });
+      }
+      user = newUser;
+    }
+
+    if (user.status === 'suspended') return res.status(403).json({ error: 'บัญชีถูกระงับ' });
+
+    const token = createToken({ sub: user.id, role: user.role });
+    res.json({ user, token });
+  } catch (err) {
+    console.error('Login unexpected error:', err);
+    return res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ กรุณาลองใหม่' });
+  }
 };
