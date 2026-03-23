@@ -162,16 +162,19 @@ async function loadPrompts(params = {}) {
 
     container.innerHTML = prompts.map(p => `
       <a href="/prompt-detail.html?id=${p.id}" class="prompt-card">
-        <div class="prompt-card-header">
-          <span class="prompt-category">${p.category}</span>
-          <span class="prompt-price">฿${parseFloat(p.price).toFixed(0)}</span>
-        </div>
-        <h3 class="prompt-title">${escapeHtml(p.title)}</h3>
-        <p class="prompt-desc">${escapeHtml(p.preview_text || p.description).substring(0, 120)}...</p>
-        <div class="prompt-meta">
-          <span class="prompt-seller"><i class="bi bi-person"></i> ${escapeHtml(p.seller?.display_name || '')}</span>
-          <span class="prompt-rating"><i class="bi bi-star-fill"></i> ${p.avg_rating || '—'}</span>
-          <span class="prompt-sales"><i class="bi bi-bag"></i> ${p.purchase_count || 0}</span>
+        ${p.preview_image_url ? `<div class="prompt-card-thumb"><img src="${escapeHtml(p.preview_image_url)}" alt="${escapeHtml(p.title)}" loading="lazy"></div>` : '<div class="prompt-card-thumb prompt-card-thumb-placeholder"><i class="bi bi-file-earmark-code"></i></div>'}
+        <div class="prompt-card-body">
+          <div class="prompt-card-header">
+            <span class="prompt-category">${p.category}</span>
+            <span class="prompt-price">฿${parseFloat(p.price).toFixed(0)}</span>
+          </div>
+          <h3 class="prompt-title">${escapeHtml(p.title)}</h3>
+          <p class="prompt-desc">${escapeHtml(p.preview_text || p.description).substring(0, 120)}...</p>
+          <div class="prompt-meta">
+            <span class="prompt-seller"><i class="bi bi-person"></i> ${escapeHtml(p.seller?.display_name || '')}</span>
+            <span class="prompt-rating"><i class="bi bi-star-fill"></i> ${p.avg_rating || '—'}</span>
+            <span class="prompt-sales"><i class="bi bi-bag"></i> ${p.purchase_count || 0}</span>
+          </div>
         </div>
       </a>
     `).join('');
@@ -330,13 +333,24 @@ async function purchasePrompt(promptId) {
 
 async function downloadPrompt(promptId) {
   try {
-    const { title, content } = await api(`/prompts/download?prompt_id=${promptId}`);
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${title}.md`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const data = await api(`/prompts/download?prompt_id=${promptId}`);
+
+    if (data.download_url) {
+      // ดาวน์โหลดไฟล์จาก Storage (signed URL)
+      const a = document.createElement('a');
+      a.href = data.download_url;
+      a.download = `${data.title}.md`;
+      a.target = '_blank';
+      a.click();
+    } else {
+      // fallback: สร้างไฟล์จาก content (prompt เก่า)
+      const blob = new Blob([data.content], { type: 'text/markdown' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${data.title}.md`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
     showToast('ดาวน์โหลดสำเร็จ', 'success');
   } catch (err) {
     showToast(err.error || 'ดาวน์โหลดไม่สำเร็จ', 'error');
@@ -461,23 +475,109 @@ async function loadSellerDashboard() {
   }
 }
 
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// File preview handlers
+function setupFilePreview(inputId, previewId, options = {}) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.addEventListener('change', function() {
+    const previewContainer = document.getElementById(previewId);
+    if (!previewContainer) return;
+
+    if (options.type === 'file') {
+      const file = this.files[0];
+      if (file) {
+        previewContainer.style.display = 'block';
+        previewContainer.innerHTML = `<div class="file-info"><i class="bi bi-file-earmark-text"></i> ${escapeHtml(file.name)} <span>(${(file.size / 1024).toFixed(1)} KB)</span></div>`;
+      } else {
+        previewContainer.style.display = 'none';
+      }
+    } else if (options.type === 'image') {
+      const file = this.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        previewContainer.style.display = 'block';
+        previewContainer.innerHTML = `<img src="${url}" alt="Preview" class="upload-preview-img">`;
+      } else {
+        previewContainer.style.display = 'none';
+      }
+    } else if (options.type === 'images') {
+      const files = Array.from(this.files).slice(0, 5);
+      if (files.length > 0) {
+        previewContainer.style.display = 'flex';
+        previewContainer.innerHTML = files.map(f => {
+          const url = URL.createObjectURL(f);
+          return `<img src="${url}" alt="Preview" class="upload-preview-img">`;
+        }).join('');
+      } else {
+        previewContainer.style.display = 'none';
+      }
+      if (this.files.length > 5) {
+        showToast('เลือกได้สูงสุด 5 รูป — ใช้ 5 รูปแรกเท่านั้น', 'error');
+      }
+    }
+  });
+}
+
 async function handleCreatePrompt(e) {
   e.preventDefault();
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
   btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> กำลังอัปโหลด...';
 
   try {
+    // อ่านไฟล์ .md
+    const promptFile = document.getElementById('prompt-file-input')?.files[0];
+    if (!promptFile) {
+      showToast('กรุณาเลือกไฟล์ Prompt (.md)', 'error');
+      return;
+    }
+    const promptFileBase64 = await readFileAsBase64(promptFile);
+
+    // อ่านรูป preview
+    const previewImageFile = document.getElementById('preview-image-input')?.files[0];
+    if (!previewImageFile) {
+      showToast('กรุณาเลือกรูปพรีวิว', 'error');
+      return;
+    }
+    if (previewImageFile.size > 5 * 1024 * 1024) {
+      showToast('รูปพรีวิวต้องมีขนาดไม่เกิน 5MB', 'error');
+      return;
+    }
+    const previewImageBase64 = await readFileAsBase64(previewImageFile);
+
+    // อ่านรูปรายละเอียด
+    const detailImageFiles = Array.from(document.getElementById('detail-images-input')?.files || []).slice(0, 5);
+    const detail_images = [];
+    for (const file of detailImageFiles) {
+      if (file.size > 5 * 1024 * 1024) continue;
+      const base64 = await readFileAsBase64(file);
+      detail_images.push({ image_base64: base64, filename: file.name });
+    }
+
     const body = {
       title: form.title.value,
       description: form.description.value,
       category: form.category.value,
       price: Number(form.price.value),
-      prompt_content: form.prompt_content.value,
+      prompt_file_base64: promptFileBase64,
+      prompt_filename: promptFile.name,
+      preview_image_base64: previewImageBase64,
+      preview_image_filename: previewImageFile.name,
       demo_url: form.demo_url?.value || '',
       preview_text: form.preview_text?.value || '',
       tech_stack: form.tech_stack?.value ? form.tech_stack.value.split(',').map(s => s.trim()) : [],
-      tags: form.tags?.value ? form.tags.value.split(',').map(s => s.trim()) : []
+      tags: form.tags?.value ? form.tags.value.split(',').map(s => s.trim()) : [],
+      detail_images
     };
 
     const result = await api('/prompts', { method: 'POST', body: JSON.stringify(body) });
@@ -493,14 +593,19 @@ async function handleCreatePrompt(e) {
       'success'
     );
     form.reset();
+    // Clear previews
+    ['prompt-file-info', 'preview-image-preview', 'detail-images-preview'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+    });
     loadSellerDashboard();
-    // Switch to prompts tab after creation
     const promptsTab = document.querySelector('.dash-tab[data-tab="tab-prompts"]');
     if (promptsTab) promptsTab.click();
   } catch (err) {
     showToast(err.error || 'สร้างไม่สำเร็จ', 'error');
   } finally {
     btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-cloud-upload"></i> ส่ง Prompt (รออนุมัติ)';
   }
 }
 
@@ -1426,6 +1531,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.href = '/auth.html'; return;
     }
     initDashboardTabs();
+    setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
+    setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
+    setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
     loadSellerDashboard();
     loadSellerIncomeHistory();
     loadSellerPayoutHistory();

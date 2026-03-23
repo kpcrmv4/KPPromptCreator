@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
 async function getPrompt(req, res, id) {
   const { data: prompt, error } = await supabaseAdmin
     .from('prompts')
-    .select('id, title, description, category, tech_stack, price, preview_text, demo_url, tags, status, view_count, purchase_count, avg_rating, created_at, seller:users!seller_id(id, display_name, avatar_url, bio)')
+    .select('id, title, description, category, tech_stack, price, preview_text, preview_image_url, demo_url, tags, status, view_count, purchase_count, avg_rating, created_at, seller:users!seller_id(id, display_name, avatar_url, bio)')
     .eq('id', id)
     .single();
 
