@@ -29,6 +29,8 @@ CREATE TABLE prompts (
   tech_stack JSONB DEFAULT '[]',
   price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
   prompt_content TEXT NOT NULL,  -- เนื้อหา prompt จริง (เข้าถึงได้เฉพาะคนซื้อ)
+  content_hash TEXT,            -- SHA256 hash ของเนื้อหา (ใช้เช็คซ้ำ)
+  kp_signature TEXT,            -- KP Fingerprint signature (พิสูจน์ว่าสร้างจากระบบ)
   demo_url TEXT,
   preview_text TEXT,  -- ตัวอย่างสั้นๆ สำหรับแสดงหน้า listing
   tags JSONB DEFAULT '[]',
@@ -134,6 +136,7 @@ CREATE INDEX idx_prompts_seller ON prompts(seller_id);
 CREATE INDEX idx_prompts_status ON prompts(status);
 CREATE INDEX idx_prompts_category ON prompts(category);
 CREATE INDEX idx_prompts_created ON prompts(created_at DESC);
+CREATE INDEX idx_prompts_content_hash ON prompts(content_hash);
 CREATE INDEX idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX idx_orders_seller ON orders(seller_id);
 CREATE INDEX idx_orders_prompt ON orders(prompt_id);

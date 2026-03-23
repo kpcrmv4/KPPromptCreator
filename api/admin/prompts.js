@@ -20,7 +20,7 @@ async function listPrompts(req, res) {
 
   const { data, count, error } = await supabaseAdmin
     .from('prompts')
-    .select('id, title, description, category, tech_stack, price, preview_text, status, rejection_reason, created_at, seller:users!seller_id(id, display_name, email)', { count: 'exact' })
+    .select('id, title, description, category, tech_stack, price, preview_text, status, rejection_reason, kp_signature, content_hash, created_at, seller:users!seller_id(id, display_name, email)', { count: 'exact' })
     .eq('status', status)
     .order('created_at', { ascending: true })
     .range(offset, offset + limit - 1);

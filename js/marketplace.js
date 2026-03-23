@@ -452,8 +452,18 @@ async function handleCreatePrompt(e) {
       tags: form.tags?.value ? form.tags.value.split(',').map(s => s.trim()) : []
     };
 
-    await api('/prompts', { method: 'POST', body: JSON.stringify(body) });
-    showToast('สร้าง Prompt สำเร็จ! รออนุมัติ', 'success');
+    const result = await api('/prompts', { method: 'POST', body: JSON.stringify(body) });
+
+    if (result.warnings && result.warnings.length > 0) {
+      result.warnings.forEach(w => showToast(w, 'error'));
+    }
+
+    showToast(
+      result.kp_verified
+        ? 'สร้าง Prompt สำเร็จ! (KP Verified) รออนุมัติ'
+        : 'สร้าง Prompt สำเร็จ! รออนุมัติ (แนะนำ: สร้างจาก KP Prompt Creator เพื่อได้ KP Verified badge)',
+      'success'
+    );
     form.reset();
     loadSellerDashboard();
   } catch (err) {
@@ -1318,6 +1328,12 @@ async function loadAdminPromptsByStatus(status) {
         <h3>${escapeHtml(p.title)}</h3>
         <p>${escapeHtml(p.description).substring(0, 200)}...</p>
         <p><strong>ผู้ขาย:</strong> ${escapeHtml(p.seller?.display_name)} | <strong>ราคา:</strong> ฿${parseFloat(p.price).toFixed(0)} | <strong>หมวด:</strong> ${p.category}</p>
+        <p>
+          ${p.kp_signature
+            ? '<span class="badge badge-success"><i class="bi bi-patch-check-fill"></i> KP Verified</span>'
+            : '<span class="badge badge-warning"><i class="bi bi-exclamation-triangle"></i> ไม่มี KP Signature</span>'
+          }
+        </p>
         ${p.rejection_reason ? `<p class="text-danger"><strong>เหตุผลปฏิเสธ:</strong> ${escapeHtml(p.rejection_reason)}</p>` : ''}
         ${status === 'pending' ? `
           <div class="admin-actions">
