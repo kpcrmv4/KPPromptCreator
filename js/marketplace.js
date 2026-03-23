@@ -825,17 +825,30 @@ async function loadAdminPayouts() {
     const { payouts } = await api('/admin/payouts?status=pending');
     container.innerHTML = payouts.length ? payouts.map(p => `
       <div class="admin-card">
-        <p><strong>ผู้ขาย:</strong> ${escapeHtml(p.seller?.display_name)} (${escapeHtml(p.seller?.email)})</p>
-        <p><strong>จำนวน:</strong> ฿${parseFloat(p.amount).toFixed(2)}</p>
-        <p><strong>บัญชี TrueMoney:</strong> ${escapeHtml(p.payment_account)}</p>
-        <p><strong>วันที่ขอ:</strong> ${new Date(p.created_at).toLocaleString('th-TH')}</p>
-        <div class="form-group" style="margin-top:0.75rem;">
-          <label>แนบรูปหลักฐานการโอน (ถ้าอนุมัติ)</label>
-          <input type="file" id="proof-${p.id}" accept="image/jpeg,image/png,image/webp">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+          <div>
+            <div style="font-weight:600;font-size:1rem;color:#1a1a2e;margin-bottom:0.2rem;">
+              <i class="bi bi-person-circle" style="color:#6c5ce7;"></i> ${escapeHtml(p.seller?.display_name)}
+            </div>
+            <div style="font-size:0.84rem;color:#64748b;">${escapeHtml(p.seller?.email)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.2rem;font-weight:700;color:#16a34a;">฿${parseFloat(p.amount).toFixed(2)}</div>
+            <div style="font-size:0.8rem;color:#94a3b8;">${new Date(p.created_at).toLocaleString('th-TH')}</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>หมายเหตุ</label>
-          <input type="text" id="note-${p.id}" placeholder="หมายเหตุจาก Admin (ถ้ามี)">
+        <div style="padding:0.6rem 0.75rem;background:#f0edff;border-radius:8px;font-size:0.88rem;margin-bottom:0.75rem;">
+          <i class="bi bi-phone" style="color:#6c5ce7;"></i> <strong>TrueMoney:</strong> ${escapeHtml(p.payment_account)}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:0.82rem;"><i class="bi bi-image"></i> หลักฐานการโอน</label>
+            <input type="file" id="proof-${p.id}" accept="image/jpeg,image/png,image/webp" style="font-size:0.82rem;">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:0.82rem;"><i class="bi bi-chat-text"></i> หมายเหตุ</label>
+            <input type="text" id="note-${p.id}" placeholder="หมายเหตุ (ถ้ามี)">
+          </div>
         </div>
         <div class="admin-actions">
           <button class="btn btn-primary btn-sm" onclick="processPayout('${p.id}', 'approve')">
@@ -846,7 +859,7 @@ async function loadAdminPayouts() {
           </button>
         </div>
       </div>
-    `).join('') : '<p class="text-muted">ไม่มีคำขอถอนเงิน</p>';
+    `).join('') : '<div class="empty-state"><i class="bi bi-inbox"></i><p>ไม่มีคำขอถอนเงิน</p></div>';
   } catch (err) {
     showToast('โหลดไม่สำเร็จ', 'error');
   }
@@ -1130,6 +1143,34 @@ async function deleteImage(imageId, promptId) {
 }
 
 // =============================================
+// Admin — Tabs Init
+// =============================================
+function initAdminTabs() {
+  const tabs = document.querySelectorAll('.admin-tab');
+  const contents = document.querySelectorAll('.admin-tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.dataset.tab;
+
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+
+      tab.classList.add('active');
+      const target = document.getElementById(targetId);
+      if (target) target.classList.add('active');
+    });
+  });
+
+  // Support hash-based tab navigation
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const tabBtn = document.querySelector(`.admin-tab[data-tab="${hash}"]`);
+    if (tabBtn) tabBtn.click();
+  }
+}
+
+// =============================================
 // Admin — Overview Stats + User Management + Settings
 // =============================================
 async function loadAdminOverview() {
@@ -1144,16 +1185,19 @@ async function loadAdminOverview() {
     ]);
 
     container.innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-card">
+      <div class="stats-grid admin-stats-grid">
+        <div class="stat-card admin-stat-card">
+          <div class="admin-stat-icon" style="background:#f0edff;color:#6c5ce7;"><i class="bi bi-people-fill"></i></div>
           <div class="stat-value">${usersData.total || 0}</div>
           <div class="stat-label">สมาชิกทั้งหมด</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card admin-stat-card">
+          <div class="admin-stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-check-circle-fill"></i></div>
           <div class="stat-value">${promptsAll.total || 0}</div>
           <div class="stat-label">Prompt อนุมัติแล้ว</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card admin-stat-card">
+          <div class="admin-stat-icon" style="background:#fef3c7;color:#d97706;"><i class="bi bi-hourglass-split"></i></div>
           <div class="stat-value">${promptsPending.total || 0}</div>
           <div class="stat-label">รออนุมัติ</div>
         </div>
@@ -1461,24 +1505,31 @@ async function loadAdminPromptsByStatus(status) {
     const { prompts } = await api(`/admin/prompts?status=${status}`);
     container.innerHTML = prompts.length ? prompts.map(p => `
       <div class="admin-card">
-        <h3>${escapeHtml(p.title)}</h3>
-        <p>${escapeHtml(p.description).substring(0, 200)}...</p>
-        <p><strong>ผู้ขาย:</strong> ${escapeHtml(p.seller?.display_name)} | <strong>ราคา:</strong> ฿${parseFloat(p.price).toFixed(0)} | <strong>หมวด:</strong> ${p.category}</p>
-        <p>
-          ${p.kp_signature
-            ? '<span class="badge badge-success"><i class="bi bi-patch-check-fill"></i> KP Verified</span>'
-            : '<span class="badge badge-warning"><i class="bi bi-exclamation-triangle"></i> ไม่มี KP Signature</span>'
-          }
-        </p>
-        ${p.rejection_reason ? `<p class="text-danger"><strong>เหตุผลปฏิเสธ:</strong> ${escapeHtml(p.rejection_reason)}</p>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.75rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <h3 style="margin-bottom:0.3rem;">${escapeHtml(p.title)}</h3>
+            <p style="margin-bottom:0.5rem;">${escapeHtml(p.description).substring(0, 200)}...</p>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;font-size:0.84rem;">
+              <span style="color:#475569;"><i class="bi bi-person"></i> ${escapeHtml(p.seller?.display_name)}</span>
+              <span style="color:#6c5ce7;font-weight:600;">฿${parseFloat(p.price).toFixed(0)}</span>
+              <span class="badge" style="background:#f0edff;color:#6c5ce7;">${p.category}</span>
+              ${p.kp_signature
+                ? '<span class="badge badge-success"><i class="bi bi-patch-check-fill"></i> KP Verified</span>'
+                : '<span class="badge badge-warning"><i class="bi bi-exclamation-triangle"></i> ไม่มี KP Signature</span>'
+              }
+            </div>
+          </div>
+          <a href="/prompt-detail.html?id=${p.id}" class="btn btn-sm btn-outline" target="_blank" title="ดูรายละเอียด"><i class="bi bi-eye"></i></a>
+        </div>
+        ${p.rejection_reason ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:#fef2f2;border-radius:8px;color:#dc2626;font-size:0.85rem;"><i class="bi bi-x-circle"></i> <strong>เหตุผล:</strong> ${escapeHtml(p.rejection_reason)}</div>` : ''}
         ${status === 'pending' ? `
           <div class="admin-actions">
-            <button class="btn btn-primary btn-sm" onclick="moderatePrompt('${p.id}', 'approve')">อนุมัติ</button>
-            <button class="btn btn-danger btn-sm" onclick="moderatePrompt('${p.id}', 'reject')">ปฏิเสธ</button>
+            <button class="btn btn-primary btn-sm" onclick="moderatePrompt('${p.id}', 'approve')"><i class="bi bi-check-lg"></i> อนุมัติ</button>
+            <button class="btn btn-danger btn-sm" onclick="moderatePrompt('${p.id}', 'reject')"><i class="bi bi-x-lg"></i> ปฏิเสธ</button>
           </div>
         ` : ''}
       </div>
-    `).join('') : `<p class="text-muted">ไม่มี Prompt สถานะ ${status}</p>`;
+    `).join('') : `<div class="empty-state"><i class="bi bi-inbox"></i><p>ไม่มี Prompt สถานะ ${status}</p></div>`;
   } catch { container.innerHTML = '<p>โหลดไม่สำเร็จ</p>'; }
 }
 
@@ -1542,6 +1593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!currentUser || currentUser.role !== 'admin') {
       window.location.href = '/auth.html'; return;
     }
+    initAdminTabs();
     loadAdminOverview();
     loadAdminNotifications();
     loadAdminPendingPrompts();
