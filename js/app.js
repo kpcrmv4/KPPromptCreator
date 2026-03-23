@@ -1381,7 +1381,7 @@ function renderWizardAnalysis(analysis) {
     let html = `<div class="wiz-summary-box">${analysis.summary}</div>`;
 
     // Features
-    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ฟีเจอร์ที่วิเคราะห์ได้</h4><ul>`;
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ${t('wizFeatures')}</h4><ul>`;
     analysis.features.forEach(f => {
         const badge = f.priority === 'high' ? '🔴' : f.priority === 'medium' ? '🟡' : '🟢';
         html += `<li>${badge} <strong>${f.name}</strong> - ${f.description}</li>`;
@@ -1390,7 +1390,7 @@ function renderWizardAnalysis(analysis) {
 
     // User types
     if (analysis.userTypes && analysis.userTypes.length > 0) {
-        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-people"></i> ประเภทผู้ใช้</h4><ul>`;
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-people"></i> ${t('wizUserTypes')}</h4><ul>`;
         analysis.userTypes.forEach(u => {
             html += `<li><strong>${u.name}</strong> - ${u.description}</li>`;
         });
@@ -1407,7 +1407,7 @@ function renderWizardAnalysis(analysis) {
     }
 
     // Complexity & Risks
-    const complexityLabel = { simple: 'ง่าย', moderate: 'ปานกลาง', complex: 'ซับซ้อน' };
+    const complexityLabel = { simple: t('wizComplexitySimple'), moderate: t('wizComplexityModerate'), complex: t('wizComplexityComplex') };
     html += `<div class="wiz-analysis-card"><h4><i class="bi bi-speedometer2"></i> ความซับซ้อน: ${complexityLabel[analysis.estimatedComplexity] || analysis.estimatedComplexity}</h4>`;
     if (analysis.risks && analysis.risks.length > 0) {
         html += `<ul>`;
