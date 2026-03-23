@@ -1,0 +1,14 @@
+{
+  "name": "kp-prompt-creator",
+  "version": "2.0.0",
+  "description": "KP Prompt Creator with Marketplace",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
