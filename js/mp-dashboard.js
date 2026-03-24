@@ -807,6 +807,94 @@ async function openUserDetail(userId) {
 }
 
 // =============================================
+// =============================================
+// Admin Topups (เติมเครดิต)
+// =============================================
+async function loadAdminTopups() {
+  const container = document.getElementById('admin-topups');
+  if (!container) return;
+
+  try {
+    const { topups } = await api('/admin/topups?status=pending');
+
+    // Update badge
+    const badge = document.getElementById('admin-topup-badge');
+    if (badge) {
+      if (topups.length > 0) {
+        badge.textContent = topups.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    container.innerHTML = topups.length ? topups.map(t => `
+      <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
+        <div class="flex justify-between items-start gap-3 flex-wrap mb-3">
+          <div>
+            <div class="font-semibold text-slate-800">${escapeHtml(t.user?.display_name || 'Unknown')}</div>
+            <div class="text-xs text-slate-500">${escapeHtml(t.user?.email || '')}</div>
+          </div>
+          <div class="text-right">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
+              <i data-lucide="clock" class="w-3 h-3"></i> รอยืนยัน
+            </span>
+            <div class="text-xs text-slate-400 mt-1">${new Date(t.created_at).toLocaleString('th-TH')}</div>
+          </div>
+        </div>
+        <div class="px-3 py-2 bg-indigo-50 rounded-lg text-sm mb-3 break-all">
+          <strong>ลิงก์:</strong> <a href="${escapeHtml(t.angpao_link)}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">${escapeHtml(t.angpao_link)}</a>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">จำนวนเงิน (บาท) *</label>
+            <input type="number" id="topup-amount-${t.id}" min="1" step="1" placeholder="เช่น 50" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">หมายเหตุ</label>
+            <input type="text" id="topup-note-${t.id}" placeholder="หมายเหตุ (ถ้ามี)" class="w-full text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="processTopup('${t.id}', 'approve')" class="px-3 py-1.5 bg-emerald-500 text-white text-xs rounded-lg font-medium hover:bg-emerald-600 transition-colors">ยืนยัน + เติมเครดิต</button>
+          <button onclick="processTopup('${t.id}', 'reject')" class="px-3 py-1.5 bg-rose-500 text-white text-xs rounded-lg font-medium hover:bg-rose-600 transition-colors">ปฏิเสธ</button>
+        </div>
+      </div>
+    `).join('') : '<p class="text-sm text-slate-400 text-center py-8">ไม่มีคำขอเติมเครดิต</p>';
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch (err) { showToast('โหลดรายการเติมเครดิตไม่สำเร็จ', 'error'); }
+}
+
+async function processTopup(topupId, action) {
+  const amountInput = document.getElementById(`topup-amount-${topupId}`);
+  const noteInput = document.getElementById(`topup-note-${topupId}`);
+
+  const amount = amountInput ? parseFloat(amountInput.value) : 0;
+  const admin_note = noteInput ? noteInput.value : '';
+
+  if (action === 'approve') {
+    if (!amount || amount <= 0) {
+      showToast('กรุณาระบุจำนวนเงิน', 'error');
+      amountInput?.focus();
+      return;
+    }
+    if (!confirm(`ยืนยันเติมเครดิต ฿${amount} ให้สมาชิก?`)) return;
+  } else {
+    if (!confirm('ยืนยันปฏิเสธคำขอเติมเครดิต?')) return;
+  }
+
+  try {
+    await api('/admin/topups', {
+      method: 'PUT',
+      body: JSON.stringify({ topup_id: topupId, action, amount, admin_note })
+    });
+    showToast(action === 'approve' ? 'เติมเครดิตสำเร็จ!' : 'ปฏิเสธแล้ว', 'success');
+    loadAdminTopups();
+  } catch (err) { showToast(err.error || 'ดำเนินการไม่สำเร็จ', 'error'); }
+}
+
+// =============================================
 // Pre-fill Dashboard Create Form from Saved Prompt
 // =============================================
 async function prefillFromSavedPrompt() {

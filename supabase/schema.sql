@@ -103,6 +103,20 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 8.5 Pending Top-ups (รอยืนยันเติมเครดิต)
+CREATE TABLE pending_topups (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),
+  voucher_hash TEXT NOT NULL,
+  angpao_link TEXT NOT NULL,
+  amount DECIMAL(10,2),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_note TEXT,
+  processed_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  processed_at TIMESTAMPTZ
+);
+
 -- 9. Settings (ค่าคอนฟิกระบบ)
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
