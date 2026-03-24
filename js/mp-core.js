@@ -55,7 +55,12 @@ async function api(path, options = {}) {
     headers: { ...headers, ...options.headers }
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw { status: res.status, error: `เซิร์ฟเวอร์ตอบกลับผิดปกติ (${res.status})` };
+  }
   if (!res.ok) throw { status: res.status, ...data };
   return data;
 }
