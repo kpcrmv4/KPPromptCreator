@@ -19,7 +19,7 @@ async function listUsers(req, res) {
 
   let query = supabaseAdmin
     .from('users')
-    .select('id, email, display_name, role, credit_balance, status, truemoney_phone, created_at', { count: 'exact' })
+    .select('id, email, display_name, role, credit_balance, status, promptpay_number, promptpay_name, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 

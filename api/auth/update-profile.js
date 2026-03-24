@@ -9,20 +9,23 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { display_name, bio, truemoney_phone, current_password, new_password } = req.body;
+  const { display_name, bio, promptpay_number, promptpay_name, current_password, new_password } = req.body;
 
   // อัปเดตโปรไฟล์
-  if (display_name || bio !== undefined || truemoney_phone !== undefined) {
+  if (display_name || bio !== undefined || promptpay_number !== undefined || promptpay_name !== undefined) {
     const updates = {};
     if (display_name) updates.display_name = display_name;
     if (bio !== undefined) updates.bio = bio;
-    if (truemoney_phone !== undefined) {
-      // Validate phone format
-      const phone = truemoney_phone.trim();
-      if (phone && !/^0[0-9]{8,9}$/.test(phone)) {
-        return res.status(400).json({ error: 'รูปแบบเบอร์โทรไม่ถูกต้อง (เช่น 09xxxxxxxx)' });
+    if (promptpay_number !== undefined) {
+      // Validate: phone (0xxxxxxxxx) or national ID (13 digits)
+      const num = promptpay_number.trim();
+      if (num && !/^(0[0-9]{8,9}|[0-9]{13})$/.test(num)) {
+        return res.status(400).json({ error: 'หมายเลขพร้อมเพย์ไม่ถูกต้อง (เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก)' });
       }
-      updates.truemoney_phone = phone;
+      updates.promptpay_number = num;
+    }
+    if (promptpay_name !== undefined) {
+      updates.promptpay_name = promptpay_name.trim();
     }
     updates.updated_at = new Date().toISOString();
 
@@ -57,7 +60,7 @@ module.exports = async function handler(req, res) {
   // ดึงข้อมูลล่าสุด
   const { data: updated } = await supabaseAdmin
     .from('users')
-    .select('id, email, display_name, role, credit_balance, bio, truemoney_phone')
+    .select('id, email, display_name, role, credit_balance, bio, promptpay_number, promptpay_name')
     .eq('id', user.id)
     .single();
 

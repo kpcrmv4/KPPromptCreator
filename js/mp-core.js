@@ -253,6 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadPromptDetail();
   } else if (page.includes('topup')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
+    setupFilePreview('slip-image-input', 'slip-preview', { type: 'image' });
     loadCreditHistory();
     loadPendingTopups();
   } else if (page.includes('orders') && !page.includes('admin')) {
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
     setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
     setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
-    initPayoutTrueMoney();
+    initPayoutPromptPay();
     loadSellerDashboard();
     loadSellerIncomeHistory();
     loadSellerPayoutHistory();

@@ -19,7 +19,7 @@ async function listTopups(req, res) {
 
   const { data, error } = await supabaseAdmin
     .from('pending_topups')
-    .select('id, voucher_hash, angpao_link, amount, status, admin_note, created_at, processed_at, user:users!user_id(id, display_name, email)')
+    .select('id, voucher_hash, angpao_link, amount, requested_amount, unique_amount, slip_image_url, status, admin_note, created_at, processed_at, user:users!user_id(id, display_name, email)')
     .eq('status', status)
     .order('created_at', { ascending: true });
 
@@ -71,8 +71,8 @@ async function processTopup(req, res) {
       type: 'topup',
       amount: topupAmount,
       balance_after: newBalance,
-      ref_id: topup.voucher_hash,
-      description: `เติมเงินจากอั่งเปา ฿${topupAmount} (ยืนยันโดย Admin)`
+      ref_id: topup.id,
+      description: `เติมเงินผ่าน PromptPay ฿${topupAmount} (ยืนยันโดย Admin)`
     });
 
     // แจ้ง user
