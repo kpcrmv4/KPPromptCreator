@@ -278,6 +278,9 @@ async function downloadPrompt(promptId) {
 // =============================================
 // Top-up
 // =============================================
+// Current topup session data
+let currentTopupSession = null;
+
 function selectAmount(amount) {
   document.getElementById('topup-amount').value = amount;
   document.querySelectorAll('.amount-btn').forEach(btn => {
@@ -288,13 +291,14 @@ function selectAmount(amount) {
   event.target.classList.remove('border-slate-200', 'text-slate-600');
 }
 
-async function handleTopup(e) {
+// Step 1: Generate QR Code
+async function handleGenerateQR(e) {
   e.preventDefault();
   const form = e.target;
-  const btn = form.querySelector('button[type="submit"]');
+  const btn = document.getElementById('btn-generate-qr');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังดำเนินการ...';
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังสร้าง QR...';
 
   try {
     const amount = parseInt(form.amount.value);
@@ -303,71 +307,123 @@ async function handleTopup(e) {
       return;
     }
 
-    // Read slip image as base64
-    const fileInput = form.slip_image || document.getElementById('slip-image-input');
+    const data = await api('/topup/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ amount })
+    });
+
+    // Save session data
+    currentTopupSession = {
+      topup_id: data.topup_id,
+      requested_amount: data.requested_amount,
+      unique_amount: data.unique_amount,
+      promptpay_number: data.promptpay_number,
+      promptpay_name: data.promptpay_name
+    };
+
+    // Show Step 2 with QR
+    showQRStep(data);
+    loadPendingTopups();
+  } catch (err) {
+    showToast(err.error || 'สร้าง QR ไม่สำเร็จ', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+}
+
+function showQRStep(data) {
+  // Hide step 1, show step 2
+  document.getElementById('topup-step1').style.display = 'none';
+  document.getElementById('topup-step2').style.display = 'block';
+
+  // Set QR image from promptpay.io
+  const qrImg = document.getElementById('qr-code-img');
+  const ppNumber = data.promptpay_number || '';
+  const uniqueAmount = parseFloat(data.unique_amount).toFixed(2);
+  qrImg.src = `https://promptpay.io/${ppNumber}/${uniqueAmount}`;
+  qrImg.alt = `PromptPay QR ฿${uniqueAmount}`;
+
+  // Set amount display
+  document.getElementById('qr-unique-amount').textContent = `฿${uniqueAmount}`;
+  document.getElementById('qr-promptpay-number').textContent = ppNumber;
+  document.getElementById('qr-requested-amount').textContent = `฿${data.requested_amount}`;
+
+  // Show name if available
+  const nameRow = document.getElementById('qr-promptpay-name-row');
+  if (data.promptpay_name) {
+    nameRow.style.display = 'flex';
+    document.getElementById('qr-promptpay-name').textContent = data.promptpay_name;
+  } else {
+    nameRow.style.display = 'none';
+  }
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Step 2: Upload slip
+async function handleUploadSlip(e) {
+  e.preventDefault();
+  if (!currentTopupSession) {
+    showToast('ไม่พบรายการเติมเงิน กรุณาสร้าง QR ใหม่', 'error');
+    resetTopupFlow();
+    return;
+  }
+
+  const btn = document.getElementById('btn-upload-slip');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังอัปโหลด...';
+
+  try {
+    const fileInput = document.getElementById('slip-image-input');
     const file = fileInput?.files[0];
     if (!file) {
-      showToast('กรุณาอัปโหลดสลิปการโอนเงิน', 'error');
+      showToast('กรุณาเลือกรูปสลิปการโอนเงิน', 'error');
       return;
     }
 
     const slip_image_base64 = await readFileAsBase64(file);
 
-    const data = await api('/topup/redeem', {
+    await api('/topup/upload-slip', {
       method: 'POST',
-      body: JSON.stringify({ amount, slip_image_base64 })
+      body: JSON.stringify({
+        topup_id: currentTopupSession.topup_id,
+        slip_image_base64
+      })
     });
 
-    // Show success with PromptPay info
-    showTopupSuccess(data);
-    form.reset();
-    const slipPreview = document.getElementById('slip-preview');
-    if (slipPreview) { slipPreview.style.display = 'none'; slipPreview.innerHTML = ''; }
-    // Reset amount button styles
-    document.querySelectorAll('.amount-btn').forEach(btn => {
-      btn.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
-      btn.classList.add('border-slate-200', 'text-slate-600');
-    });
+    showToast('อัปโหลดสลิปสำเร็จ รอ Admin ตรวจสอบ', 'success');
+    resetTopupFlow();
     loadPendingTopups();
   } catch (err) {
-    showToast(err.error || 'เติมเงินไม่สำเร็จ', 'error');
+    showToast(err.error || 'อัปโหลดสลิปไม่สำเร็จ', 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalText;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 }
 
-function showTopupSuccess(data) {
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.id = 'topup-success-modal';
-  const ppNumber = data.promptpay_number || '-';
-  const ppName = data.promptpay_name || '';
-  modal.innerHTML = `
-    <div class="modal-content" style="max-width:480px; text-align:center;">
-      <div class="modal-header">
-        <h3 style="font-size:1.1rem; font-weight:600;">ส่งคำขอเติมเครดิตสำเร็จ</h3>
-        <button class="modal-close" onclick="closeModal('topup-success-modal')">&times;</button>
-      </div>
-      <div style="padding:0.5rem 0;">
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1.25rem; margin-bottom:1rem;">
-          <p style="font-size:0.8rem; color:#16a34a; margin-bottom:0.25rem; font-weight:500;">จำนวนที่ขอเติม</p>
-          <p style="font-size:2rem; font-weight:700; color:#15803d;">฿${data.requested_amount}</p>
-        </div>
-        <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:0.75rem; padding:1rem; margin-bottom:1rem; text-align:left;">
-          <p style="font-size:0.8rem; color:#4338ca; font-weight:600; margin-bottom:0.5rem;">PromptPay ปลายทาง</p>
-          <p style="font-size:1.1rem; font-weight:700; color:#3730a3;">${escapeHtml(ppNumber)}</p>
-          ${ppName ? `<p style="font-size:0.85rem; color:#6366f1; margin-top:0.25rem;">${escapeHtml(ppName)}</p>` : ''}
-        </div>
-        <p style="font-size:0.85rem; color:#475569; line-height:1.6; text-align:left;">
-          Admin จะตรวจสอบสลิปแล้วเติมเครดิตให้คุณ<br>
-          ปกติใช้เวลาไม่เกิน 30 นาที คุณจะได้รับแจ้งเตือนเมื่อเครดิตเข้า
-        </p>
-      </div>
-      <button onclick="closeModal('topup-success-modal')" style="margin-top:1rem; width:100%; padding:0.75rem; border-radius:0.75rem; background:linear-gradient(135deg,#6366f1,#7c3aed); color:white; border:none; font-weight:600; font-size:0.9rem; cursor:pointer;">เข้าใจแล้ว</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
+function resetTopupFlow() {
+  currentTopupSession = null;
+  document.getElementById('topup-step1').style.display = 'block';
+  document.getElementById('topup-step2').style.display = 'none';
+
+  // Reset form
+  const amountInput = document.getElementById('topup-amount');
+  if (amountInput) amountInput.value = '';
+  document.querySelectorAll('.amount-btn').forEach(btn => {
+    btn.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+    btn.classList.add('border-slate-200', 'text-slate-600');
+  });
+
+  // Reset slip
+  const slipInput = document.getElementById('slip-image-input');
+  if (slipInput) slipInput.value = '';
+  const slipPreview = document.getElementById('slip-preview');
+  if (slipPreview) { slipPreview.style.display = 'none'; slipPreview.innerHTML = ''; }
 }
 
 async function loadPendingTopups() {
