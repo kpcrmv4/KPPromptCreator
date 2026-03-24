@@ -369,7 +369,7 @@ async function handleTopup(e) {
   try {
     const data = await api('/topup/redeem', {
       method: 'POST',
-      body: JSON.stringify({ angpao_link: form.angpao_link.value })
+      body: JSON.stringify({ amount: parseInt(form.amount.value), slip_image_base64: form._slip_base64 || '' })
     });
     showToast(data.message, 'success');
     currentUser.credit_balance = data.new_balance;
@@ -747,19 +747,19 @@ async function markAllNotificationsRead() {
   } catch {}
 }
 
-function initPayoutTrueMoney() {
-  const warningBanner = document.getElementById('truemoney-warning');
-  const infoBanner = document.getElementById('truemoney-info');
+function initPayoutPromptPay() {
+  const warningBanner = document.getElementById('promptpay-warning');
+  const infoBanner = document.getElementById('promptpay-info');
   const phoneInput = document.getElementById('payout-phone');
-  const phoneDisplay = document.getElementById('truemoney-display');
+  const phoneDisplay = document.getElementById('promptpay-display');
   if (!warningBanner || !infoBanner || !phoneInput) return;
 
-  const phone = currentUser?.truemoney_phone;
-  if (phone) {
+  const ppNumber = currentUser?.promptpay_number;
+  if (ppNumber) {
     infoBanner.style.display = '';
     warningBanner.style.display = 'none';
-    if (phoneDisplay) phoneDisplay.textContent = phone;
-    phoneInput.value = phone;
+    if (phoneDisplay) phoneDisplay.textContent = ppNumber + (currentUser?.promptpay_name ? ` (${currentUser.promptpay_name})` : '');
+    phoneInput.value = ppNumber;
   } else {
     warningBanner.style.display = '';
     infoBanner.style.display = 'none';
@@ -857,7 +857,7 @@ async function loadAdminPayouts() {
           </div>
         </div>
         <div style="padding:0.6rem 0.75rem;background:#f0edff;border-radius:8px;font-size:0.88rem;margin-bottom:0.75rem;">
-          <i class="bi bi-phone" style="color:#6c5ce7;"></i> <strong>TrueMoney:</strong> ${escapeHtml(p.payment_account)}
+          <i class="bi bi-phone" style="color:#6c5ce7;"></i> <strong>PromptPay:</strong> ${escapeHtml(p.payment_account)}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
           <div class="form-group" style="margin:0;">
@@ -1236,14 +1236,14 @@ async function loadAdminUsers() {
     container.innerHTML = users.length ? `
       <div class="table-wrapper">
         <table class="data-table">
-          <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>เครดิต</th><th><i class="bi bi-phone"></i> TrueMoney</th><th>สถานะ</th><th>วันสมัคร</th><th>จัดการ</th></tr></thead>
+          <thead><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>เครดิต</th><th><i class="bi bi-phone"></i> PromptPay</th><th>สถานะ</th><th>วันสมัคร</th><th>จัดการ</th></tr></thead>
           <tbody>${users.map(u => `
             <tr>
               <td>${escapeHtml(u.display_name)}</td>
               <td>${escapeHtml(u.email)}</td>
               <td><span class="badge badge-${u.role === 'admin' ? 'danger' : u.role === 'seller' ? 'warning' : 'success'}">${u.role}</span></td>
               <td>฿${parseFloat(u.credit_balance).toFixed(2)}</td>
-              <td>${u.truemoney_phone ? `<span style="color:#6c5ce7;font-weight:500;">${escapeHtml(u.truemoney_phone)}</span>` : '<span class="text-muted">ยังไม่ผูก</span>'}</td>
+              <td>${u.promptpay_number ? `<span style="color:#6c5ce7;font-weight:500;">${escapeHtml(u.promptpay_number)}</span>` : '<span class="text-muted">ยังไม่ผูก</span>'}</td>
               <td><span class="badge badge-${u.status === 'active' ? 'success' : 'danger'}">${u.status}</span></td>
               <td style="font-size:0.8rem;color:#64748b;">${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
               <td>
@@ -1322,8 +1322,8 @@ async function openUserDetail(userId) {
           <div style="font-weight:500;font-size:0.9rem;">${escapeHtml(u.email)}</div>
         </div>
         <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
-          <div style="font-size:0.78rem;color:#64748b;"><i class="bi bi-phone"></i> TrueMoney</div>
-          <div style="font-weight:600;color:${u.truemoney_phone ? '#6c5ce7' : '#94a3b8'};">${u.truemoney_phone || 'ยังไม่ผูก'}</div>
+          <div style="font-size:0.78rem;color:#64748b;"><i class="bi bi-phone"></i> PromptPay</div>
+          <div style="font-weight:600;color:${u.promptpay_number ? '#6c5ce7' : '#94a3b8'};">${u.promptpay_number ? `${u.promptpay_number}${u.promptpay_name ? ' (' + escapeHtml(u.promptpay_name) + ')' : ''}` : 'ยังไม่ผูก'}</div>
         </div>
         <div style="padding:0.75rem;background:#f8fafc;border-radius:8px;">
           <div style="font-size:0.78rem;color:#64748b;">เครดิตคงเหลือ</div>
@@ -1379,8 +1379,12 @@ async function loadAdminSettings() {
           <input type="number" name="min_payout_amount" value="${settings.min_payout_amount || 100}" min="0" step="1">
         </div>
         <div class="form-group">
-          <label>เบอร์ TrueMoney รับอั่งเปา</label>
-          <input type="text" name="truemoney_phone" value="${settings.truemoney_phone || ''}" placeholder="09xxxxxxxx">
+          <label>หมายเลข PromptPay รับเงิน</label>
+          <input type="text" name="promptpay_number" value="${settings.promptpay_number || ''}" placeholder="เบอร์โทร 10 หลัก หรือเลขบัตร 13 หลัก">
+        </div>
+        <div class="form-group">
+          <label>ชื่อบัญชี PromptPay</label>
+          <input type="text" name="promptpay_name" value="${settings.promptpay_name || ''}" placeholder="ชื่อ-นามสกุล">
         </div>
         <div class="form-group">
           <label>ชื่อเว็บไซต์</label>
@@ -1404,7 +1408,8 @@ async function handleSaveSettings(e) {
         settings: {
           commission_rate: form.commission_rate.value,
           min_payout_amount: form.min_payout_amount.value,
-          truemoney_phone: form.truemoney_phone.value,
+          promptpay_number: form.promptpay_number.value,
+          promptpay_name: form.promptpay_name.value,
           site_name: form.site_name.value
         }
       })
@@ -1552,9 +1557,13 @@ async function loadAccountForm() {
         <input type="text" name="display_name" value="${escapeHtml(u.display_name)}" required>
       </div>
       <div class="form-group">
-        <label><i class="bi bi-phone"></i> เบอร์ TrueMoney Wallet</label>
-        <input type="tel" name="truemoney_phone" value="${escapeHtml(u.truemoney_phone || '')}" placeholder="09xxxxxxxx" pattern="0[0-9]{8,9}">
+        <label><i class="bi bi-phone"></i> หมายเลขพร้อมเพย์</label>
+        <input type="text" name="promptpay_number" value="${escapeHtml(u.promptpay_number || '')}" placeholder="เบอร์โทร 10 หลัก หรือเลขบัตร 13 หลัก">
         <small style="color:#64748b;">ใช้สำหรับรับเงินจากการขาย Prompt (ต้องตั้งก่อนถอนเงิน)</small>
+      </div>
+      <div class="form-group">
+        <label>ชื่อบัญชีพร้อมเพย์</label>
+        <input type="text" name="promptpay_name" value="${escapeHtml(u.promptpay_name || '')}" placeholder="ชื่อ-นามสกุล ตามบัญชี">
       </div>
       <div class="form-group">
         <label>สิทธิ์</label>
@@ -1577,11 +1586,13 @@ async function handleUpdateProfile(e) {
       method: 'PUT',
       body: JSON.stringify({
         display_name: form.display_name.value,
-        truemoney_phone: form.truemoney_phone?.value || ''
+        promptpay_number: form.promptpay_number?.value || '',
+        promptpay_name: form.promptpay_name?.value || ''
       })
     });
     currentUser.display_name = user.display_name;
-    currentUser.truemoney_phone = user.truemoney_phone;
+    currentUser.promptpay_number = user.promptpay_number;
+    currentUser.promptpay_name = user.promptpay_name;
     updateAuthUI();
     showToast('บันทึกสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
@@ -1695,7 +1706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
     setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
     setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
-    initPayoutTrueMoney();
+    initPayoutPromptPay();
     loadSellerDashboard();
     loadSellerIncomeHistory();
     loadSellerPayoutHistory();

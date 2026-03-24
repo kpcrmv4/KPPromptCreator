@@ -557,7 +557,8 @@ async function loadAdminSettings() {
     container.innerHTML = `
       <form onsubmit="handleSaveSettings(event)" class="space-y-4 max-w-md">
         <div><label class="block text-sm font-medium text-slate-700 mb-1">ค่าคอมมิชชั่น (%)</label><input type="number" name="commission_rate" value="${settings.commission_rate || 10}" min="0" max="100" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
-        <div><label class="block text-sm font-medium text-slate-700 mb-1">เบอร์ TrueMoney รับอั่งเปา</label><input type="text" name="truemoney_phone" value="${settings.truemoney_phone || ''}" placeholder="09xxxxxxxx" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">หมายเลข PromptPay รับเงิน</label><input type="text" name="promptpay_number" value="${settings.promptpay_number || ''}" placeholder="เบอร์โทร 10 หลัก หรือเลขบัตร 13 หลัก" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
+        <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อบัญชี PromptPay</label><input type="text" name="promptpay_name" value="${settings.promptpay_name || ''}" placeholder="ชื่อ-นามสกุล" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
         <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อเว็บไซต์</label><input type="text" name="site_name" value="${settings.site_name || 'KP Prompt Creator'}" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
         <button type="submit" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors">บันทึกการตั้งค่า</button>
       </form>
@@ -571,28 +572,28 @@ async function handleSaveSettings(e) {
   try {
     await api('/admin/settings', {
       method: 'PUT',
-      body: JSON.stringify({ settings: { commission_rate: form.commission_rate.value, truemoney_phone: form.truemoney_phone.value, site_name: form.site_name.value } })
+      body: JSON.stringify({ settings: { commission_rate: form.commission_rate.value, promptpay_number: form.promptpay_number.value, promptpay_name: form.promptpay_name.value, site_name: form.site_name.value } })
     });
     showToast('บันทึกสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
 }
 
 // =============================================
-// Seller Payout (TrueMoney)
+// Seller Payout (PromptPay)
 // =============================================
-function initPayoutTrueMoney() {
-  const warningBanner = document.getElementById('truemoney-warning');
-  const infoBanner = document.getElementById('truemoney-info');
+function initPayoutPromptPay() {
+  const warningBanner = document.getElementById('promptpay-warning');
+  const infoBanner = document.getElementById('promptpay-info');
   const phoneInput = document.getElementById('payout-phone');
-  const phoneDisplay = document.getElementById('truemoney-display');
+  const phoneDisplay = document.getElementById('promptpay-display');
   if (!warningBanner || !infoBanner || !phoneInput) return;
 
-  const phone = currentUser?.truemoney_phone;
-  if (phone) {
+  const ppNumber = currentUser?.promptpay_number;
+  if (ppNumber) {
     infoBanner.style.display = '';
     warningBanner.style.display = 'none';
-    if (phoneDisplay) phoneDisplay.textContent = phone;
-    phoneInput.value = phone;
+    if (phoneDisplay) phoneDisplay.textContent = ppNumber + (currentUser?.promptpay_name ? ` (${currentUser.promptpay_name})` : '');
+    phoneInput.value = ppNumber;
   } else {
     warningBanner.style.display = '';
     infoBanner.style.display = 'none';
@@ -691,7 +692,7 @@ async function loadAdminPayouts() {
           </div>
         </div>
         <div class="px-3 py-2 bg-indigo-50 rounded-lg text-sm mb-3">
-          <strong>TrueMoney:</strong> ${escapeHtml(p.payment_account)}
+          <strong>PromptPay:</strong> ${escapeHtml(p.payment_account)}
         </div>
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div>
@@ -793,7 +794,7 @@ async function openUserDetail(userId) {
       <div class="grid grid-cols-2 gap-3 mb-4">
         <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">ชื่อ</div><div class="font-semibold text-slate-800">${escapeHtml(u.display_name)}</div></div>
         <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">อีเมล</div><div class="text-sm font-medium text-slate-700">${escapeHtml(u.email)}</div></div>
-        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">TrueMoney</div><div class="font-semibold ${u.truemoney_phone ? 'text-indigo-600' : 'text-slate-400'}">${u.truemoney_phone || 'ยังไม่ผูก'}</div></div>
+        <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">PromptPay</div><div class="font-semibold ${u.promptpay_number ? 'text-indigo-600' : 'text-slate-400'}">${u.promptpay_number ? `${u.promptpay_number}${u.promptpay_name ? ' (' + escapeHtml(u.promptpay_name) + ')' : ''}` : 'ยังไม่ผูก'}</div></div>
         <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">เครดิต</div><div class="font-bold text-emerald-600">฿${parseFloat(u.credit_balance).toFixed(2)}</div></div>
         <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">สิทธิ์ / สถานะ</div><div class="flex gap-1"><span class="text-xs font-medium px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'}">${u.role}</span><span class="text-xs font-medium px-2 py-0.5 rounded-full ${u.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${u.status}</span></div></div>
         <div class="p-3 bg-slate-50 rounded-lg"><div class="text-xs text-slate-500">วันที่สมัคร</div><div class="text-sm">${new Date(u.created_at).toLocaleString('th-TH')}</div></div>
@@ -842,8 +843,10 @@ async function loadAdminTopups() {
             <div class="text-xs text-slate-400 mt-1">${new Date(t.created_at).toLocaleString('th-TH')}</div>
           </div>
         </div>
-        <div class="px-3 py-2 bg-indigo-50 rounded-lg text-sm mb-3 break-all">
-          <strong>ลิงก์:</strong> <a href="${escapeHtml(t.angpao_link)}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">${escapeHtml(t.angpao_link)}</a>
+        <div class="px-3 py-2 bg-indigo-50 rounded-lg text-sm mb-3">
+          <strong>ยอดที่ขอเติม:</strong> ฿${t.requested_amount || '?'}
+          ${t.unique_amount ? ` <span class="text-slate-500">(ยอดโอน ฿${parseFloat(t.unique_amount).toFixed(2)})</span>` : ''}
+          ${t.slip_image_url ? `<br><a href="${escapeHtml(t.slip_image_url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-1 text-indigo-600 hover:underline"><i data-lucide="image" class="w-3.5 h-3.5"></i> ดูสลิป</a>` : '<br><span class="text-slate-400">ไม่มีรูปสลิป</span>'}
         </div>
         <div class="grid grid-cols-2 gap-3 mb-3">
           <div>

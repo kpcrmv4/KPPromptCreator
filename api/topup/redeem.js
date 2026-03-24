@@ -10,87 +10,63 @@ module.exports = async function handler(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { angpao_link } = req.body;
-  if (!angpao_link) return res.status(400).json({ error: 'กรุณาวางลิงก์อั่งเปา' });
+  const { amount, slip_image_base64 } = req.body;
 
-  // 1. Parse voucher hash from URL
-  const hash = parseVoucherHash(angpao_link);
-  if (!hash) return res.status(400).json({ error: 'ลิงก์อั่งเปาไม่ถูกต้อง' });
+  // Validate amount
+  const requestedAmount = parseInt(amount);
+  if (!requestedAmount || requestedAmount < 1) {
+    return res.status(400).json({ error: 'กรุณาระบุจำนวนเงินที่ต้องการเติม' });
+  }
+  if (requestedAmount > 10000) {
+    return res.status(400).json({ error: 'เติมเครดิตได้สูงสุด ฿10,000 ต่อครั้ง' });
+  }
 
-  // 2. เช็ค hash ซ้ำ
-  const { data: usedTx } = await supabaseAdmin
-    .from('transactions')
-    .select('id')
-    .eq('ref_id', hash)
-    .maybeSingle();
+  // Validate slip image
+  if (!slip_image_base64) {
+    return res.status(400).json({ error: 'กรุณาอัปโหลดรูปสลิปการโอนเงิน' });
+  }
 
-  if (usedTx) return res.status(409).json({ error: 'ซองอั่งเปานี้ถูกใช้แล้วในระบบ' });
+  // Generate unique amount with satang (for matching)
+  const uniqueAmount = await generateUniqueAmount(requestedAmount);
 
-  const { data: pendingTx } = await supabaseAdmin
-    .from('pending_topups')
-    .select('id')
-    .eq('voucher_hash', hash)
-    .eq('status', 'pending')
-    .maybeSingle();
+  // Upload slip image to Supabase Storage
+  let slipUrl = null;
+  try {
+    const matches = slip_image_base64.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!matches) return res.status(400).json({ error: 'รูปภาพไม่ถูกต้อง' });
 
-  if (pendingTx) return res.status(409).json({ error: 'ซองอั่งเปานี้อยู่ระหว่างรอยืนยัน' });
+    const contentType = matches[1];
+    const ext = contentType.split('/')[1] || 'jpg';
+    const buffer = Buffer.from(matches[2], 'base64');
 
-  // 3. ดึงเบอร์โทรระบบ
-  const ownerPhone = process.env.TRUEMONEY_PHONE;
-  if (!ownerPhone) return res.status(500).json({ error: 'ระบบยังไม่ได้ตั้งค่าเบอร์รับเงิน' });
-
-  // 4. ลอง Auto-Redeem ผ่าน Supabase Edge Function ก่อน
-  const autoResult = await tryAutoRedeem(hash, ownerPhone);
-
-  if (autoResult.success) {
-    // Auto สำเร็จ — เติมเครดิตทันที
-    const amountBaht = autoResult.amount;
-    const currentBalance = parseFloat(user.credit_balance);
-    const newBalance = currentBalance + amountBaht;
-
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({ credit_balance: newBalance })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('CRITICAL: Redeem succeeded but credit update failed!', { hash, amount: amountBaht, userId: user.id });
-      return res.status(500).json({ error: `เกิดข้อผิดพลาดในการเติมเครดิต กรุณาแจ้ง Admin (hash: ${hash})` });
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'รูปภาพต้องมีขนาดไม่เกิน 5MB' });
     }
 
-    // บันทึก transaction
-    await supabaseAdmin.from('transactions').insert({
-      user_id: user.id,
-      type: 'topup',
-      amount: amountBaht,
-      balance_after: newBalance,
-      ref_id: hash,
-      description: `เติมเงินจากอั่งเปา ฿${amountBaht}`
-    });
+    const filename = `topup-slips/${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('topup-slips')
+      .upload(filename, buffer, { contentType, upsert: false });
 
-    return res.json({
-      success: true,
-      pending: false,
-      message: `เติมเครดิต ฿${amountBaht} สำเร็จ!`,
-      amount: amountBaht,
-      new_balance: newBalance
-    });
+    if (uploadError) {
+      console.error('Slip upload error:', uploadError);
+      // Don't block — continue without URL
+    } else {
+      const { data: urlData } = supabaseAdmin.storage.from('topup-slips').getPublicUrl(filename);
+      slipUrl = urlData?.publicUrl || null;
+    }
+  } catch (err) {
+    console.error('Slip upload error:', err.message);
   }
 
-  // 5. Auto ไม่สำเร็จ — เช็คว่าเป็น error ที่ต้อง reject ทันทีหรือเปล่า
-  if (autoResult.reject) {
-    return res.status(autoResult.statusCode || 400).json({ error: autoResult.error });
-  }
-
-  // 6. Cloudflare บล็อก หรือ network error → Fallback เป็น Manual
-  console.log('Auto-redeem failed, falling back to manual:', autoResult.error);
-
+  // Create pending topup record
   const { data: topup, error: insertError } = await supabaseAdmin
     .from('pending_topups')
     .insert({
       user_id: user.id,
-      voucher_hash: hash,
-      angpao_link: angpao_link,
+      requested_amount: requestedAmount,
+      unique_amount: uniqueAmount,
+      slip_image_url: slipUrl,
       status: 'pending'
     })
     .select()
@@ -101,116 +77,67 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'ไม่สามารถสร้างรายการเติมเงินได้' });
   }
 
+  // Notify all admins
   await notifyAdmins({
     type: 'topup_request',
     title: 'มีคำขอเติมเครดิตใหม่',
-    message: `${user.display_name} ขอเติมเครดิตด้วยอั่งเปา`,
+    message: `${user.display_name} ขอเติมเครดิต ฿${requestedAmount} (ยอดโอน ฿${uniqueAmount.toFixed(2)})`,
     ref_id: topup.id,
     ref_type: 'topup'
   });
 
-  const formattedPhone = ownerPhone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  // Get PromptPay info from settings
+  let promptpayNumber = '';
+  let promptpayName = '';
+  try {
+    const { data: settings } = await supabaseAdmin.from('settings').select('key, value').in('key', ['promptpay_number', 'promptpay_name']);
+    if (settings) {
+      settings.forEach(s => {
+        if (s.key === 'promptpay_number') promptpayNumber = s.value;
+        if (s.key === 'promptpay_name') promptpayName = s.value;
+      });
+    }
+  } catch {}
+
   res.json({
     success: true,
-    pending: true,
     topup_id: topup.id,
-    phone: formattedPhone,
-    message: `กรุณาส่งอั่งเปาไปที่เบอร์ ${formattedPhone} ผ่านแอป TrueMoney Wallet แล้วรอ Admin ยืนยัน`
+    requested_amount: requestedAmount,
+    unique_amount: uniqueAmount,
+    promptpay_number: promptpayNumber,
+    promptpay_name: promptpayName,
+    message: `ส่งคำขอเติมเครดิต ฿${requestedAmount} สำเร็จ รอ Admin ตรวจสลิป`
   });
 };
 
 /**
- * ลอง auto-redeem ผ่าน Supabase Edge Function
- * Returns: { success, amount } or { success: false, error, reject? }
+ * Generate unique amount with random satang to avoid collision
+ * Checks existing pending topups to avoid duplicate amounts within 30 minutes
  */
-async function tryAutoRedeem(hash, mobile) {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+async function generateUniqueAmount(baseAmount) {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    return { success: false, error: 'Missing Supabase config' };
-  }
+  // Get existing pending amounts to avoid collision
+  const { data: existing } = await supabaseAdmin
+    .from('pending_topups')
+    .select('unique_amount')
+    .eq('status', 'pending')
+    .gte('created_at', thirtyMinutesAgo);
 
-  try {
-    const edgeUrl = `${SUPABASE_URL}/functions/v1/truemoney-redeem`;
-    const response = await fetch(edgeUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': SUPABASE_SERVICE_KEY
-      },
-      body: JSON.stringify({ voucher_hash: hash, mobile }),
-      signal: AbortSignal.timeout(20000) // 20s timeout
-    });
+  const usedAmounts = new Set((existing || []).map(t => parseFloat(t.unique_amount).toFixed(2)));
 
-    const result = await response.json();
+  // Try to generate a unique amount
+  for (let i = 0; i < 99; i++) {
+    const satang = Math.floor(Math.random() * 99) + 1; // 1-99
+    const amount = baseAmount + satang / 100;
+    const amountStr = amount.toFixed(2);
 
-    // Cloudflare blocked
-    if (result.error === 'cloudflare_blocked') {
-      return { success: false, error: 'Cloudflare blocked' };
-    }
-
-    // Non-JSON / bad response
-    if (result.error === 'invalid_response') {
-      return { success: false, error: 'Invalid TrueMoney response' };
-    }
-
-    // Edge function internal error
-    if (!result.success && !result.data) {
-      return { success: false, error: result.error || 'Edge function error' };
-    }
-
-    // Parse TrueMoney response
-    const tmData = result.data;
-    if (!tmData || !tmData.status) {
-      return { success: false, error: 'Unexpected TrueMoney response format' };
-    }
-
-    const code = tmData.status.code;
-
-    if (code === 'SUCCESS') {
-      const amount = parseFloat(tmData.data?.voucher?.amount_baht || tmData.data?.amount_baht || 0);
-      if (amount <= 0) {
-        return { success: false, error: 'ไม่สามารถอ่านจำนวนเงินได้', reject: true, statusCode: 500 };
-      }
-      return { success: true, amount };
-    }
-
-    // Known TrueMoney errors — reject immediately (no manual fallback)
-    const errorMessages = {
-      'VOUCHER_NOT_FOUND': 'ไม่พบซองอั่งเปานี้',
-      'VOUCHER_EXPIRED': 'ซองอั่งเปาหมดอายุแล้ว',
-      'VOUCHER_REDEEMED': 'ซองอั่งเปานี้ถูกใช้ไปแล้ว',
-      'VOUCHER_OUT_OF_STOCK': 'ซองอั่งเปานี้ถูกใช้หมดแล้ว',
-      'CANNOT_GET_OWN_VOUCHER': 'ไม่สามารถรับอั่งเปาของตัวเองได้',
-      'INVALID_INPUT': 'ข้อมูลไม่ถูกต้อง'
-    };
-
-    if (errorMessages[code]) {
-      return { success: false, error: errorMessages[code], reject: true, statusCode: 400 };
-    }
-
-    // Unknown TrueMoney error
-    return { success: false, error: `TrueMoney error: ${code}`, reject: true, statusCode: 400 };
-
-  } catch (err) {
-    console.error('Auto-redeem error:', err.message);
-    // Network/timeout error → fallback to manual
-    return { success: false, error: err.message };
-  }
-}
-
-function parseVoucherHash(link) {
-  if (!link) return null;
-  try {
-    const url = new URL(link);
-    if (url.hostname === 'gift.truemoney.com') {
-      return url.searchParams.get('v') || null;
-    }
-  } catch (e) {
-    if (/^[a-zA-Z0-9]{10,}$/.test(link.trim())) {
-      return link.trim();
+    if (!usedAmounts.has(amountStr)) {
+      return amount;
     }
   }
-  return null;
+
+  // Fallback: use timestamp-based satang
+  const fallbackSatang = (Date.now() % 99) + 1;
+  return baseAmount + fallbackSatang / 100;
 }

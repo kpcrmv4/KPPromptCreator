@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>เติมเครดิต — KP Prompt Creator</title>
-  <meta name="description" content="เติมเครดิตด้วย TrueMoney อั่งเปา เพื่อซื้อ AI Prompt บน KP Prompt Creator Marketplace">
+  <meta name="description" content="เติมเครดิตผ่าน PromptPay เพื่อซื้อ AI Prompt บน KP Prompt Creator Marketplace">
   <meta name="robots" content="noindex">
   <link rel="canonical" href="https://kppromptcreator.com/topup.html">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -180,7 +180,7 @@
     <!-- Page Header -->
     <div>
       <h1 class="text-2xl font-bold text-slate-800">เติมเครดิต</h1>
-      <p class="text-slate-500 text-sm mt-1">เติมเครดิตด้วย TrueMoney อั่งเปา</p>
+      <p class="text-slate-500 text-sm mt-1">เติมเครดิตผ่าน PromptPay</p>
     </div>
 
     <!-- Balance Card -->
@@ -209,31 +209,55 @@
           <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-600"></i>
         </div>
         <div>
-          <h2 class="text-base font-semibold text-slate-800">เติมเครดิตด้วยอั่งเปา</h2>
-          <p class="text-xs text-slate-400 mt-0.5">TrueMoney Wallet Gift Voucher</p>
+          <h2 class="text-base font-semibold text-slate-800">เติมเครดิตผ่าน PromptPay</h2>
+          <p class="text-xs text-slate-400 mt-0.5">โอนเงินแล้วอัปโหลดสลิป</p>
         </div>
       </div>
 
       <form onsubmit="handleTopup(event)" class="space-y-4">
+        <!-- Amount selection -->
         <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-slate-700">
-            ลิงก์อั่งเปา TrueMoney
-          </label>
-          <div class="relative">
+          <label class="block text-sm font-medium text-slate-700">จำนวนเงินที่ต้องการเติม (บาท)</label>
+          <div class="grid grid-cols-4 gap-2" id="amount-presets">
+            <button type="button" onclick="selectAmount(50)" class="amount-btn py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">฿50</button>
+            <button type="button" onclick="selectAmount(100)" class="amount-btn py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">฿100</button>
+            <button type="button" onclick="selectAmount(200)" class="amount-btn py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">฿200</button>
+            <button type="button" onclick="selectAmount(500)" class="amount-btn py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">฿500</button>
+          </div>
+          <div class="relative mt-2">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <i data-lucide="link" class="w-4 h-4 text-slate-400"></i>
+              <span class="text-slate-400 text-sm font-medium">฿</span>
             </div>
             <input
-              type="text"
-              name="angpao_link"
+              type="number"
+              name="amount"
+              id="topup-amount"
               required
-              placeholder="วางลิงก์อั่งเปาที่นี่..."
-              class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              min="1"
+              max="10000"
+              placeholder="หรือระบุจำนวนเอง..."
+              class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
             >
           </div>
+        </div>
+
+        <!-- Slip upload -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-slate-700">อัปโหลดสลิปการโอนเงิน</label>
+          <div class="relative">
+            <input
+              type="file"
+              name="slip_image"
+              id="slip-image-input"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              class="w-full text-sm text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer border border-slate-200 rounded-xl"
+            >
+          </div>
+          <div id="slip-preview" style="display:none;" class="mt-2"></div>
           <p class="text-xs text-slate-400 flex items-center gap-1">
             <i data-lucide="info" class="w-3 h-3"></i>
-            รูปแบบ: https://gift.truemoney.com/campaign/?v=xxxxxxxxxx
+            รูปภาพสลิป JPG, PNG, WebP (ไม่เกิน 5MB)
           </p>
         </div>
 
@@ -242,8 +266,8 @@
           class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
           style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);"
         >
-          <i data-lucide="zap" class="w-4 h-4"></i>
-          เติมเครดิต
+          <i data-lucide="send" class="w-4 h-4"></i>
+          ส่งคำขอเติมเครดิต
         </button>
       </form>
     </div>
@@ -264,29 +288,29 @@
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">ได้รับลิงก์อั่งเปา TrueMoney</p>
-            <p class="text-xs text-slate-400 mt-0.5">เปิดแอป TrueMoney Wallet แล้วสร้างซองอั่งเปา</p>
+            <p class="text-sm font-medium text-slate-700">เลือกจำนวนเงินที่ต้องการเติม</p>
+            <p class="text-xs text-slate-400 mt-0.5">เลือกจากตัวเลือกด้านบน หรือพิมพ์จำนวนเอง</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">วางลิงก์ในช่องด้านบน</p>
-            <p class="text-xs text-slate-400 mt-0.5">คัดลอกลิงก์จากแอปแล้ววางในช่องด้านบน</p>
+            <p class="text-sm font-medium text-slate-700">โอนเงินผ่าน PromptPay</p>
+            <p class="text-xs text-slate-400 mt-0.5">สแกน QR หรือโอนไปยังหมายเลข PromptPay ของระบบ</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">ส่งอั่งเปาไปที่เบอร์ระบบ</p>
-            <p class="text-xs text-slate-400 mt-0.5">ระบบจะแสดงเบอร์รับเงิน — ส่งอั่งเปาผ่านแอป TrueMoney Wallet</p>
+            <p class="text-sm font-medium text-slate-700">อัปโหลดสลิปการโอนเงิน</p>
+            <p class="text-xs text-slate-400 mt-0.5">ถ่ายรูปหรือ screenshot สลิป แล้วอัปโหลดในแบบฟอร์ม</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">รอ Admin ยืนยัน</p>
-            <p class="text-xs text-slate-400 mt-0.5">Admin ตรวจสอบแล้วเครดิตจะเข้าอัตโนมัติ (ปกติไม่เกิน 30 นาที)</p>
+            <p class="text-sm font-medium text-slate-700">รอ Admin ตรวจสลิปและยืนยัน</p>
+            <p class="text-xs text-slate-400 mt-0.5">Admin ตรวจสอบสลิปแล้วเครดิตจะเข้าอัตโนมัติ (ปกติไม่เกิน 30 นาที)</p>
           </div>
         </div>
       </div>

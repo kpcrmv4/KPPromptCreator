@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
 
   const { data, error } = await supabaseAdmin
     .from('pending_topups')
-    .select('id, voucher_hash, status, amount, created_at, processed_at')
+    .select('id, status, requested_amount, unique_amount, amount, slip_image_url, created_at, processed_at')
     .eq('user_id', user.id)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });

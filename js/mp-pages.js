@@ -278,6 +278,16 @@ async function downloadPrompt(promptId) {
 // =============================================
 // Top-up
 // =============================================
+function selectAmount(amount) {
+  document.getElementById('topup-amount').value = amount;
+  document.querySelectorAll('.amount-btn').forEach(btn => {
+    btn.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+    btn.classList.add('border-slate-200', 'text-slate-600');
+  });
+  event.target.classList.add('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+  event.target.classList.remove('border-slate-200', 'text-slate-600');
+}
+
 async function handleTopup(e) {
   e.preventDefault();
   const form = e.target;
@@ -287,24 +297,38 @@ async function handleTopup(e) {
   btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังดำเนินการ...';
 
   try {
+    const amount = parseInt(form.amount.value);
+    if (!amount || amount < 1) {
+      showToast('กรุณาระบุจำนวนเงิน', 'error');
+      return;
+    }
+
+    // Read slip image as base64
+    const fileInput = form.slip_image || document.getElementById('slip-image-input');
+    const file = fileInput?.files[0];
+    if (!file) {
+      showToast('กรุณาอัปโหลดสลิปการโอนเงิน', 'error');
+      return;
+    }
+
+    const slip_image_base64 = await readFileAsBase64(file);
+
     const data = await api('/topup/redeem', {
       method: 'POST',
-      body: JSON.stringify({ angpao_link: form.angpao_link.value })
+      body: JSON.stringify({ amount, slip_image_base64 })
     });
 
-    if (data.pending) {
-      // Cloudflare บล็อก auto → Manual fallback
-      showTopupInstructions(data.phone, data.angpao_link || form.angpao_link.value);
-      form.reset();
-      loadPendingTopups();
-    } else {
-      // Auto-redeem สำเร็จ!
-      showToast(`เติมเครดิต ฿${data.amount} สำเร็จ!`, 'success');
-      currentUser.credit_balance = data.new_balance;
-      updateAuthUI();
-      form.reset();
-      loadCreditHistory();
-    }
+    // Show success with PromptPay info
+    showTopupSuccess(data);
+    form.reset();
+    const slipPreview = document.getElementById('slip-preview');
+    if (slipPreview) { slipPreview.style.display = 'none'; slipPreview.innerHTML = ''; }
+    // Reset amount button styles
+    document.querySelectorAll('.amount-btn').forEach(btn => {
+      btn.classList.remove('border-indigo-500', 'bg-indigo-50', 'text-indigo-700');
+      btn.classList.add('border-slate-200', 'text-slate-600');
+    });
+    loadPendingTopups();
   } catch (err) {
     showToast(err.error || 'เติมเงินไม่สำเร็จ', 'error');
   } finally {
@@ -313,30 +337,34 @@ async function handleTopup(e) {
   }
 }
 
-function showTopupInstructions(phone, link) {
+function showTopupSuccess(data) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
-  modal.id = 'topup-instructions-modal';
+  modal.id = 'topup-success-modal';
+  const ppNumber = data.promptpay_number || '-';
+  const ppName = data.promptpay_name || '';
   modal.innerHTML = `
     <div class="modal-content" style="max-width:480px; text-align:center;">
       <div class="modal-header">
-        <h3 style="font-size:1.1rem; font-weight:600;">📋 ขั้นตอนเติมเครดิต</h3>
-        <button class="modal-close" onclick="closeModal('topup-instructions-modal')">&times;</button>
+        <h3 style="font-size:1.1rem; font-weight:600;">ส่งคำขอเติมเครดิตสำเร็จ</h3>
+        <button class="modal-close" onclick="closeModal('topup-success-modal')">&times;</button>
       </div>
       <div style="padding:0.5rem 0;">
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1.25rem; margin-bottom:1rem;">
-          <p style="font-size:0.8rem; color:#16a34a; margin-bottom:0.5rem; font-weight:500;">ส่งอั่งเปาไปที่เบอร์นี้</p>
-          <p style="font-size:1.5rem; font-weight:700; color:#15803d; letter-spacing:0.05em;">${escapeHtml(phone)}</p>
+          <p style="font-size:0.8rem; color:#16a34a; margin-bottom:0.25rem; font-weight:500;">จำนวนที่ขอเติม</p>
+          <p style="font-size:2rem; font-weight:700; color:#15803d;">฿${data.requested_amount}</p>
         </div>
-        <div style="text-align:left; background:#f8fafc; border-radius:0.75rem; padding:1rem; font-size:0.85rem; color:#475569; line-height:1.8;">
-          <p><strong>1.</strong> เปิดแอป TrueMoney Wallet</p>
-          <p><strong>2.</strong> ไปที่ อั่งเปา → ส่งอั่งเปา</p>
-          <p><strong>3.</strong> วางลิงก์อั่งเปา แล้วส่งไปที่เบอร์ด้านบน</p>
-          <p><strong>4.</strong> รอ Admin ยืนยัน (ปกติไม่เกิน 30 นาที)</p>
+        <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:0.75rem; padding:1rem; margin-bottom:1rem; text-align:left;">
+          <p style="font-size:0.8rem; color:#4338ca; font-weight:600; margin-bottom:0.5rem;">PromptPay ปลายทาง</p>
+          <p style="font-size:1.1rem; font-weight:700; color:#3730a3;">${escapeHtml(ppNumber)}</p>
+          ${ppName ? `<p style="font-size:0.85rem; color:#6366f1; margin-top:0.25rem;">${escapeHtml(ppName)}</p>` : ''}
         </div>
-        <p style="font-size:0.75rem; color:#94a3b8; margin-top:1rem;">เมื่อ Admin ยืนยันแล้ว เครดิตจะเข้าอัตโนมัติ และคุณจะได้รับแจ้งเตือน</p>
+        <p style="font-size:0.85rem; color:#475569; line-height:1.6; text-align:left;">
+          Admin จะตรวจสอบสลิปแล้วเติมเครดิตให้คุณ<br>
+          ปกติใช้เวลาไม่เกิน 30 นาที คุณจะได้รับแจ้งเตือนเมื่อเครดิตเข้า
+        </p>
       </div>
-      <button onclick="closeModal('topup-instructions-modal')" style="margin-top:1rem; width:100%; padding:0.75rem; border-radius:0.75rem; background:linear-gradient(135deg,#6366f1,#7c3aed); color:white; border:none; font-weight:600; font-size:0.9rem; cursor:pointer;">เข้าใจแล้ว</button>
+      <button onclick="closeModal('topup-success-modal')" style="margin-top:1rem; width:100%; padding:0.75rem; border-radius:0.75rem; background:linear-gradient(135deg,#6366f1,#7c3aed); color:white; border:none; font-weight:600; font-size:0.9rem; cursor:pointer;">เข้าใจแล้ว</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -361,7 +389,7 @@ async function loadPendingTopups() {
       ${topups.map(t => `
         <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <span style="color:#92400e; font-weight:500;">อั่งเปา</span>
+            <span style="color:#92400e; font-weight:500;">เติมเครดิต ฿${t.requested_amount || t.amount || '?'}</span>
             <span style="color:#a16207; font-size:0.75rem; margin-left:0.5rem;">${new Date(t.created_at).toLocaleString('th-TH')}</span>
           </div>
           <span style="background:#fef3c7; color:#92400e; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">รอยืนยัน</span>
@@ -538,8 +566,12 @@ async function loadAccountForm() {
           <input type="text" name="display_name" value="${escapeHtml(u.display_name)}" required class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">เบอร์ TrueMoney Wallet</label>
-          <input type="tel" name="truemoney_phone" value="${escapeHtml(u.truemoney_phone || '')}" placeholder="09xxxxxxxx" pattern="0[0-9]{8,9}" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
+          <label class="block text-sm font-medium text-slate-700 mb-1">หมายเลขพร้อมเพย์</label>
+          <input type="text" name="promptpay_number" value="${escapeHtml(u.promptpay_number || '')}" placeholder="เบอร์โทร 10 หลัก หรือเลขบัตร 13 หลัก" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อบัญชีพร้อมเพย์</label>
+          <input type="text" name="promptpay_name" value="${escapeHtml(u.promptpay_name || '')}" placeholder="ชื่อ-นามสกุล ตามบัญชี" class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -565,11 +597,13 @@ async function handleUpdateProfile(e) {
       method: 'PUT',
       body: JSON.stringify({
         display_name: form.display_name.value,
-        truemoney_phone: form.truemoney_phone?.value || ''
+        promptpay_number: form.promptpay_number?.value || '',
+        promptpay_name: form.promptpay_name?.value || ''
       })
     });
     currentUser.display_name = user.display_name;
-    currentUser.truemoney_phone = user.truemoney_phone;
+    currentUser.promptpay_number = user.promptpay_number;
+    currentUser.promptpay_name = user.promptpay_name;
     updateAuthUI();
     showToast('บันทึกสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'บันทึกไม่สำเร็จ', 'error'); }
