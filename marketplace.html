@@ -4,78 +4,371 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Marketplace — KP Prompt Creator</title>
+  <meta name="description" content="ซื้อขาย AI Prompt คุณภาพสำหรับ Claude, Gemini, ChatGPT รองรับหลายหมวดหมู่ เว็บแอป, อีคอมเมิร์ซ, API และอื่นๆ">
+  <meta property="og:title" content="Marketplace — KP Prompt Creator">
+  <meta property="og:description" content="ซื้อขาย AI Prompt คุณภาพสำหรับนักพัฒนาเว็บ">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://kppromptcreator.com/marketplace.html">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Thai', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/marketplace.css">
+  <style>
+    /* Custom styles that complement Tailwind */
+    .gradient-text {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-gradient {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    }
+    .card-hover {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(79, 70, 229, 0.15);
+    }
+    /* Toast styles */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      right: 1rem;
+      z-index: 9999;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      max-width: 320px;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .toast-success { background: #10b981; color: white; }
+    .toast-error { background: #ef4444; color: white; }
+    .toast-info { background: #3b82f6; color: white; }
+    /* Bottom nav active */
+    .bottom-nav-item.active .bottom-nav-icon { color: #4f46e5; }
+    .bottom-nav-item.active .bottom-nav-label { color: #4f46e5; font-weight: 600; }
+    /* Spinner */
+    .spinner {
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid #e0e7ff;
+      border-top-color: #4f46e5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
-<body>
-  <!-- Navbar -->
-  <nav class="mp-navbar">
-    <a href="/" class="nav-brand">
-      <img src="images/logo.png" alt="KP">
-      <span>KP Prompt Creator</span>
-    </a>
-    <div class="nav-links">
-      <a href="/marketplace.html" class="active"><i class="bi bi-shop"></i> Marketplace</a>
-      <a href="/"><i class="bi bi-magic"></i> สร้าง Prompt</a>
+<body class="bg-slate-50 font-sans antialiased pb-16 md:pb-0">
 
-      <span class="auth-links">
-        <a href="/auth.html"><i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบ</a>
-      </span>
+  <!-- ===== TOP NAVBAR ===== -->
+  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
 
-      <span class="user-menu" style="display:none;">
-        <div class="nav-divider"></div>
-        <a href="/topup.html" class="nav-wallet"><i class="bi bi-wallet2"></i> <span class="user-balance">฿0</span></a>
-        <a href="/orders.html"><i class="bi bi-bag-check"></i> คำสั่งซื้อ</a>
-        <a href="/dashboard.html" class="seller-only"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a href="/admin.html" class="admin-only"><i class="bi bi-shield-lock"></i> Admin</a>
-        <div class="nav-divider"></div>
-        <a href="/account.html"><i class="bi bi-person-circle"></i></a>
-        <a href="#" onclick="logout()" class="nav-logout"><i class="bi bi-box-arrow-right"></i></a>
-      </span>
+        <!-- Left: Logo -->
+        <a href="/" class="flex items-center gap-2 shrink-0">
+          <div class="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
+            <span class="text-white font-bold text-sm">KP</span>
+          </div>
+          <div class="flex flex-col leading-tight">
+            <span class="gradient-text font-bold text-base leading-none">KP</span>
+            <span class="text-slate-500 text-xs leading-none">Marketplace</span>
+          </div>
+        </a>
+
+        <!-- Center: Nav links (hidden on mobile) -->
+        <div class="hidden md:flex items-center gap-1">
+          <a href="/" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+            <i data-lucide="home" class="w-4 h-4"></i>
+            หน้าแรก
+          </a>
+          <a href="/marketplace.html" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 bg-indigo-50 transition-colors">
+            <i data-lucide="store" class="w-4 h-4"></i>
+            Marketplace
+          </a>
+        </div>
+
+        <!-- Right: Auth / User menu -->
+        <div class="flex items-center gap-2">
+          <!-- Auth Links (guest) -->
+          <span class="auth-links flex items-center gap-2">
+            <a href="/auth.html" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100">
+              เข้าสู่ระบบ
+            </a>
+            <a href="/auth.html?tab=register" class="text-sm font-medium text-white hero-gradient px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+              สมัครสมาชิก
+            </a>
+          </span>
+
+          <!-- User Menu (logged in) -->
+          <span class="user-menu hidden items-center gap-2">
+            <!-- Wallet balance -->
+            <a href="/topup.html" class="hidden sm:flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors">
+              <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+              <span class="user-balance">฿0.00</span>
+            </a>
+
+            <!-- Orders (hidden on mobile — in bottom nav) -->
+            <a href="/orders.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="คำสั่งซื้อ">
+              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            </a>
+
+            <!-- Dashboard link (everyone) -->
+            <a href="/dashboard.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="Dashboard">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            </a>
+
+            <!-- Admin only -->
+            <a href="/admin.html" class="admin-only hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="Admin Panel">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </a>
+
+            <!-- User avatar / name dropdown trigger -->
+            <div class="relative" id="user-dropdown-wrap">
+              <button id="user-dropdown-btn" onclick="toggleUserDropdown()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                <div class="w-7 h-7 rounded-full hero-gradient flex items-center justify-center">
+                  <i data-lucide="user" class="w-3.5 h-3.5 text-white"></i>
+                </div>
+                <span class="user-display-name hidden sm:block text-sm font-medium text-slate-700 max-w-24 truncate"></span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 hidden sm:block"></i>
+              </button>
+              <!-- Dropdown -->
+              <div id="user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
+                <a href="/account.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="user-circle" class="w-4 h-4 text-slate-400"></i>
+                  บัญชีของฉัน
+                </a>
+                <a href="/orders.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
+                  <i data-lucide="shopping-bag" class="w-4 h-4 text-slate-400"></i>
+                  คำสั่งซื้อ
+                </a>
+                <a href="/topup.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
+                  <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
+                  เติมเครดิต
+                </a>
+                <a href="/dashboard.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i>
+                  Dashboard
+                </a>
+                <a href="/admin.html" class="admin-only flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i data-lucide="shield" class="w-4 h-4 text-slate-400"></i>
+                  Admin Panel
+                </a>
+                <div class="border-t border-slate-100 my-1"></div>
+                <button onclick="logout()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                  <i data-lucide="log-out" class="w-4 h-4"></i>
+                  ออกจากระบบ
+                </button>
+              </div>
+            </div>
+          </span>
+
+          <!-- Hamburger (mobile) -->
+          <button id="hamburger-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors">
+            <i data-lucide="menu" class="w-5 h-5 text-slate-600"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="hidden md:hidden border-t border-slate-100 py-3 space-y-1">
+        <a href="/" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+          <i data-lucide="home" class="w-4 h-4"></i> หน้าแรก
+        </a>
+        <a href="/marketplace.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-indigo-600 bg-indigo-50">
+          <i data-lucide="store" class="w-4 h-4"></i> Marketplace
+        </a>
+      </div>
     </div>
   </nav>
 
-  <div class="mp-container">
-    <!-- Header -->
-    <div class="mp-page-header">
-      <h1><i class="bi bi-shop"></i> Prompt Marketplace</h1>
-      <p>ซื้อ-ขาย AI Prompt คุณภาพสูง สำหรับทุกโปรเจค</p>
-    </div>
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero-gradient py-14 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <!-- Seller page header (populated by JS when ?seller= param exists) -->
+      <div id="seller-header" class="hidden mb-6">
+        <!-- JS will inject seller info here -->
+      </div>
 
-    <!-- Filters -->
-    <div class="mp-filters">
-      <input type="text" id="filter-search" placeholder="ค้นหา Prompt..." onkeyup="if(event.key==='Enter')applyFilters()">
-      <select id="filter-category" onchange="applyFilters()">
-        <option value="">ทุกหมวดหมู่</option>
-        <option value="web-app">Web Application</option>
-        <option value="mobile-app">Mobile App</option>
-        <option value="api">API / Backend</option>
-        <option value="ecommerce">E-Commerce</option>
-        <option value="dashboard">Dashboard</option>
-        <option value="landing-page">Landing Page</option>
-        <option value="automation">Automation</option>
-        <option value="other">อื่นๆ</option>
-      </select>
-      <select id="filter-sort" onchange="applyFilters()">
-        <option value="">ล่าสุด</option>
-        <option value="popular">ยอดนิยม</option>
-        <option value="rating">คะแนนสูงสุด</option>
-        <option value="price_asc">ราคาน้อย → มาก</option>
-        <option value="price_desc">ราคามาก → น้อย</option>
-      </select>
-      <button onclick="applyFilters()"><i class="bi bi-search"></i> ค้นหา</button>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
+        Prompt Marketplace
+      </h1>
+      <p class="text-indigo-200 text-base sm:text-lg mb-8 max-w-xl mx-auto">
+        ซื้อ-ขาย AI Prompt คุณภาพสูง สำหรับทุกโปรเจค
+      </p>
+
+      <!-- Hero search bar -->
+      <div class="max-w-xl mx-auto relative">
+        <div class="flex items-center bg-white rounded-full shadow-xl overflow-hidden pl-5 pr-2 py-2">
+          <i data-lucide="search" class="w-5 h-5 text-slate-400 shrink-0"></i>
+          <input
+            type="text"
+            id="filter-search"
+            placeholder="ค้นหา Prompt..."
+            onkeyup="if(event.key==='Enter')applyFilters()"
+            class="flex-1 px-3 text-sm text-slate-700 placeholder-slate-400 outline-none bg-transparent"
+          >
+          <button
+            onclick="applyFilters()"
+            class="hero-gradient text-white text-sm font-semibold px-5 py-2 rounded-full hover:opacity-90 transition-opacity"
+          >
+            ค้นหา
+          </button>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <!-- ===== FILTER BAR ===== -->
+  <div class="bg-white border-b border-slate-200 sticky top-16 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap items-center gap-2 py-3">
+        <!-- Category filter -->
+        <div class="relative">
+          <select
+            id="filter-category"
+            onchange="applyFilters()"
+            class="appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-full px-4 py-2 pr-8 cursor-pointer hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-colors"
+          >
+            <option value="">ทุกหมวดหมู่</option>
+            <option value="web-app">Web Application</option>
+            <option value="mobile-app">Mobile App</option>
+            <option value="api">API / Backend</option>
+            <option value="ecommerce">E-Commerce</option>
+            <option value="dashboard">Dashboard</option>
+            <option value="landing-page">Landing Page</option>
+            <option value="automation">Automation</option>
+            <option value="other">อื่นๆ</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <!-- Sort filter -->
+        <div class="relative">
+          <select
+            id="filter-sort"
+            onchange="applyFilters()"
+            class="appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium rounded-full px-4 py-2 pr-8 cursor-pointer hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-colors"
+          >
+            <option value="">ล่าสุด</option>
+            <option value="popular">ยอดนิยม</option>
+            <option value="rating">คะแนนสูงสุด</option>
+            <option value="price_asc">ราคาน้อย → มาก</option>
+            <option value="price_desc">ราคามาก → น้อย</option>
+          </select>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <!-- Active filter count badge (populated by JS if needed) -->
+        <span id="filter-count" class="hidden bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <!-- Prompts Grid -->
-    <div id="prompts-grid" class="prompts-grid">
-      <div class="loading-state"><div class="spinner"></div><p>กำลังโหลด...</p></div>
+    <div
+      id="prompts-grid"
+      class="grid gap-5"
+      style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"
+    >
+      <!-- Loading state -->
+      <div class="col-span-full flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+        <div class="spinner"></div>
+        <p class="text-sm">กำลังโหลด...</p>
+      </div>
     </div>
 
     <!-- Pagination -->
-    <div id="pagination" class="pagination"></div>
-  </div>
+    <div id="pagination" class="flex items-center justify-center gap-2 mt-10"></div>
 
-  <script src="js/marketplace.js"></script>
+  </main>
+
+  <!-- ===== BOTTOM NAVIGATION (mobile only) ===== -->
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 flex md:hidden">
+    <a href="/marketplace.html" class="bottom-nav-item active flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="store" class="bottom-nav-icon w-5 h-5 text-indigo-600"></i>
+      <span class="bottom-nav-label text-xs text-indigo-600 font-semibold">Explore</span>
+    </a>
+    <a href="/orders.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="shopping-bag" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">คำสั่งซื้อ</span>
+    </a>
+    <a href="/dashboard.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <div class="w-9 h-9 hero-gradient rounded-full flex items-center justify-center -mt-4 shadow-lg">
+        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+      </div>
+      <span class="bottom-nav-label text-xs text-slate-400 mt-0.5">สร้าง</span>
+    </a>
+    <a href="/topup.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="wallet" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">เติมเงิน</span>
+    </a>
+    <a href="/account.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="user-circle" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">บัญชี</span>
+    </a>
+  </nav>
+
+  <script>
+    // Toggle user dropdown
+    function toggleUserDropdown() {
+      const dd = document.getElementById('user-dropdown');
+      dd.classList.toggle('hidden');
+    }
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const wrap = document.getElementById('user-dropdown-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('user-dropdown')?.classList.add('hidden');
+      }
+    });
+
+    // Toggle mobile menu
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Init Lucide icons after DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+  <script src="js/mp-core.js"></script>
+  <script src="js/mp-pages.js"></script>
+  <script src="js/mp-dashboard.js"></script>
 </body>
 </html>

@@ -39,7 +39,7 @@ async function updateUser(req, res) {
   if (!user_id) return res.status(400).json({ error: 'กรุณาระบุ user_id' });
 
   const updates = {};
-  if (role && ['buyer', 'seller', 'admin'].includes(role)) updates.role = role;
+  if (role && ['user', 'admin'].includes(role)) updates.role = role;
   if (status && ['active', 'suspended'].includes(status)) updates.status = status;
   updates.updated_at = new Date().toISOString();
 

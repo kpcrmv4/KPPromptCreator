@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../../lib/supabase');
-const { requireRole, authenticate } = require('../../lib/auth');
+const { requireAuth } = require('../../lib/auth');
 const { cors, validateRequired } = require('../../lib/helpers');
 const { verifyKPFingerprint, generateContentHash, calculateSimilarity } = require('../../lib/prompt-verify');
 
@@ -38,7 +38,7 @@ async function listPrompts(req, res) {
 }
 
 async function createPrompt(req, res) {
-  const user = await requireRole(req, res, ['seller', 'admin']);
+  const user = await requireAuth(req, res);
   if (!user) return;
 
   const { title, description, category, tech_stack, price, prompt_file_base64, prompt_filename, preview_image_base64, preview_image_filename, demo_url, preview_text, tags, detail_images } = req.body;
