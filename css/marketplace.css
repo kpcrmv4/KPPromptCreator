@@ -21,7 +21,9 @@
 .toast {
   position: fixed;
   top: 1rem;
+  bottom: auto;
   right: 1rem;
+  left: auto;
   padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
   color: #fff;
@@ -31,7 +33,12 @@
   transform: translateX(120%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   max-width: 400px;
+  width: auto;
+  height: auto;
+  max-height: 200px;
+  overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  word-break: break-word;
 }
 .toast.show { transform: translateX(0); }
 .toast-success { background: linear-gradient(135deg, #059669, #10b981); }
