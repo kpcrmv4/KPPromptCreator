@@ -282,7 +282,9 @@ async function handleTopup(e) {
   e.preventDefault();
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
+  const originalText = btn.innerHTML;
   btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังดำเนินการ...';
 
   try {
     const data = await api('/topup/redeem', {
@@ -291,13 +293,13 @@ async function handleTopup(e) {
     });
 
     if (data.pending) {
-      // Manual flow — show phone number and instructions
+      // Cloudflare บล็อก auto → Manual fallback
       showTopupInstructions(data.phone, data.angpao_link || form.angpao_link.value);
       form.reset();
       loadPendingTopups();
     } else {
-      // Direct success (future: if auto-redeem ever works)
-      showToast(data.message, 'success');
+      // Auto-redeem สำเร็จ!
+      showToast(`เติมเครดิต ฿${data.amount} สำเร็จ!`, 'success');
       currentUser.credit_balance = data.new_balance;
       updateAuthUI();
       form.reset();
@@ -307,6 +309,7 @@ async function handleTopup(e) {
     showToast(err.error || 'เติมเงินไม่สำเร็จ', 'error');
   } finally {
     btn.disabled = false;
+    btn.innerHTML = originalText;
   }
 }
 
