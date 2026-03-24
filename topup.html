@@ -202,20 +202,19 @@
     <!-- Pending Topups -->
     <div id="pending-topups" style="display:none;"></div>
 
-    <!-- Top-up Form -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <!-- Step 1: เลือกจำนวนเงิน + สร้าง QR -->
+    <div id="topup-step1" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
       <div class="flex items-center gap-3 mb-6">
         <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
           <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-600"></i>
         </div>
         <div>
           <h2 class="text-base font-semibold text-slate-800">เติมเครดิตผ่าน PromptPay</h2>
-          <p class="text-xs text-slate-400 mt-0.5">โอนเงินแล้วอัปโหลดสลิป</p>
+          <p class="text-xs text-slate-400 mt-0.5">เลือกจำนวนเงิน → สแกน QR → อัปโหลดสลิป</p>
         </div>
       </div>
 
-      <form onsubmit="handleTopup(event)" class="space-y-4">
-        <!-- Amount selection -->
+      <form onsubmit="handleGenerateQR(event)" class="space-y-4">
         <div class="space-y-1.5">
           <label class="block text-sm font-medium text-slate-700">จำนวนเงินที่ต้องการเติม (บาท)</label>
           <div class="grid grid-cols-4 gap-2" id="amount-presets">
@@ -241,35 +240,117 @@
           </div>
         </div>
 
-        <!-- Slip upload -->
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-slate-700">อัปโหลดสลิปการโอนเงิน</label>
-          <div class="relative">
-            <input
-              type="file"
-              name="slip_image"
-              id="slip-image-input"
-              accept="image/jpeg,image/png,image/webp"
-              required
-              class="w-full text-sm text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer border border-slate-200 rounded-xl"
-            >
-          </div>
-          <div id="slip-preview" style="display:none;" class="mt-2"></div>
-          <p class="text-xs text-slate-400 flex items-center gap-1">
-            <i data-lucide="info" class="w-3 h-3"></i>
-            รูปภาพสลิป JPG, PNG, WebP (ไม่เกิน 5MB)
-          </p>
-        </div>
-
         <button
           type="submit"
+          id="btn-generate-qr"
           class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
           style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);"
         >
-          <i data-lucide="send" class="w-4 h-4"></i>
-          ส่งคำขอเติมเครดิต
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          สร้าง QR Code
         </button>
       </form>
+    </div>
+
+    <!-- Step 2: แสดง QR + อัปโหลดสลิป (ซ่อนไว้ก่อน) -->
+    <div id="topup-step2" style="display:none;" class="space-y-4">
+      <!-- QR Code Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <i data-lucide="scan-line" class="w-5 h-5 text-emerald-600"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-slate-800">สแกน QR Code เพื่อโอนเงิน</h2>
+            <p class="text-xs text-slate-400 mt-0.5">โอนเงินตามยอดที่แสดงด้านล่าง</p>
+          </div>
+        </div>
+
+        <!-- QR Image -->
+        <div class="flex flex-col items-center py-4">
+          <div id="qr-code-container" class="bg-white rounded-xl border-2 border-slate-100 p-3 mb-4">
+            <img id="qr-code-img" src="" alt="PromptPay QR Code" class="w-56 h-56 sm:w-64 sm:h-64 object-contain">
+          </div>
+
+          <!-- Transfer Amount -->
+          <div class="w-full max-w-sm bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 text-center mb-3">
+            <p class="text-xs text-emerald-600 font-medium mb-1">ยอดที่ต้องโอน (รวมเศษสตางค์)</p>
+            <p id="qr-unique-amount" class="text-3xl font-bold text-emerald-700">฿0.00</p>
+            <p class="text-xs text-amber-600 mt-1.5 flex items-center justify-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+              กรุณาโอนยอดนี้เท่านั้น เพื่อให้ระบบจับคู่อัตโนมัติ
+            </p>
+          </div>
+
+          <!-- PromptPay Info -->
+          <div class="w-full max-w-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500">PromptPay</span>
+              <span id="qr-promptpay-number" class="font-semibold text-slate-700">-</span>
+            </div>
+            <div id="qr-promptpay-name-row" class="flex justify-between items-center mt-1.5" style="display:none;">
+              <span class="text-slate-500">ชื่อบัญชี</span>
+              <span id="qr-promptpay-name" class="font-semibold text-slate-700">-</span>
+            </div>
+            <div class="flex justify-between items-center mt-1.5">
+              <span class="text-slate-500">จำนวนเติม</span>
+              <span id="qr-requested-amount" class="font-semibold text-slate-700">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slip Upload Card -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+            <i data-lucide="upload" class="w-5 h-5 text-amber-600"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-slate-800">อัปโหลดสลิปการโอนเงิน</h2>
+            <p class="text-xs text-slate-400 mt-0.5">โอนเงินเสร็จแล้ว อัปโหลดสลิปที่นี่</p>
+          </div>
+        </div>
+
+        <form onsubmit="handleUploadSlip(event)" class="space-y-4">
+          <div class="space-y-1.5">
+            <div class="relative">
+              <input
+                type="file"
+                name="slip_image"
+                id="slip-image-input"
+                accept="image/jpeg,image/png,image/webp"
+                required
+                class="w-full text-sm text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 file:cursor-pointer cursor-pointer border border-slate-200 rounded-xl"
+              >
+            </div>
+            <div id="slip-preview" style="display:none;" class="mt-2"></div>
+            <p class="text-xs text-slate-400 flex items-center gap-1">
+              <i data-lucide="info" class="w-3 h-3"></i>
+              รูปภาพสลิป JPG, PNG, WebP (ไม่เกิน 5MB)
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            id="btn-upload-slip"
+            class="w-full py-3 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-95 flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
+            style="background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);"
+          >
+            <i data-lucide="send" class="w-4 h-4"></i>
+            ส่งสลิปยืนยันการโอนเงิน
+          </button>
+        </form>
+
+        <!-- Back button -->
+        <button
+          onclick="resetTopupFlow()"
+          class="w-full mt-3 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          เปลี่ยนจำนวนเงิน
+        </button>
+      </div>
     </div>
 
     <!-- How it works -->
@@ -288,22 +369,22 @@
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">เลือกจำนวนเงินที่ต้องการเติม</p>
-            <p class="text-xs text-slate-400 mt-0.5">เลือกจากตัวเลือกด้านบน หรือพิมพ์จำนวนเอง</p>
+            <p class="text-sm font-medium text-slate-700">เลือกจำนวนเงิน แล้วกด "สร้าง QR Code"</p>
+            <p class="text-xs text-slate-400 mt-0.5">ระบบจะสร้าง QR พร้อมยอดเศษสตางค์อัตโนมัติ</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
           <div>
-            <p class="text-sm font-medium text-slate-700">โอนเงินผ่าน PromptPay</p>
-            <p class="text-xs text-slate-400 mt-0.5">สแกน QR หรือโอนไปยังหมายเลข PromptPay ของระบบ</p>
+            <p class="text-sm font-medium text-slate-700">สแกน QR Code ด้วยแอปธนาคาร</p>
+            <p class="text-xs text-slate-400 mt-0.5">โอนเงินตามยอดที่แสดง (รวมเศษสตางค์) เพื่อจับคู่อัตโนมัติ</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</div>
           <div>
             <p class="text-sm font-medium text-slate-700">อัปโหลดสลิปการโอนเงิน</p>
-            <p class="text-xs text-slate-400 mt-0.5">ถ่ายรูปหรือ screenshot สลิป แล้วอัปโหลดในแบบฟอร์ม</p>
+            <p class="text-xs text-slate-400 mt-0.5">ถ่ายรูปหรือ screenshot สลิป แล้วอัปโหลดยืนยัน</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
