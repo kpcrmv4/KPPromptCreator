@@ -21,7 +21,7 @@ module.exports = async function handler(req, res) {
     .from('transactions')
     .select('id')
     .eq('ref_id', hash)
-    .single();
+    .maybeSingle();
 
   if (used) return res.status(409).json({ error: 'ซองอั่งเปานี้ถูกใช้แล้วในระบบ' });
 
@@ -42,7 +42,9 @@ module.exports = async function handler(req, res) {
           'Content-Type': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
           'Accept': 'application/json',
-          'Accept-Language': 'th-TH,th;q=0.9'
+          'Accept-Language': 'th-TH,th;q=0.9',
+          'Origin': 'https://gift.truemoney.com',
+          'Referer': 'https://gift.truemoney.com/campaign/'
         },
         body: JSON.stringify({ mobile: ownerPhone, voucher_hash: hash }),
         signal: controller.signal
@@ -51,11 +53,14 @@ module.exports = async function handler(req, res) {
     clearTimeout(timeout);
 
     const text = await response.text();
+    console.log('TrueMoney response:', response.status, text.substring(0, 500));
     try {
       tmResponse = JSON.parse(text);
     } catch {
       console.error('TrueMoney non-JSON response:', response.status, text.substring(0, 500));
-      return res.status(502).json({ error: 'TrueMoney ตอบกลับผิดปกติ กรุณาลองใหม่ภายหลัง' });
+      return res.status(502).json({
+        error: `TrueMoney ตอบกลับผิดปกติ (HTTP ${response.status}) กรุณาลองใหม่ภายหลัง`
+      });
     }
   } catch (err) {
     console.error('TrueMoney fetch error:', err.message);
@@ -76,7 +81,7 @@ module.exports = async function handler(req, res) {
       'TARGET_USER_NOT_FOUND': 'เบอร์รับเงินไม่ถูกต้อง'
     };
     return res.status(400).json({
-      error: errorMessages[statusCode] || 'ไม่สามารถใช้ซองอั่งเปาได้',
+      error: errorMessages[statusCode] || `ไม่สามารถใช้ซองอั่งเปาได้ (${statusCode})`,
       code: statusCode
     });
   }
