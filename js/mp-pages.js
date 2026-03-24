@@ -298,7 +298,7 @@ async function handleGenerateQR(e) {
   const btn = document.getElementById('btn-generate-qr');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังสร้าง QR...';
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;"></div> กำลังสร้าง QR...';
 
   try {
     const amount = parseInt(form.amount.value);
@@ -323,7 +323,6 @@ async function handleGenerateQR(e) {
 
     // Show Step 2 with QR
     showQRStep(data);
-    loadPendingTopups();
   } catch (err) {
     showToast(err.error || 'สร้าง QR ไม่สำเร็จ', 'error');
   } finally {
@@ -374,7 +373,7 @@ async function handleUploadSlip(e) {
   const btn = document.getElementById('btn-upload-slip');
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังอัปโหลด...';
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;"></div> กำลังอัปโหลด...';
 
   try {
     const fileInput = document.getElementById('slip-image-input');
