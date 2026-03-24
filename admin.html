@@ -260,6 +260,15 @@
         </button>
         <button
           class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
+          data-tab="admin-tab-topups"
+          onclick="switchAdminTab('admin-tab-topups', this)"
+        >
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+          เติมเครดิต
+          <span id="admin-topup-badge" class="hidden bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[1.1rem] text-center"></span>
+        </button>
+        <button
+          class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
           data-tab="admin-tab-notifications"
           onclick="switchAdminTab('admin-tab-notifications', this)"
         >
@@ -319,6 +328,18 @@
       <div class="admin-tab-content hidden" id="admin-tab-users">
         <div class="p-4 sm:p-6">
           <div id="admin-users">
+            <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+              <div class="spinner"></div>
+              <p class="text-sm">กำลังโหลด...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tab: เติมเครดิต ── -->
+      <div class="admin-tab-content hidden" id="admin-tab-topups">
+        <div class="p-4 sm:p-6">
+          <div id="admin-topups">
             <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
               <div class="spinner"></div>
               <p class="text-sm">กำลังโหลด...</p>

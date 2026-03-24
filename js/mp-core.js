@@ -254,6 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else if (page.includes('topup')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadCreditHistory();
+    loadPendingTopups();
   } else if (page.includes('orders') && !page.includes('admin')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadOrders();
@@ -281,6 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAdminTabs();
     loadAdminOverview();
     loadAdminNotifications();
+    loadAdminTopups();
     loadAdminPendingPrompts();
     loadAdminPayouts();
     loadAdminUsers();

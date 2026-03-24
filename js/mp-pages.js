@@ -282,22 +282,95 @@ async function handleTopup(e) {
   e.preventDefault();
   const form = e.target;
   const btn = form.querySelector('button[type="submit"]');
+  const originalText = btn.innerHTML;
   btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:1rem;height:1rem;border-width:2px;display:inline-block;vertical-align:middle;margin-right:0.5rem;"></div> กำลังดำเนินการ...';
 
   try {
     const data = await api('/topup/redeem', {
       method: 'POST',
       body: JSON.stringify({ angpao_link: form.angpao_link.value })
     });
-    showToast(data.message, 'success');
-    currentUser.credit_balance = data.new_balance;
-    updateAuthUI();
-    form.reset();
-    loadCreditHistory();
+
+    if (data.pending) {
+      // Cloudflare บล็อก auto → Manual fallback
+      showTopupInstructions(data.phone, data.angpao_link || form.angpao_link.value);
+      form.reset();
+      loadPendingTopups();
+    } else {
+      // Auto-redeem สำเร็จ!
+      showToast(`เติมเครดิต ฿${data.amount} สำเร็จ!`, 'success');
+      currentUser.credit_balance = data.new_balance;
+      updateAuthUI();
+      form.reset();
+      loadCreditHistory();
+    }
   } catch (err) {
     showToast(err.error || 'เติมเงินไม่สำเร็จ', 'error');
   } finally {
     btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+function showTopupInstructions(phone, link) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'topup-instructions-modal';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:480px; text-align:center;">
+      <div class="modal-header">
+        <h3 style="font-size:1.1rem; font-weight:600;">📋 ขั้นตอนเติมเครดิต</h3>
+        <button class="modal-close" onclick="closeModal('topup-instructions-modal')">&times;</button>
+      </div>
+      <div style="padding:0.5rem 0;">
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1.25rem; margin-bottom:1rem;">
+          <p style="font-size:0.8rem; color:#16a34a; margin-bottom:0.5rem; font-weight:500;">ส่งอั่งเปาไปที่เบอร์นี้</p>
+          <p style="font-size:1.5rem; font-weight:700; color:#15803d; letter-spacing:0.05em;">${escapeHtml(phone)}</p>
+        </div>
+        <div style="text-align:left; background:#f8fafc; border-radius:0.75rem; padding:1rem; font-size:0.85rem; color:#475569; line-height:1.8;">
+          <p><strong>1.</strong> เปิดแอป TrueMoney Wallet</p>
+          <p><strong>2.</strong> ไปที่ อั่งเปา → ส่งอั่งเปา</p>
+          <p><strong>3.</strong> วางลิงก์อั่งเปา แล้วส่งไปที่เบอร์ด้านบน</p>
+          <p><strong>4.</strong> รอ Admin ยืนยัน (ปกติไม่เกิน 30 นาที)</p>
+        </div>
+        <p style="font-size:0.75rem; color:#94a3b8; margin-top:1rem;">เมื่อ Admin ยืนยันแล้ว เครดิตจะเข้าอัตโนมัติ และคุณจะได้รับแจ้งเตือน</p>
+      </div>
+      <button onclick="closeModal('topup-instructions-modal')" style="margin-top:1rem; width:100%; padding:0.75rem; border-radius:0.75rem; background:linear-gradient(135deg,#6366f1,#7c3aed); color:white; border:none; font-weight:600; font-size:0.9rem; cursor:pointer;">เข้าใจแล้ว</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function loadPendingTopups() {
+  const container = document.getElementById('pending-topups');
+  if (!container) return;
+
+  try {
+    const { topups } = await api('/credits/pending');
+    if (!topups || topups.length === 0) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = 'block';
+    container.innerHTML = `
+      <h3 style="font-size:0.9rem; font-weight:600; color:#f59e0b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+        <i data-lucide="clock" style="width:1rem; height:1rem;"></i> รอยืนยัน (${topups.length})
+      </h3>
+      ${topups.map(t => `
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="color:#92400e; font-weight:500;">อั่งเปา</span>
+            <span style="color:#a16207; font-size:0.75rem; margin-left:0.5rem;">${new Date(t.created_at).toLocaleString('th-TH')}</span>
+          </div>
+          <span style="background:#fef3c7; color:#92400e; padding:0.25rem 0.75rem; border-radius:9999px; font-size:0.7rem; font-weight:600;">รอยืนยัน</span>
+        </div>
+      `).join('')}
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  } catch {
+    // silently fail
   }
 }
 
