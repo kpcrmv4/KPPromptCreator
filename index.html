@@ -132,6 +132,21 @@
                             <span class="template-title" data-i18n="tplInventory">ระบบจัดการสต็อก</span>
                             <span class="template-desc" data-i18n="tplInventoryDesc">CRUD สินค้า แดชบอร์ด รายงาน</span>
                         </button>
+                        <button class="template-card" data-template="govDocsPdf">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            <span class="template-title" data-i18n="tplGovDocsPdf">ระบบฟอร์มราชการ + PDF</span>
+                            <span class="template-desc" data-i18n="tplGovDocsPdfDesc">Google Docs template แทนค่าแล้ว export PDF</span>
+                        </button>
+                        <button class="template-card" data-template="approvalFlow">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span class="template-title" data-i18n="tplApprovalFlow">ระบบอนุมัติเอกสาร</span>
+                            <span class="template-desc" data-i18n="tplApprovalFlowDesc">หลายขั้นตอน มีประวัติ และแจ้งเตือนผู้อนุมัติ</span>
+                        </button>
+                        <button class="template-card" data-template="driveCenter">
+                            <i class="bi bi-folder2-open"></i>
+                            <span class="template-title" data-i18n="tplDriveCenter">ศูนย์จัดการไฟล์ Drive</span>
+                            <span class="template-desc" data-i18n="tplDriveCenterDesc">แชร์ไฟล์ ตั้งสิทธิ์ ค้นหา และติดตามการใช้งาน</span>
+                        </button>
                         <button class="template-card" data-template="portfolio">
                             <i class="bi bi-person-vcard"></i>
                             <span class="template-title" data-i18n="tplPortfolio">เว็บ Portfolio</span>
@@ -286,6 +301,8 @@
                             <button type="button" class="desc-helper-chip" data-append="แดชบอร์ดสรุปข้อมูล/กราฟ"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipDashboard">แดชบอร์ด</span></button>
                             <button type="button" class="desc-helper-chip" data-append="ค้นหาและกรองข้อมูล"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipSearch">ค้นหา/กรอง</span></button>
                             <button type="button" class="desc-helper-chip" data-append="แจ้งเตือน/notification"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipNotify">แจ้งเตือน</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="แจ้งเตือนผ่าน LINE Messaging API หรือ Telegram Bot"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipLineTelegram">LINE/Telegram</span></button>
+                            <button type="button" class="desc-helper-chip" data-append="หลายมุมมองในหน้าเดียวด้วย Alpine.js บน Google Apps Script"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipAlpine">Multi-view + Alpine.js</span></button>
                             <button type="button" class="desc-helper-chip" data-append="export ข้อมูลเป็น Excel/PDF"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipExport">Export Excel/PDF</span></button>
                             <button type="button" class="desc-helper-chip" data-append="อัปโหลดรูปภาพ/ไฟล์"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipUpload">อัปโหลดไฟล์</span></button>
                             <button type="button" class="desc-helper-chip" data-append="รองรับหลายภาษา"><i class="bi bi-plus-circle"></i> <span data-i18n="descChipMultilang">หลายภาษา</span></button>
@@ -465,7 +482,7 @@
                                 <input type="radio" name="pageType" value="single-page" checked>
                                 <div class="option-content">
                                     <i class="bi bi-file-earmark"></i>
-                                    <span class="option-title">Single Page</span>
+                                    <span class="option-title" id="pageTypeSingleTitle" data-i18n="pageTypeSingleTitle">Single Page</span>
                                     <span class="option-desc" data-i18n="singlePageDesc">หน้าเดียว เรียบง่าย</span>
                                 </div>
                             </label>
@@ -473,11 +490,12 @@
                                 <input type="radio" name="pageType" value="spa">
                                 <div class="option-content">
                                     <i class="bi bi-layers"></i>
-                                    <span class="option-title">SPA (Multi-page)</span>
-                                    <span class="option-desc" data-i18n="spaDesc">หลายหน้า มี routing</span>
+                                    <span class="option-title" id="pageTypeSpaTitle" data-i18n="pageTypeSpaTitle">SPA / Multi-view</span>
+                                    <span class="option-desc" id="pageTypeSpaDesc" data-i18n="pageTypeSpaDesc">หลายมุมมองหรือหลายหน้า มี routing/client-side state</span>
                                 </div>
                             </label>
                         </div>
+                        <p class="gas-inline-hint" id="gasPageTypeHint" data-i18n="pageTypeGasHint" style="display: none;">ถ้าเลือก GAS ตัวเลือกนี้หมายถึงหลายมุมมองใน HtmlService หน้าเดียว และใช้ Alpine.js ผ่าน CDN ได้</p>
                     </div>
 
                     <!-- PWA -->
@@ -712,6 +730,161 @@
                             </label>
                         </div>
                     </div>
+
+                    <div class="gas-mode-panel" id="gasModePanel" style="display: none;">
+                        <div class="gas-mode-header">
+                            <div>
+                                <span class="gas-mode-badge" data-i18n="gasModeBadge">GAS Expert Guard + Beginner Guide</span>
+                                <h3 data-i18n="gasModeTitle">ตัวช่วยเฉพาะสำหรับ Google Apps Script</h3>
+                                <p data-i18n="gasModeDesc">ระบบจะล็อกขอบเขตให้เป็น GAS-native และเพิ่มคำอธิบายแบบมือใหม่ใน prompt อัตโนมัติ</p>
+                            </div>
+                        </div>
+
+                        <div class="gas-mode-grid">
+                            <div class="gas-mode-block">
+                                <label data-i18n="gasGuideModeLabel">ระดับคำอธิบาย</label>
+                                <div class="option-grid three-cols gas-option-grid">
+                                    <label class="option-card">
+                                        <input type="radio" name="gasGuideMode" value="beginner" checked>
+                                        <div class="option-content">
+                                            <i class="bi bi-mortarboard"></i>
+                                            <span class="option-title" data-i18n="gasGuideBeginnerTitle">Beginner</span>
+                                            <span class="option-desc" data-i18n="gasGuideBeginnerDesc">อธิบาย setup/deploy/scopes แบบทีละขั้น</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasGuideMode" value="balanced">
+                                        <div class="option-content">
+                                            <i class="bi bi-signpost-split"></i>
+                                            <span class="option-title" data-i18n="gasGuideBalancedTitle">Balanced</span>
+                                            <span class="option-desc" data-i18n="gasGuideBalancedDesc">กระชับขึ้น แต่ยังมีคำอธิบายพอเข้าใจ</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasGuideMode" value="expert">
+                                        <div class="option-content">
+                                            <i class="bi bi-lightning-charge"></i>
+                                            <span class="option-title" data-i18n="gasGuideExpertTitle">Expert</span>
+                                            <span class="option-desc" data-i18n="gasGuideExpertDesc">เน้น architecture และข้อควรระวังแบบสั้น</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p class="gas-inline-hint" data-i18n="gasGuideModeHint">Hard rules จะถูกใส่อัตโนมัติทุกโหมด ความต่างคือระดับการอธิบายให้คนอ่าน</p>
+                            </div>
+
+                            <div class="gas-mode-block">
+                                <label data-i18n="gasUiStyleLabel">โทน UI ที่อยากได้</label>
+                                <div class="option-grid three-cols gas-option-grid">
+                                    <label class="option-card">
+                                        <input type="radio" name="gasUiStyle" value="modern" checked>
+                                        <div class="option-content">
+                                            <i class="bi bi-stars"></i>
+                                            <span class="option-title" data-i18n="gasUiModernTitle">Modern</span>
+                                            <span class="option-desc" data-i18n="gasUiModernDesc">ทันสมัย อ่านง่าย ใช้งานทั่วไป</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasUiStyle" value="formal">
+                                        <div class="option-content">
+                                            <i class="bi bi-building"></i>
+                                            <span class="option-title" data-i18n="gasUiFormalTitle">Formal</span>
+                                            <span class="option-desc" data-i18n="gasUiFormalDesc">สุภาพ เหมาะกับองค์กรหรือราชการ</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasUiStyle" value="dashboard">
+                                        <div class="option-content">
+                                            <i class="bi bi-layout-sidebar-inset"></i>
+                                            <span class="option-title" data-i18n="gasUiDashboardTitle">Dashboard</span>
+                                            <span class="option-desc" data-i18n="gasUiDashboardDesc">เหมาะกับงานหลังบ้าน ตาราง และตัวกรอง</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="gas-mode-block">
+                                <label data-i18n="gasWorkflowLabel">งานที่ระบบควรเน้น</label>
+                                <div class="option-grid gas-option-grid">
+                                    <label class="option-card">
+                                        <input type="checkbox" id="gasWorkflowPdf">
+                                        <div class="option-content">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                            <span class="option-title" data-i18n="gasWorkflowPdfTitle">Docs to PDF</span>
+                                            <span class="option-desc" data-i18n="gasWorkflowPdfDesc">Google Docs template + placeholder + export PDF</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="checkbox" id="gasWorkflowDrive">
+                                        <div class="option-content">
+                                            <i class="bi bi-folder-symlink"></i>
+                                            <span class="option-title" data-i18n="gasWorkflowDriveTitle">Drive Sharing</span>
+                                            <span class="option-desc" data-i18n="gasWorkflowDriveDesc">แชร์ไฟล์ จัดการสิทธิ์ และย้ายโฟลเดอร์</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="checkbox" id="gasWorkflowBottomNav">
+                                        <div class="option-content">
+                                            <i class="bi bi-menu-button-wide"></i>
+                                            <span class="option-title" data-i18n="gasWorkflowBottomNavTitle">Bottom Menu</span>
+                                            <span class="option-desc" data-i18n="gasWorkflowBottomNavDesc">เหมาะกับ mobile-first และเมนูหลักไม่เยอะ</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="checkbox" id="gasWorkflowSwal" checked>
+                                        <div class="option-content">
+                                            <i class="bi bi-bell"></i>
+                                            <span class="option-title" data-i18n="gasWorkflowSwalTitle">Swal.fire</span>
+                                            <span class="option-desc" data-i18n="gasWorkflowSwalDesc">ใช้แจ้งเตือน ยืนยัน และ error modal เป็นค่าเริ่มต้น</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p class="gas-inline-hint" data-i18n="gasWorkflowHint">ถ้าไม่ติ๊ก ระบบยังพยายามเดาจากคำอธิบายโปรเจกต์ให้อัตโนมัติ</p>
+                            </div>
+
+                            <div class="gas-mode-block">
+                                <label data-i18n="gasNotifyLabel">ช่องทางแจ้งเตือนหลัก</label>
+                                <div class="option-grid gas-option-grid">
+                                    <label class="option-card">
+                                        <input type="radio" name="gasNotifyChannel" value="none" checked>
+                                        <div class="option-content">
+                                            <i class="bi bi-bell-slash"></i>
+                                            <span class="option-title" data-i18n="gasNotifyNoneTitle">No Push Alert</span>
+                                            <span class="option-desc" data-i18n="gasNotifyNoneDesc">ยังไม่ต้องบังคับช่องทางแจ้งเตือน</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasNotifyChannel" value="line-messaging-api">
+                                        <div class="option-content">
+                                            <i class="bi bi-line"></i>
+                                            <span class="option-title" data-i18n="gasNotifyLineTitle">LINE Messaging API</span>
+                                            <span class="option-desc" data-i18n="gasNotifyLineDesc">ใช้ LINE Official Account แทน LINE Notify ที่ยุติแล้ว</span>
+                                        </div>
+                                    </label>
+                                    <label class="option-card">
+                                        <input type="radio" name="gasNotifyChannel" value="telegram-bot">
+                                        <div class="option-content">
+                                            <i class="bi bi-telegram"></i>
+                                            <span class="option-title" data-i18n="gasNotifyTelegramTitle">Telegram Bot</span>
+                                            <span class="option-desc" data-i18n="gasNotifyTelegramDesc">เหมาะกับการแจ้งเตือนเร็วและ setup ค่อนข้างตรงไปตรงมา</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <p class="gas-inline-hint" data-i18n="gasNotifyHint">ถ้าเลือก LINE ระบบจะห้ามใช้ LINE Notify และอธิบายแนวทางผ่าน LINE Messaging API ให้แทน</p>
+                            </div>
+
+                            <div class="gas-mode-block">
+                                <label data-i18n="gasAutoRulesLabel">กฎที่ระบบจะใส่อัตโนมัติ</label>
+                                <ul class="gas-auto-list">
+                                    <li data-i18n="gasAutoRuleScope">กัน AI หลุดไป React, Next.js, Node.js, npm และ import/export</li>
+                                    <li data-i18n="gasAutoRuleDate">ย้ำเรื่อง Date, timezone และการใช้ Utilities.formatDate()</li>
+                                    <li data-i18n="gasAutoRuleZeros">เตือนเรื่องเลข 0 นำหน้าหายใน Google Sheets</li>
+                                    <li data-i18n="gasAutoRuleDrive">เตือนเรื่อง Drive permission, scope และ try/catch</li>
+                                    <li data-i18n="gasAutoRuleMultiView">ตีความ multi-view บน GAS เป็น HtmlService หน้าเดียว และแนะนำ Alpine.js ผ่าน CDN</li>
+                                    <li data-i18n="gasAutoRuleDeploy">บังคับแนวคิด doGet/doPost, HtmlService และ google.script.run</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -894,44 +1067,44 @@
       <div class="wizard-modal" style="max-width:480px;">
         <div class="wizard-header">
           <div>
-            <h3><i class="bi bi-bookmark-plus"></i> บันทึก Prompt</h3>
-            <p class="wizard-subtitle">บันทึกลงคอลเล็คชั่นส่วนตัว</p>
+            <h3><i class="bi bi-bookmark-plus"></i> <span data-i18n="saveModalTitle">บันทึก Prompt</span></h3>
+            <p class="wizard-subtitle" data-i18n="saveModalSubtitle">บันทึกลงคอลเล็คชั่นส่วนตัว</p>
           </div>
           <button class="wizard-close" onclick="closeSaveModal()"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="wizard-body" style="padding:1.25rem;">
           <!-- Auth check -->
           <div id="save-auth-section" style="display:none;">
-            <p style="text-align:center;margin-bottom:1rem;color:#64748b;">กรุณาเข้าสู่ระบบก่อนบันทึก</p>
+            <p style="text-align:center;margin-bottom:1rem;color:#64748b;" data-i18n="saveAuthHint">กรุณาเข้าสู่ระบบก่อนบันทึก</p>
             <div style="display:flex;gap:0.75rem;">
-              <a href="/auth.html" class="btn btn-primary" style="flex:1;text-align:center;text-decoration:none;">เข้าสู่ระบบ / สมัครสมาชิก</a>
+              <a href="/auth.html" class="btn btn-primary" style="flex:1;text-align:center;text-decoration:none;" data-i18n="saveAuthCta">เข้าสู่ระบบ / สมัครสมาชิก</a>
             </div>
           </div>
           <!-- Save form -->
           <div id="save-form-section" style="display:none;">
             <form id="save-prompt-form" onsubmit="handleSavePrompt(event)">
               <div style="margin-bottom:0.75rem;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">ชื่อ Prompt</label>
-                <input type="text" name="title" id="save-prompt-title" required placeholder="เช่น E-commerce Next.js" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;" data-i18n="savePromptTitleLabel">ชื่อ Prompt</label>
+                <input type="text" name="title" id="save-prompt-title" required data-i18n-placeholder="savePromptTitlePlaceholder" placeholder="เช่น E-commerce Next.js" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
               </div>
               <div style="margin-bottom:0.75rem;">
-                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;">คอลเล็คชั่น</label>
+                <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.3rem;" data-i18n="saveCollectionLabel">คอลเล็คชั่น</label>
                 <div style="display:flex;gap:0.5rem;">
                   <select name="collection_id" id="save-collection-select" style="flex:1;padding:0.5rem 0.75rem;border:1px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
-                    <option value="">— ไม่ระบุ —</option>
+                    <option value="" data-i18n="saveCollectionPlaceholder">— ไม่ระบุ —</option>
                   </select>
-                  <button type="button" onclick="toggleNewCollection()" class="btn btn-outline btn-sm" style="white-space:nowrap;"><i class="bi bi-plus"></i> สร้างใหม่</button>
+                  <button type="button" onclick="toggleNewCollection()" class="btn btn-outline btn-sm" style="white-space:nowrap;"><i class="bi bi-plus"></i> <span data-i18n="saveCollectionCreate">สร้างใหม่</span></button>
                 </div>
               </div>
               <div id="new-collection-section" style="display:none;margin-bottom:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:8px;">
-                <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.3rem;">ชื่อคอลเล็คชั่นใหม่</label>
+                <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:0.3rem;" data-i18n="saveCollectionNewLabel">ชื่อคอลเล็คชั่นใหม่</label>
                 <div style="display:flex;gap:0.5rem;">
-                  <input type="text" id="new-collection-name" placeholder="เช่น E-commerce, Portfolio" style="flex:1;padding:0.4rem 0.6rem;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85rem;">
-                  <button type="button" onclick="createNewCollection()" class="btn btn-primary btn-sm">สร้าง</button>
+                  <input type="text" id="new-collection-name" data-i18n-placeholder="saveCollectionNewPlaceholder" placeholder="เช่น E-commerce, Portfolio" style="flex:1;padding:0.4rem 0.6rem;border:1px solid #e2e8f0;border-radius:6px;font-size:0.85rem;">
+                  <button type="button" onclick="createNewCollection()" class="btn btn-primary btn-sm" data-i18n="saveCollectionCreateShort">สร้าง</button>
                 </div>
               </div>
               <button type="submit" id="save-prompt-submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem;">
-                <i class="bi bi-bookmark-check"></i> บันทึก
+                <i class="bi bi-bookmark-check"></i> <span data-i18n="savePromptSubmit">บันทึก</span>
               </button>
             </form>
           </div>
@@ -940,7 +1113,9 @@
     </div>
 
     <script src="js/i18n.js"></script>
+    <script src="js/gas-mode.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/save-prompt.js"></script>
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
