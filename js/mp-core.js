@@ -153,6 +153,78 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+const PROMPT_CATEGORY_LABELS = {
+  free: 'ฟรี',
+  'web-app': 'Web Application',
+  'mobile-app': 'Mobile App',
+  api: 'API / Backend',
+  ecommerce: 'E-Commerce',
+  dashboard: 'Dashboard',
+  'landing-page': 'Landing Page',
+  automation: 'Automation',
+  other: 'อื่นๆ'
+};
+
+function normalizePromptPrice(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function isFreePrompt(value) {
+  return normalizePromptPrice(value) === 0;
+}
+
+function formatPromptPrice(value, options = {}) {
+  const amount = normalizePromptPrice(value);
+  const decimals = Number.isInteger(options.decimals) ? options.decimals : 0;
+
+  if (amount === 0) return options.freeLabel || 'ฟรี';
+  return `฿${amount.toFixed(decimals)}`;
+}
+
+function getPromptCategoryLabel(category) {
+  return PROMPT_CATEGORY_LABELS[category] || category || PROMPT_CATEGORY_LABELS.other;
+}
+
+function renderPromptCategoryBadges(category, price, options = {}) {
+  const badges = [];
+  const baseClass = options.baseClass || 'text-xs font-medium px-2 py-0.5 rounded-full';
+  const freeClass = options.freeClass || 'bg-emerald-50 text-emerald-600';
+  const categoryClass = options.categoryClass || 'bg-indigo-50 text-indigo-600';
+
+  if (isFreePrompt(price)) {
+    badges.push(`<span class="${baseClass} ${freeClass}">ฟรี</span>`);
+  }
+
+  if (category) {
+    badges.push(`<span class="${baseClass} ${categoryClass}">${escapeHtml(getPromptCategoryLabel(category))}</span>`);
+  }
+
+  return badges.join('');
+}
+
+function getPromptPricingNote(value) {
+  return isFreePrompt(value)
+    ? 'ตั้งราคา 0 บาท ระบบจะขึ้นในหมวดฟรีอัตโนมัติ และจะไม่คิดค่าธรรมเนียม'
+    : 'รายการแบบเสียเงินจะคิดค่าคอมตามค่าที่ผู้ดูแลระบบตั้งไว้';
+}
+
+function bindPromptPricingHelper(priceInput, helperEl) {
+  if (!priceInput || !helperEl) return;
+
+  const sync = () => {
+    const freePrompt = isFreePrompt(priceInput.value);
+    helperEl.textContent = getPromptPricingNote(priceInput.value);
+    helperEl.className = freePrompt
+      ? 'mt-1.5 text-xs font-medium text-emerald-600'
+      : 'mt-1.5 text-xs text-slate-400';
+  };
+
+  priceInput.oninput = sync;
+  priceInput.onchange = sync;
+  sync();
+}
+
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -271,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
     setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
     setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
+    if (typeof setupPromptPricingHelpers === 'function') setupPromptPricingHelpers();
     initPayoutPromptPay();
     loadSellerDashboard();
     loadSellerIncomeHistory();

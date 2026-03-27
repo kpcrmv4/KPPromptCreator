@@ -68,7 +68,13 @@ async function updatePrompt(req, res, id) {
   if (description !== undefined) updates.description = description;
   if (category !== undefined) updates.category = category;
   if (tech_stack !== undefined) updates.tech_stack = tech_stack;
-  if (price !== undefined) updates.price = Number(price);
+  if (price !== undefined) {
+    const priceValue = Number(price);
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      return res.status(400).json({ error: 'ราคาต้องเป็นตัวเลข 0 บาทขึ้นไป' });
+    }
+    updates.price = priceValue;
+  }
   if (prompt_content !== undefined) updates.prompt_content = prompt_content;
   if (demo_url !== undefined) updates.demo_url = demo_url;
   if (preview_text !== undefined) updates.preview_text = preview_text;

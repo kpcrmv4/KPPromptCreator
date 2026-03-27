@@ -12,7 +12,9 @@ module.exports = async function handler(req, res) {
 };
 
 async function listPrompts(req, res) {
-  const { category, search, sort, page = 1, limit = 20 } = req.query;
+  const { category, search, sort, seller_id } = req.query;
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
   const offset = (page - 1) * limit;
 
   let query = supabaseAdmin
@@ -20,7 +22,9 @@ async function listPrompts(req, res) {
     .select('id, title, description, category, tech_stack, price, preview_text, preview_image_url, tags, status, view_count, purchase_count, avg_rating, created_at, seller:users!seller_id(id, display_name, avatar_url)', { count: 'exact' })
     .eq('status', 'approved');
 
-  if (category) query = query.eq('category', category);
+  if (seller_id) query = query.eq('seller_id', seller_id);
+  if (category === 'free') query = query.eq('price', 0);
+  else if (category) query = query.eq('category', category);
   if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
 
   if (sort === 'price_asc') query = query.order('price', { ascending: true });
@@ -44,6 +48,11 @@ async function createPrompt(req, res) {
   const { title, description, category, tech_stack, price, prompt_file_base64, prompt_filename, preview_image_base64, preview_image_filename, demo_url, preview_text, tags, detail_images } = req.body;
   const err = validateRequired(req.body, ['title', 'description', 'category', 'price', 'prompt_file_base64', 'prompt_filename']);
   if (err) return res.status(400).json({ error: err });
+
+  const priceValue = Number(price);
+  if (!Number.isFinite(priceValue) || priceValue < 0) {
+    return res.status(400).json({ error: 'ราคาต้องเป็นตัวเลข 0 บาทขึ้นไป' });
+  }
 
   // ===== 0. ตรวจสอบไฟล์ .md =====
   const fileExt = prompt_filename.split('.').pop().toLowerCase();
@@ -169,7 +178,7 @@ async function createPrompt(req, res) {
     seller_id: user.id,
     title, description, category,
     tech_stack: tech_stack || [],
-    price: Number(price),
+    price: priceValue,
     prompt_content,
     prompt_file_url: filePath,  // เก็บ path สำหรับ download ผ่าน API
     preview_image_url,

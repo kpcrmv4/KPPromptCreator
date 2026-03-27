@@ -52,7 +52,7 @@ async function loadSellerDashboard() {
       list.innerHTML = prompts.length ? prompts.map(p => `
         <tr class="border-b border-slate-100 hover:bg-slate-50">
           <td class="py-2.5 px-3 text-sm font-medium text-slate-800 max-w-[200px] truncate">${escapeHtml(p.title)}</td>
-          <td class="py-2.5 px-3 text-sm text-indigo-600 font-semibold">฿${parseFloat(p.price).toFixed(0)}</td>
+          <td class="py-2.5 px-3 text-sm font-semibold ${isFreePrompt(p.price) ? 'text-emerald-600' : 'text-indigo-600'}">${formatPromptPrice(p.price)}</td>
           <td class="py-2.5 px-3"><span class="text-xs font-medium px-2 py-0.5 rounded-full ${
             p.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
             p.status === 'rejected' ? 'bg-rose-50 text-rose-600' :
@@ -87,6 +87,11 @@ async function handleCreatePrompt(e) {
   btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> กำลังอัปโหลด...';
 
   try {
+    if (normalizePromptPrice(form.price.value) < 0) {
+      showToast('ราคาต้องเป็น 0 บาทขึ้นไป', 'error');
+      return;
+    }
+
     const promptFile = document.getElementById('prompt-file-input')?.files[0];
     if (!promptFile) { showToast('กรุณาเลือกไฟล์ Prompt (.md)', 'error'); return; }
     const promptFileBase64 = await readFileAsBase64(promptFile);
@@ -132,6 +137,7 @@ async function handleCreatePrompt(e) {
       const el = document.getElementById(id);
       if (el) { el.style.display = 'none'; el.innerHTML = ''; }
     });
+    setupPromptPricingHelpers();
     loadSellerDashboard();
     const tab = document.querySelector('.dash-tab[data-tab="tab-prompts"]');
     if (tab) tab.click();
@@ -267,8 +273,8 @@ async function openEditPrompt(promptId) {
           <div><label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ</label><input type="text" name="title" value="${escapeHtml(prompt.title)}" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
           <div><label class="block text-sm font-medium text-slate-700 mb-1">รายละเอียด</label><textarea name="description" required rows="3" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none">${escapeHtml(prompt.description)}</textarea></div>
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="block text-sm font-medium text-slate-700 mb-1">หมวด</label><select name="category" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">${['web-app','mobile-app','api','ecommerce','dashboard','landing-page','automation','other'].map(c => `<option value="${c}" ${prompt.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-            <div><label class="block text-sm font-medium text-slate-700 mb-1">ราคา (บาท)</label><input type="number" name="price" value="${prompt.price}" required min="0" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">หมวด</label><select name="category" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">${['web-app','mobile-app','api','ecommerce','dashboard','landing-page','automation','other'].map(c => `<option value="${c}" ${prompt.category === c ? 'selected' : ''}>${getPromptCategoryLabel(c)}</option>`).join('')}</select></div>
+            <div><label class="block text-sm font-medium text-slate-700 mb-1">ราคา (บาท)</label><input type="number" name="price" value="${prompt.price}" required min="0" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"><p data-price-helper class="mt-1.5 text-xs text-slate-400"></p></div>
           </div>
           <div><label class="block text-sm font-medium text-slate-700 mb-1">Tech Stack (คั่นด้วย ,)</label><input type="text" name="tech_stack" value="${(prompt.tech_stack || []).join(', ')}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
           <div><label class="block text-sm font-medium text-slate-700 mb-1">Tags (คั่นด้วย ,)</label><input type="text" name="tags" value="${(prompt.tags || []).join(', ')}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 outline-none"></div>
@@ -281,6 +287,7 @@ async function openEditPrompt(promptId) {
       </div>
     `;
     document.body.appendChild(modal);
+    setupPromptPricingHelpers(modal);
   } catch (err) { showToast(err.error || 'โหลดไม่สำเร็จ', 'error'); }
 }
 
@@ -290,6 +297,11 @@ async function handleEditPrompt(e, promptId) {
   const btn = form.querySelector('button[type="submit"]');
   btn.disabled = true;
   try {
+    if (normalizePromptPrice(form.price.value) < 0) {
+      showToast('ราคาต้องเป็น 0 บาทขึ้นไป', 'error');
+      return;
+    }
+
     await api(`/prompts/${promptId}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -305,6 +317,12 @@ async function handleEditPrompt(e, promptId) {
     loadSellerDashboard();
   } catch (err) { showToast(err.error || 'แก้ไขไม่สำเร็จ', 'error'); }
   finally { btn.disabled = false; }
+}
+
+function setupPromptPricingHelpers(root = document) {
+  const priceInput = root.querySelector('input[name="price"]');
+  const helperEl = root.querySelector('[data-price-helper]');
+  bindPromptPricingHelper(priceInput, helperEl);
 }
 
 // =============================================
@@ -436,8 +454,8 @@ async function loadAdminPromptsByStatus(status) {
             <p class="text-sm text-slate-500 mb-2 line-clamp-2">${escapeHtml(p.description).substring(0, 200)}</p>
             <div class="flex items-center gap-2 flex-wrap text-xs">
               <span class="text-slate-500">${escapeHtml(p.seller?.display_name)}</span>
-              <span class="font-semibold text-indigo-600">฿${parseFloat(p.price).toFixed(0)}</span>
-              <span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full">${p.category}</span>
+              <span class="font-semibold ${isFreePrompt(p.price) ? 'text-emerald-600' : 'text-indigo-600'}">${formatPromptPrice(p.price)}</span>
+              ${renderPromptCategoryBadges(p.category, p.price)}
               ${p.kp_signature
                 ? '<span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full">KP Verified</span>'
                 : '<span class="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full">ไม่มี KP</span>'

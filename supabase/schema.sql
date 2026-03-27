@@ -307,20 +307,31 @@ BEGIN
   v_new_buyer_balance := v_buyer.credit_balance - v_prompt.price;
   v_new_seller_balance := v_seller.credit_balance + v_seller_amount;
 
-  -- Update balances
-  UPDATE users SET credit_balance = v_new_buyer_balance WHERE id = p_buyer_id;
-  UPDATE users SET credit_balance = v_new_seller_balance WHERE id = v_prompt.seller_id;
+  IF v_prompt.price = 0 THEN
+    v_commission := 0;
+    v_seller_amount := 0;
+    v_new_buyer_balance := v_buyer.credit_balance;
+    v_new_seller_balance := v_seller.credit_balance;
+  END IF;
+
+  -- Update balances only for paid prompts
+  IF v_prompt.price > 0 THEN
+    UPDATE users SET credit_balance = v_new_buyer_balance WHERE id = p_buyer_id;
+    UPDATE users SET credit_balance = v_new_seller_balance WHERE id = v_prompt.seller_id;
+  END IF;
 
   -- Create order
   INSERT INTO orders (buyer_id, prompt_id, seller_id, amount, commission, seller_amount)
   VALUES (p_buyer_id, p_prompt_id, v_prompt.seller_id, v_prompt.price, v_commission, v_seller_amount)
   RETURNING id INTO v_order_id;
 
-  -- Transactions
-  INSERT INTO transactions (user_id, type, amount, balance_after, ref_id, description)
-  VALUES
-    (p_buyer_id, 'purchase', -v_prompt.price, v_new_buyer_balance, v_order_id::text, 'ซื้อ "' || v_prompt.title || '"'),
-    (v_prompt.seller_id, 'sale', v_seller_amount, v_new_seller_balance, v_order_id::text, 'ขาย "' || v_prompt.title || '" (หักค่าคอม ฿' || v_commission || ')');
+  -- Transactions for paid prompts only
+  IF v_prompt.price > 0 THEN
+    INSERT INTO transactions (user_id, type, amount, balance_after, ref_id, description)
+    VALUES
+      (p_buyer_id, 'purchase', -v_prompt.price, v_new_buyer_balance, v_order_id::text, 'ซื้อ "' || v_prompt.title || '"'),
+      (v_prompt.seller_id, 'sale', v_seller_amount, v_new_seller_balance, v_order_id::text, 'ขาย "' || v_prompt.title || '" (หักค่าคอม ฿' || v_commission || ')');
+  END IF;
 
   -- Update purchase count
   UPDATE prompts SET purchase_count = purchase_count + 1 WHERE id = p_prompt_id;

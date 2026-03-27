@@ -13,6 +13,78 @@ module.exports = async function handler(req, res) {
   const { prompt_id } = req.body;
   if (!prompt_id) return res.status(400).json({ error: 'กรุณาระบุ prompt_id' });
 
+  const { data: prompt } = await supabaseAdmin
+    .from('prompts')
+    .select('id, title, price, status, seller_id, purchase_count')
+    .eq('id', prompt_id)
+    .single();
+
+  if (!prompt || prompt.status !== 'approved') {
+    return res.status(404).json({ error: 'ไม่พบ prompt หรือยังไม่ได้อนุมัติ' });
+  }
+  if (prompt.seller_id === user.id) {
+    return res.status(400).json({ error: 'ไม่สามารถซื้อ prompt ของตัวเองได้' });
+  }
+
+  const { data: existingOrder } = await supabaseAdmin
+    .from('orders')
+    .select('id')
+    .eq('buyer_id', user.id)
+    .eq('prompt_id', prompt_id)
+    .single();
+
+  if (existingOrder) {
+    return res.status(409).json({ error: 'คุณซื้อ prompt นี้แล้ว' });
+  }
+
+  if (Number(prompt.price) === 0) {
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('orders')
+      .insert({
+        buyer_id: user.id,
+        prompt_id,
+        seller_id: prompt.seller_id,
+        amount: 0,
+        commission: 0,
+        seller_amount: 0,
+        status: 'completed'
+      })
+      .select('id')
+      .single();
+
+    if (orderError) {
+      const msg = orderError.message || '';
+      if (msg.includes('duplicate') || msg.includes('unique')) {
+        return res.status(409).json({ error: 'คุณซื้อ prompt นี้แล้ว' });
+      }
+    }
+
+    if (orderError || !order) {
+      return res.status(500).json({ error: 'รับ Prompt ฟรีไม่สำเร็จ' });
+    }
+
+    await supabaseAdmin
+      .from('prompts')
+      .update({ purchase_count: (prompt.purchase_count || 0) + 1 })
+      .eq('id', prompt_id);
+
+    await sendNotification({
+      user_id: prompt.seller_id,
+      type: 'new_sale',
+      title: 'มีคนรับ Prompt ฟรีของคุณ!',
+      message: `"${prompt.title}" ถูกกดรับฟรีแล้ว`,
+      ref_id: order.id,
+      ref_type: 'order'
+    });
+
+    return res.json({
+      success: true,
+      order: { id: order.id, amount: 0 },
+      new_balance: parseFloat(user.credit_balance || 0),
+      message: `รับ "${prompt.title}" ฟรีสำเร็จ`
+    });
+  }
+
   // ดึง commission rate
   const { data: setting } = await supabaseAdmin
     .from('settings').select('value').eq('key', 'commission_rate').single();

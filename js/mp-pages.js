@@ -58,8 +58,8 @@ async function loadPrompts(params = {}) {
         }
         <div class="p-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">${escapeHtml(p.category)}</span>
-            <span class="text-lg font-bold text-indigo-600">฿${parseFloat(p.price).toFixed(0)}</span>
+            <div class="flex flex-wrap gap-1.5">${renderPromptCategoryBadges(p.category, p.price)}</div>
+            <span class="text-lg font-bold ${isFreePrompt(p.price) ? 'text-emerald-600' : 'text-indigo-600'}">${formatPromptPrice(p.price)}</span>
           </div>
           <h3 class="font-semibold text-slate-800 mb-1 line-clamp-1 group-hover:text-indigo-600 transition-colors">${escapeHtml(p.title)}</h3>
           <p class="text-sm text-slate-500 line-clamp-2 mb-3">${escapeHtml(p.preview_text || p.description).substring(0, 120)}</p>
@@ -138,7 +138,7 @@ async function loadPromptDetail() {
         <!-- Main content -->
         <div class="lg:col-span-2 space-y-6">
           <div>
-            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">${escapeHtml(prompt.category)}</span>
+            <div class="flex flex-wrap gap-1.5">${renderPromptCategoryBadges(prompt.category, prompt.price, { baseClass: 'text-xs font-medium px-2.5 py-1 rounded-full' })}</div>
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-3">${escapeHtml(prompt.title)}</h1>
             <div class="flex items-center gap-4 mt-3 text-sm text-slate-500">
               <span class="flex items-center gap-1.5">
@@ -202,19 +202,19 @@ async function loadPromptDetail() {
         <!-- Sidebar -->
         <div class="lg:col-span-1">
           <div class="sticky top-20 bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
-            <div class="text-3xl font-bold text-indigo-600">฿${parseFloat(prompt.price).toFixed(0)}</div>
+            <div class="text-3xl font-bold ${isFreePrompt(prompt.price) ? 'text-emerald-600' : 'text-indigo-600'}">${formatPromptPrice(prompt.price)}</div>
             ${purchased
               ? `<button onclick="downloadPrompt('${prompt.id}')" class="w-full py-3 rounded-xl font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                   ดาวน์โหลด Prompt
                 </button>
-                <div class="text-center"><span class="inline-flex items-center gap-1 text-sm text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ซื้อแล้ว</span></div>`
-              : `<button onclick="purchasePrompt('${prompt.id}')" class="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200">
+                <div class="text-center"><span class="inline-flex items-center gap-1 text-sm text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${isFreePrompt(prompt.price) ? 'รับแล้ว' : 'ซื้อแล้ว'}</span></div>`
+              : `<button onclick="purchasePrompt('${prompt.id}', ${normalizePromptPrice(prompt.price)})" class="w-full py-3 rounded-xl font-semibold text-white ${isFreePrompt(prompt.price) ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200'} transition-all flex items-center justify-center gap-2">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path></svg>
-                  ซื้อ Prompt
+                  ${isFreePrompt(prompt.price) ? 'รับ Prompt ฟรี' : 'ซื้อ Prompt'}
                 </button>`
             }
-            <div class="text-xs text-slate-400 text-center">ซื้อแล้วดาวน์โหลดได้ตลอด</div>
+            <div class="text-xs text-slate-400 text-center">${isFreePrompt(prompt.price) ? 'กดรับฟรีแล้วดาวน์โหลดได้ตลอด' : 'ซื้อแล้วดาวน์โหลดได้ตลอด'}</div>
           </div>
         </div>
       </div>
@@ -225,13 +225,14 @@ async function loadPromptDetail() {
   }
 }
 
-async function purchasePrompt(promptId) {
+async function purchasePrompt(promptId, price = null) {
   if (!currentUser) {
     showToast('กรุณาเข้าสู่ระบบก่อนซื้อ', 'error');
     window.location.href = '/auth.html';
     return;
   }
-  if (!confirm('ยืนยันการซื้อ Prompt นี้?')) return;
+  const freePrompt = isFreePrompt(price);
+  if (!confirm(freePrompt ? 'ยืนยันการรับ Prompt ฟรีนี้?' : 'ยืนยันการซื้อ Prompt นี้?')) return;
 
   try {
     const data = await api('/prompts/purchase', {
@@ -514,7 +515,7 @@ async function loadOrders() {
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-slate-800 truncate">${escapeHtml(o.prompt?.title || 'Prompt')}</h3>
-            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${parseFloat(o.amount).toFixed(0)}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ${formatPromptPrice(o.amount)}</p>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             <button onclick="downloadPrompt('${o.prompt?.id}')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center gap-1">
@@ -755,7 +756,7 @@ async function loadPurchasedPrompts() {
       return `
       <div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
         <h3 class="font-semibold text-slate-800 text-sm truncate mb-1">${escapeHtml(p.title || 'Prompt')}</h3>
-        <p class="text-xs text-slate-400 mb-3">${escapeHtml(p.seller?.display_name || '')} — ฿${parseFloat(o.amount).toFixed(0)} — ${new Date(o.created_at).toLocaleDateString('th-TH')}</p>
+        <p class="text-xs text-slate-400 mb-3">${escapeHtml(o.seller?.display_name || '')} — ${formatPromptPrice(o.amount)} — ${new Date(o.created_at).toLocaleDateString('th-TH')}</p>
         <div class="flex gap-2">
           <button onclick="downloadPrompt('${p.id}')" class="flex-1 py-2 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"/></svg> ดาวน์โหลด
