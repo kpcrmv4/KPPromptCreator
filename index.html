@@ -68,7 +68,10 @@
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label for="apiKey" data-i18n="apiKeyLabel">API Key <a href="https://aistudio.google.com/apikey" target="_blank" class="link-small">(รับ API Key ฟรี)</a></label><button type="button" class="btn-icon-inline" id="apiKeySecurityBtn" title="ความปลอดภัย"><i class="bi bi-shield-lock-fill"></i></button>
+                        <label for="apiKey">
+                            <span data-i18n="apiKeyLabel">API Key <a href="https://aistudio.google.com/apikey" target="_blank" class="link-small">(รับ API Key ฟรี)</a></span>
+                            <span class="btn-icon-inline" id="apiKeySecurityBtn" role="button" tabindex="0" title="ความปลอดภัย"><i class="bi bi-shield-lock-fill"></i></span>
+                        </label>
                         <div class="input-with-icon">
                             <input type="password" id="apiKey" placeholder="ใส่ Gemini API Key ของคุณ" data-i18n-placeholder="apiKeyPlaceholder" autocomplete="off">
                             <button type="button" class="btn-icon" id="toggleApiKey" title="แสดง/ซ่อน" data-i18n-title="apiKeyToggleTitle">
