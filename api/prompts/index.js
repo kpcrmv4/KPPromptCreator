@@ -247,4 +247,13 @@ async function createPrompt(req, res) {
     kp_verified,
     warnings: warnings.length > 0 ? warnings : undefined
   });
+
+  // ===== 10. Link back to saved_prompt if provided =====
+  if (req.body.saved_prompt_id) {
+    await supabaseAdmin
+      .from('saved_prompts')
+      .update({ marketplace_prompt_id: data.id })
+      .eq('id', req.body.saved_prompt_id)
+      .eq('user_id', user.id);
+  }
 }
