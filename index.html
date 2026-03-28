@@ -289,6 +289,34 @@
                 <div class="card-header">
                     <span class="step-badge"><i class="bi bi-google"></i></span>
                     <h2 data-i18n="gasWizardTitle">Google Web App Wizard</h2>
+                    <button class="btn btn-outline btn-sm" id="gasWizTemplateToggle">
+                        <i class="bi bi-lightning"></i> <span data-i18n="showTemplateBtn">เลือกจาก Template</span>
+                    </button>
+                </div>
+                <!-- Inline Template Picker for GAS Wizard -->
+                <div class="gas-wiz-template-picker" id="gasWizTemplatePicker" style="display:none;">
+                    <div class="template-grid" id="gasWizTemplateGrid">
+                        <button class="template-card" data-gas-template="inventory">
+                            <i class="bi bi-box-seam"></i>
+                            <span class="template-title" data-i18n="tplInventory">ระบบจัดการสต็อก</span>
+                            <span class="template-desc" data-i18n="tplInventoryDesc">CRUD สินค้า แดชบอร์ด รายงาน</span>
+                        </button>
+                        <button class="template-card" data-gas-template="govDocsPdf">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            <span class="template-title" data-i18n="tplGovDocsPdf">ระบบฟอร์มราชการ + PDF</span>
+                            <span class="template-desc" data-i18n="tplGovDocsPdfDesc">Google Docs template แทนค่าแล้ว export PDF</span>
+                        </button>
+                        <button class="template-card" data-gas-template="approvalFlow">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span class="template-title" data-i18n="tplApprovalFlow">ระบบอนุมัติเอกสาร</span>
+                            <span class="template-desc" data-i18n="tplApprovalFlowDesc">หลายขั้นตอน มีประวัติ และแจ้งเตือนผู้อนุมัติ</span>
+                        </button>
+                        <button class="template-card" data-gas-template="driveCenter">
+                            <i class="bi bi-folder2-open"></i>
+                            <span class="template-title" data-i18n="tplDriveCenter">ศูนย์จัดการไฟล์ Drive</span>
+                            <span class="template-desc" data-i18n="tplDriveCenterDesc">แชร์ไฟล์ ตั้งสิทธิ์ ค้นหา และติดตามการใช้งาน</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- GAS Wizard Step 1: Project Info -->
