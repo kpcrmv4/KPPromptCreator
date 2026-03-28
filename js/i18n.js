@@ -201,10 +201,14 @@ const TRANSLATIONS = {
         resultLoading: 'Gemini กำลังสร้าง prompt...',
 
         // Footer
+        footerStatsTitle: 'สถิติการใช้งาน',
         footerStatTotal: 'Prompt ที่สร้างแล้ว',
         footerStatTopPlatform: 'แพลตฟอร์มที่ใช้บ่อยสุด',
         footerStatTopMode: 'โหมดที่ใช้บ่อยสุด',
         footerStatBreakdown: 'สัดส่วนแพลตฟอร์ม',
+        footerStatVotes: 'คนอยากให้มีระบบ AI สร้างเว็บ',
+        voteTitle: 'อยากให้ AI สร้างเว็บจาก Prompt นี้ให้เลยไหม?',
+        voteDesc: 'กดหัวใจโหวต! ถ้าคนสนใจเยอะพอ เราจะทำระบบนี้ให้',
         footerText: 'KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย',
 
         gasWizProjectDescPlaceholder: 'เช่น ระบบบันทึกรายรับรายจ่าย มีฟอร์มกรอกข้อมูล เก็บลง Google Sheets แดชบอร์ดสรุปยอด แจ้งเตือนผ่าน LINE...',
@@ -558,10 +562,14 @@ const TRANSLATIONS = {
         resultLoading: 'Gemini is generating prompt...',
 
         // Footer
+        footerStatsTitle: 'Usage Stats',
         footerStatTotal: 'Prompts Generated',
         footerStatTopPlatform: 'Most Used Platform',
         footerStatTopMode: 'Most Used Mode',
         footerStatBreakdown: 'Platform Breakdown',
+        footerStatVotes: 'want AI Code Generation',
+        voteTitle: 'Want AI to build the web app from this Prompt?',
+        voteDesc: 'Tap the heart to vote! If enough people want it, we\'ll build it.',
         footerText: 'KP Prompt Creator &mdash; Made with <i class="bi bi-heart-fill"></i> for the developer community',
 
         gasWizProjectDescPlaceholder: 'e.g. Income/expense tracker with form, Google Sheets storage, summary dashboard, LINE notifications...',

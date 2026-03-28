@@ -2844,24 +2844,127 @@ function trackPromptGenerated(platform, mode) {
     stats.lastUsed = now;
 
     saveStats(stats);
-    renderFooterStats();
+    renderFooterStatsGlobal();
+
+    // Sync to server
+    syncStatsToServer(platform, mode);
+
+    // Update vote count
+    updateVoteCount();
 }
 
-function renderFooterStats() {
+function getTopKey(obj) {
+    let topKey = null, topVal = 0;
+    for (const [key, val] of Object.entries(obj)) {
+        if (val > topVal) { topKey = key; topVal = val; }
+    }
+    return topKey;
+}
+
+// ===== Supabase Stats Sync =====
+
+const STATS_API_URL = '/api/stats';
+
+function getVisitorId() {
+    let id = localStorage.getItem('kp_visitor_id');
+    if (!id) {
+        id = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem('kp_visitor_id', id);
+    }
+    return id;
+}
+
+async function syncStatsToServer(platform, mode) {
+    try {
+        await fetch(STATS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'prompt', platform, mode })
+        });
+    } catch { /* silent fail — localStorage is primary */ }
+}
+
+async function fetchGlobalStats() {
+    try {
+        const res = await fetch(STATS_API_URL);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch { return null; }
+}
+
+async function submitVote() {
+    const btn = document.getElementById('voteHeartBtn');
+    const countEl = document.getElementById('voteCount');
+    if (!btn || btn.classList.contains('voted')) return;
+
+    btn.classList.add('voted');
+    btn.querySelector('i').className = 'bi bi-heart-fill';
+    localStorage.setItem('kp_voted_ai_code_gen', '1');
+
+    // Particle animation
+    createVoteParticles();
+
+    // Animate count
+    const current = parseInt(countEl.textContent) || 0;
+    countEl.textContent = current + 1;
+
+    try {
+        await fetch(STATS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'vote', visitorId: getVisitorId() })
+        });
+    } catch { /* voted locally */ }
+}
+
+function createVoteParticles() {
+    const container = document.getElementById('voteParticles');
+    if (!container) return;
+
+    const emojis = ['❤️', '💜', '🧡', '💙', '✨', '⭐'];
+    for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('span');
+        particle.className = 'vote-particle';
+        particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        particle.style.setProperty('--x', (Math.random() * 200 - 100) + 'px');
+        particle.style.setProperty('--y', -(Math.random() * 120 + 40) + 'px');
+        particle.style.animationDelay = (Math.random() * 0.3) + 's';
+        container.appendChild(particle);
+        setTimeout(() => particle.remove(), 1500);
+    }
+}
+
+function initVoteButton() {
+    const btn = document.getElementById('voteHeartBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', submitVote);
+
+    // Check if already voted
+    if (localStorage.getItem('kp_voted_ai_code_gen')) {
+        btn.classList.add('voted');
+        btn.querySelector('i').className = 'bi bi-heart-fill';
+    }
+}
+
+// Enhanced renderFooterStats with global data
+async function renderFooterStatsGlobal() {
     const container = document.getElementById('footerStats');
     if (!container) return;
 
-    const stats = getStats();
-    if (stats.total === 0) {
+    const globalStats = await fetchGlobalStats();
+    const localStats = getStats();
+
+    // Use global if available, fallback to local
+    const total = globalStats ? globalStats.totalPrompts : localStats.total;
+    const voteCount = globalStats ? globalStats.aiCodeGenVotes : 0;
+
+    if (total === 0 && voteCount === 0) {
         container.style.display = 'none';
         return;
     }
 
     container.style.display = '';
-
-    // Find top platform and mode
-    const topPlatform = getTopKey(stats.platforms);
-    const topMode = getTopKey(stats.modes);
 
     const platformLabels = {
         'google-apps-script': 'Google Apps Script',
@@ -2873,46 +2976,39 @@ function renderFooterStats() {
         'nuxt-vercel': 'Nuxt'
     };
 
-    const modeLabels = {
-        'manual': 'Manual Mode',
-        'ai-chat': 'AI Chat',
-        'ai-wizard': 'AI Wizard',
-        'gas-wizard': 'GAS Wizard'
-    };
+    let html = `<div class="footer-stats-title"><i class="bi bi-bar-chart-fill"></i> ${t('footerStatsTitle')}</div>`;
+    html += `<div class="footer-stats-grid">`;
 
-    let html = `<div class="footer-stats-grid">`;
-    html += `<div class="footer-stat-item">
-        <span class="footer-stat-number">${stats.total}</span>
-        <span class="footer-stat-label">${t('footerStatTotal')}</span>
-    </div>`;
-
-    if (topPlatform) {
+    // Total prompts
+    if (total > 0) {
         html += `<div class="footer-stat-item">
-            <span class="footer-stat-number">${platformLabels[topPlatform] || topPlatform}</span>
-            <span class="footer-stat-label">${t('footerStatTopPlatform')}</span>
+            <span class="footer-stat-number">${total.toLocaleString()}</span>
+            <span class="footer-stat-label">${t('footerStatTotal')}</span>
         </div>`;
     }
 
-    if (topMode) {
+    // Vote count
+    if (voteCount > 0) {
         html += `<div class="footer-stat-item">
-            <span class="footer-stat-number">${modeLabels[topMode] || topMode}</span>
-            <span class="footer-stat-label">${t('footerStatTopMode')}</span>
+            <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
+            <span class="footer-stat-label">${t('footerStatVotes')}</span>
         </div>`;
     }
 
     // Platform breakdown
-    const platformEntries = Object.entries(stats.platforms).sort((a, b) => b[1] - a[1]);
-    if (platformEntries.length > 1) {
+    const platforms = globalStats ? globalStats.platforms : Object.entries(localStats.platforms).map(([platform, count]) => ({ platform, count }));
+    if (platforms && platforms.length > 0) {
+        const platformTotal = platforms.reduce((sum, p) => sum + (p.count || 0), 0);
         html += `<div class="footer-stat-item footer-stat-breakdown">
             <span class="footer-stat-label">${t('footerStatBreakdown')}</span>
             <div class="footer-stat-bars">`;
-        platformEntries.forEach(([key, count]) => {
-            const pct = Math.round((count / stats.total) * 100);
-            const label = platformLabels[key] || key;
+        platforms.forEach(p => {
+            const pct = platformTotal > 0 ? Math.round((p.count / platformTotal) * 100) : 0;
+            const label = platformLabels[p.platform] || p.platform;
             html += `<div class="footer-stat-bar-row">
                 <span class="footer-stat-bar-label">${label}</span>
                 <div class="footer-stat-bar"><div class="footer-stat-bar-fill" style="width:${pct}%"></div></div>
-                <span class="footer-stat-bar-count">${count}</span>
+                <span class="footer-stat-bar-count">${p.count}</span>
             </div>`;
         });
         html += `</div></div>`;
@@ -2922,15 +3018,18 @@ function renderFooterStats() {
     container.innerHTML = html;
 }
 
-function getTopKey(obj) {
-    let topKey = null, topVal = 0;
-    for (const [key, val] of Object.entries(obj)) {
-        if (val > topVal) { topKey = key; topVal = val; }
+// Update vote count when result section shows
+async function updateVoteCount() {
+    const countEl = document.getElementById('voteCount');
+    if (!countEl) return;
+    const globalStats = await fetchGlobalStats();
+    if (globalStats) {
+        countEl.textContent = globalStats.aiCodeGenVotes || 0;
     }
-    return topKey;
 }
 
 // Init footer stats on load
 document.addEventListener('DOMContentLoaded', () => {
-    renderFooterStats();
+    renderFooterStatsGlobal();
+    initVoteButton();
 });

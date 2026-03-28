@@ -447,3 +447,56 @@ USING (
   bucket_id = 'avatars'
   AND (storage.foldername(name))[1] = auth.uid()::text
 );
+
+-- =============================================
+-- Prompt Creator Stats (Anonymous Tracking)
+-- =============================================
+
+CREATE TABLE prompt_stats (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  platform TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE feature_votes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  feature_name TEXT NOT NULL DEFAULT 'ai-code-gen',
+  visitor_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(feature_name, visitor_id)
+);
+
+-- Indexes
+CREATE INDEX idx_prompt_stats_created ON prompt_stats(created_at);
+CREATE INDEX idx_prompt_stats_platform ON prompt_stats(platform);
+CREATE INDEX idx_feature_votes_feature ON feature_votes(feature_name);
+
+-- RLS
+ALTER TABLE prompt_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feature_votes ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert stats (anonymous)
+CREATE POLICY "prompt_stats_insert" ON prompt_stats FOR INSERT WITH CHECK (true);
+CREATE POLICY "prompt_stats_select" ON prompt_stats FOR SELECT USING (true);
+
+CREATE POLICY "feature_votes_insert" ON feature_votes FOR INSERT WITH CHECK (true);
+CREATE POLICY "feature_votes_select" ON feature_votes FOR SELECT USING (true);
+
+-- RPC: Aggregated platform stats
+CREATE OR REPLACE FUNCTION get_platform_stats()
+RETURNS TABLE(platform TEXT, count BIGINT) AS $$
+  SELECT platform, COUNT(*) as count
+  FROM prompt_stats
+  GROUP BY platform
+  ORDER BY count DESC;
+$$ LANGUAGE sql STABLE;
+
+-- RPC: Aggregated mode stats
+CREATE OR REPLACE FUNCTION get_mode_stats()
+RETURNS TABLE(mode TEXT, count BIGINT) AS $$
+  SELECT mode, COUNT(*) as count
+  FROM prompt_stats
+  GROUP BY mode
+  ORDER BY count DESC;
+$$ LANGUAGE sql STABLE;
