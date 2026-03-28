@@ -38,6 +38,7 @@ const TRANSLATIONS = {
 
         // Step 3: Project Info
         stepProjectInfo: 'ข้อมูลโปรเจกต์',
+        showTemplateBtn: 'เลือกจาก Template',
         projectNameLabel: 'ชื่อเว็บไซต์ / โปรเจกต์',
         projectNamePlaceholder: 'เช่น ระบบจัดการสต็อกสินค้า',
         projectDescLabel: 'อธิบายหลักการทำงาน',
@@ -381,6 +382,7 @@ const TRANSLATIONS = {
 
         // Step 3: Project Info
         stepProjectInfo: 'Project Info',
+        showTemplateBtn: 'Choose from Template',
         projectNameLabel: 'Website / Project Name',
         projectNamePlaceholder: 'e.g. Inventory Management System',
         projectDescLabel: 'Describe how it works',
