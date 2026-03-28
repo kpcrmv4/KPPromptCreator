@@ -158,6 +158,54 @@ function initApp() {
         });
     }
 
+    // GAS Wizard template picker toggle
+    const gasWizTemplateToggle = document.getElementById('gasWizTemplateToggle');
+    const gasWizTemplatePicker = document.getElementById('gasWizTemplatePicker');
+    if (gasWizTemplateToggle && gasWizTemplatePicker) {
+        gasWizTemplateToggle.addEventListener('click', () => {
+            const isHidden = gasWizTemplatePicker.style.display === 'none';
+            gasWizTemplatePicker.style.display = isHidden ? '' : 'none';
+            gasWizTemplateToggle.classList.toggle('active', isHidden);
+        });
+
+        // GAS template card clicks
+        document.querySelectorAll('[data-gas-template]').forEach(card => {
+            card.addEventListener('click', () => {
+                const templateId = card.dataset.gasTemplate;
+                const tpl = PROJECT_TEMPLATES[templateId];
+                if (!tpl) return;
+                const lang = currentLang || 'th';
+
+                // Fill GAS wizard fields
+                document.getElementById('gasWizProjectName').value = tpl.name[lang] || tpl.name.th;
+                document.getElementById('gasWizProjectDesc').value = tpl.desc[lang] || tpl.desc.th;
+
+                // Apply gasMode settings if available
+                if (tpl.gasMode) {
+                    Object.entries(tpl.gasMode).forEach(([name, value]) => {
+                        if (typeof value === 'boolean') {
+                            const checkbox = document.getElementById(name);
+                            if (checkbox) checkbox.checked = value;
+                        } else {
+                            const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+                            if (radio) radio.checked = true;
+                        }
+                    });
+                }
+
+                // Highlight active
+                document.querySelectorAll('[data-gas-template]').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+
+                // Collapse picker and scroll to step 1
+                gasWizTemplatePicker.style.display = 'none';
+                gasWizTemplateToggle.classList.remove('active');
+
+                showToast(t('tplApplied', { name: tpl.name[lang] || tpl.name.th }));
+            });
+        });
+    }
+
     // Description helper
     initDescHelper();
 
