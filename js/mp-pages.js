@@ -539,6 +539,80 @@ async function loadOrders() {
 }
 
 // =============================================
+// Codegen Orders (AI Code Generation)
+// =============================================
+async function loadCodegenOrders() {
+  const container = document.getElementById('codegen-orders-list');
+  if (!container) return;
+
+  try {
+    const res = await api('/codegen-orders');
+    const orders = res.orders || [];
+
+    if (orders.length === 0) {
+      container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm">ยังไม่มีคำสั่งซื้อ Code Generation</div>`;
+      return;
+    }
+
+    const statusConfig = {
+      pending_payment: { label: 'รอตรวจสอบยอดเงิน', color: 'amber', icon: '🟡' },
+      generating: { label: 'กำลังสร้างโค้ด...', color: 'blue', icon: '🔵' },
+      completed: { label: 'สำเร็จ', color: 'emerald', icon: '🟢' },
+      rejected: { label: 'ไม่สำเร็จ', color: 'red', icon: '🔴' }
+    };
+
+    container.innerHTML = orders.map(o => {
+      const st = statusConfig[o.status] || statusConfig.pending_payment;
+      const tierLabel = { simple: 'ง่าย', moderate: 'ปานกลาง', complex: 'ซับซ้อน' };
+
+      return `<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-slate-800 truncate">${escapeHtml(o.project_name)}</h3>
+            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${o.price} &bull; ${tierLabel[o.tier] || o.tier}</p>
+          </div>
+          <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-${st.color}-50 text-${st.color}-600 flex-shrink-0">${st.icon} ${st.label}</span>
+        </div>
+        ${o.status === 'completed' ? `
+          <div class="mt-3 flex gap-2">
+            <button onclick="downloadCodegenOrder('${o.download_token}')" class="flex-1 py-2 bg-indigo-600 text-white text-xs rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path></svg> ดาวน์โหลด ZIP (${o.file_count} ไฟล์)
+            </button>
+          </div>` : ''}
+        ${o.status === 'rejected' && o.admin_note ? `<p class="mt-2 text-xs text-red-500">${escapeHtml(o.admin_note)}</p>` : ''}
+        ${o.status === 'generating' ? `<div class="mt-2"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500 rounded-full animate-pulse" style="width:60%"></div></div></div>` : ''}
+      </div>`;
+    }).join('');
+  } catch {
+    container.innerHTML = '<p class="text-center text-slate-400 py-8">โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function downloadCodegenOrder(token) {
+  try {
+    const tkn = localStorage.getItem('kp_token');
+    const res = await fetch(`/api/codegen-orders/download?token=${token}`, {
+      headers: { 'Authorization': `Bearer ${tkn}` }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Download failed');
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const filename = cd.match(/filename="?([^"]+)"?/)?.[1] || 'project.zip';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showToast('ดาวน์โหลดสำเร็จ', 'success');
+  } catch (err) {
+    showToast(err.message || 'ดาวน์โหลดไม่สำเร็จ', 'error');
+  }
+}
+
+// =============================================
 // Review Modal
 // =============================================
 function openReviewModal(orderId, promptId, promptTitle) {

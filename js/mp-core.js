@@ -331,6 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else if (page.includes('orders') && !page.includes('admin')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadOrders();
+    if (typeof loadCodegenOrders === 'function') loadCodegenOrders();
   } else if (page.includes('account')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadAccountForm();
@@ -361,6 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAdminPayouts();
     loadAdminUsers();
     loadAdminSettings();
+    if (typeof loadAdminCodegenOrders === 'function') loadAdminCodegenOrders();
   }
 
   // Re-init Lucide icons
