@@ -992,6 +992,63 @@ textarea {
     color: var(--text-muted);
 }
 
+.codegen-estimate {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 14px;
+}
+
+.codegen-estimate-details {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.codegen-estimate-details .est-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.est-tag-simple { background: #dcfce7; color: #16a34a; }
+.est-tag-moderate { background: #fef9c3; color: #ca8a04; }
+.est-tag-complex { background: #fee2e2; color: #dc2626; }
+
+.codegen-estimate-price {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.codegen-price-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.codegen-price-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.codegen-free-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
 .codegen-options {
     margin-bottom: 14px;
 }
