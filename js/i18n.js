@@ -11,6 +11,20 @@ const TRANSLATIONS = {
         apiKeyPlaceholder: 'ใส่ Gemini API Key ของคุณ',
         apiKeyToggleTitle: 'แสดง/ซ่อน',
         apiKeyHint: 'API Key จะถูกเก็บไว้ใน browser ของคุณเท่านั้น ไม่ถูกส่งไปที่อื่น',
+        apiKeySecurityInfo: `<div style="text-align:left;font-size:13px;line-height:1.8;">
+<strong>🔒 API Key ของคุณปลอดภัย</strong><br><br>
+<strong>✅ เก็บในเครื่องคุณเท่านั้น</strong><br>
+เก็บใน localStorage ของ browser ไม่ส่งไปเซิร์ฟเวอร์ของเรา<br><br>
+<strong>✅ เรียก Google API โดยตรง</strong><br>
+Key ถูกส่งตรงไป Google Gemini API เท่านั้น ไม่ผ่านเซิร์ฟเวอร์คนกลาง<br><br>
+<strong>✅ เข้ารหัส HTTPS</strong><br>
+ข้อมูลทั้งหมดถูกเข้ารหัสระหว่างทาง<br><br>
+<strong>✅ API Key ฟรี ไม่มีค่าใช้จ่าย</strong><br>
+ถ้าไม่สบายใจ สร้าง Key ใหม่ได้ทุกเมื่อที่ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">Google AI Studio</a><br><br>
+<strong>💡 คำแนะนำ</strong><br>
+ไม่ควรใช้ Key เดียวกับ Key ที่ผูกบิลลิ่ง (ถ้ามี)
+</div>`,
+        apiKeySecurityOk: 'เข้าใจแล้ว',
 
         // Step 2: Mode
         stepMode: 'เลือกโหมดการใช้งาน',
@@ -376,6 +390,20 @@ const TRANSLATIONS = {
         apiKeyPlaceholder: 'Enter your Gemini API Key',
         apiKeyToggleTitle: 'Show/Hide',
         apiKeyHint: 'Your API Key is stored only in your browser and never sent elsewhere',
+        apiKeySecurityInfo: `<div style="text-align:left;font-size:13px;line-height:1.8;">
+<strong>🔒 Your API Key is Safe</strong><br><br>
+<strong>✅ Stored locally only</strong><br>
+Saved in your browser's localStorage. Never sent to our servers.<br><br>
+<strong>✅ Direct to Google API</strong><br>
+Your Key is sent directly to Google Gemini API only. No middleman.<br><br>
+<strong>✅ HTTPS encrypted</strong><br>
+All data is encrypted in transit.<br><br>
+<strong>✅ Free API Key, no billing</strong><br>
+If you're concerned, you can always create a new Key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">Google AI Studio</a><br><br>
+<strong>💡 Tip</strong><br>
+Don't reuse a Key that's linked to a billing account (if any).
+</div>`,
+        apiKeySecurityOk: 'Got it',
 
         // Step 2: Mode
         stepMode: 'Select Usage Mode',
