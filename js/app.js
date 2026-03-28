@@ -95,6 +95,10 @@ function applyTemplate(templateId) {
     const activeCard = document.querySelector(`.template-card[data-template="${templateId}"]`);
     if (activeCard) activeCard.classList.add('active');
 
+    // Show "เลือกจาก Template" button on project section
+    const showTplBtn = document.getElementById('showTemplateBtn');
+    if (showTplBtn) showTplBtn.style.display = '';
+
     // Scroll to project section
     document.getElementById('project-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -145,6 +149,14 @@ function initApp() {
     document.querySelectorAll('.template-card').forEach(card => {
         card.addEventListener('click', () => applyTemplate(card.dataset.template));
     });
+
+    // "เลือกจาก Template" button — scroll back to template section
+    const showTemplateBtn = document.getElementById('showTemplateBtn');
+    if (showTemplateBtn) {
+        showTemplateBtn.addEventListener('click', () => {
+            document.getElementById('template-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
     // Description helper
     initDescHelper();
