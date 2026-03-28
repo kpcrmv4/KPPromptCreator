@@ -4,17 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KP Prompt Creator - สร้าง AI Prompt สำหรับพัฒนาเว็บไซต์</title>
-    <meta name="description" content="เครื่องมือสร้าง Prompt สำหรับ AI (Claude, Gemini, ChatGPT, Cursor) ช่วยให้ AI เข้าใจโปรเจกต์เว็บของคุณทันที พร้อม Marketplace ซื้อขาย Prompt คุณภาพ">
-    <meta name="keywords" content="AI Prompt, Prompt Creator, Claude, Gemini, ChatGPT, Web Development, Prompt Marketplace, สร้าง Prompt">
+    <meta name="description" content="เครื่องมือสร้าง Prompt สำหรับ AI (Claude, Gemini, ChatGPT, Cursor) ช่วยให้ AI เข้าใจโปรเจกต์เว็บของคุณทันที รองรับ Google Apps Script, Next.js, React และอื่นๆ">
+    <meta name="keywords" content="AI Prompt, Prompt Creator, Claude, Gemini, ChatGPT, Cursor, Google Apps Script, GAS, Web Development, สร้าง Prompt, เว็บแอป">
+    <!-- Open Graph -->
     <meta property="og:title" content="KP Prompt Creator - สร้าง AI Prompt สำหรับพัฒนาเว็บ">
-    <meta property="og:description" content="สร้างไฟล์แนะนำโปรเจกต์ให้ AI เข้าใจงานของคุณได้ทันที พร้อม Marketplace ซื้อขาย Prompt">
+    <meta property="og:description" content="สร้างไฟล์แนะนำโปรเจกต์ให้ AI เข้าใจงานของคุณได้ทันที รองรับ GAS, Next.js, React">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="/images/logo.png">
+    <meta property="og:url" content="https://kppromptcreator.tech/">
+    <meta property="og:image" content="https://kppromptcreator.tech/images/og-cover.png">
+    <meta property="og:site_name" content="KP Prompt Creator">
+    <meta property="og:locale" content="th_TH">
+    <meta property="og:locale:alternate" content="en_US">
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="https://kppromptcreator.com/">
+    <meta name="twitter:title" content="KP Prompt Creator - สร้าง AI Prompt สำหรับพัฒนาเว็บ">
+    <meta name="twitter:description" content="สร้างไฟล์แนะนำโปรเจกต์ให้ AI เข้าใจงานของคุณได้ทันที">
+    <meta name="twitter:image" content="https://kppromptcreator.tech/images/og-cover.png">
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/images/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/images/logo.png">
+    <!-- Canonical -->
+    <link rel="canonical" href="https://kppromptcreator.tech/">
+    <link rel="alternate" hreflang="th" href="https://kppromptcreator.tech/">
+    <link rel="alternate" hreflang="en" href="https://kppromptcreator.tech/?lang=en">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "KP Prompt Creator",
+      "url": "https://kppromptcreator.tech",
+      "description": "เครื่องมือสร้าง AI Prompt สำหรับพัฒนาเว็บไซต์ รองรับ Claude, Gemini, ChatGPT, Cursor",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "THB"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "KP Webapp Studio",
+        "url": "https://www.facebook.com/kpwebappstudio"
+      }
+    }
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -1043,6 +1081,38 @@
                                 </button>
                             </div>
                             <div class="vote-particles" id="voteParticles"></div>
+                        </div>
+                        <!-- GAS Code Generation (hidden - coming soon) -->
+                        <div class="codegen-card" id="codegenCard" style="display:none !important;">
+                            <div class="codegen-header">
+                                <div class="codegen-icon"><i class="bi bi-file-earmark-zip"></i></div>
+                                <div class="codegen-text">
+                                    <span class="codegen-title" data-i18n="codegenTitle">AI สร้างโค้ด GAS ให้เลย!</span>
+                                    <span class="codegen-desc" data-i18n="codegenDesc">ได้ไฟล์โค้ดพร้อมใช้ + คู่มือ deploy ใน ZIP เดียว</span>
+                                </div>
+                            </div>
+                            <!-- Price Estimate -->
+                            <div class="codegen-estimate" id="codegenEstimate">
+                                <div class="codegen-estimate-details" id="codegenEstimateDetails"></div>
+                                <div class="codegen-estimate-price">
+                                    <span class="codegen-price-label" data-i18n="codegenPriceLabel">ราคา</span>
+                                    <span class="codegen-price-value" id="codegenPrice">฿500</span>
+                                </div>
+                            </div>
+                            <div class="codegen-options">
+                                <label class="codegen-option">
+                                    <input type="checkbox" id="codegenInstaller" checked>
+                                    <span data-i18n="codegenInstallerLabel">รวม Auto Installer (setup.bat/sh + GUI)</span>
+                                </label>
+                            </div>
+                            <div class="codegen-progress" id="codegenProgress" style="display:none;">
+                                <div class="codegen-progress-bar"><div class="codegen-progress-fill" id="codegenProgressFill"></div></div>
+                                <span class="codegen-progress-text" id="codegenProgressText"></span>
+                            </div>
+                            <button class="btn btn-primary codegen-btn" id="codegenBtn">
+                                <i class="bi bi-magic"></i> <span data-i18n="codegenBtn">สร้างโค้ด + ดาวน์โหลด ZIP</span>
+                            </button>
+                            <p class="codegen-free-hint" data-i18n="codegenFreeHint">หรือ Copy Prompt ด้านบนไปใช้กับ AI เอง (ฟรี)</p>
                         </div>
                     </div>
                 </div>

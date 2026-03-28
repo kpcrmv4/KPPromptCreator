@@ -500,3 +500,40 @@ RETURNS TABLE(mode TEXT, count BIGINT) AS $$
   GROUP BY mode
   ORDER BY count DESC;
 $$ LANGUAGE sql STABLE;
+
+-- =============================================
+-- Codegen Orders (AI Code Generation purchases)
+-- =============================================
+
+CREATE TABLE codegen_orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_name TEXT NOT NULL,
+  prompt_content TEXT NOT NULL,
+  tier TEXT NOT NULL CHECK (tier IN ('simple', 'moderate', 'complex')),
+  price INTEGER NOT NULL,
+  include_installer BOOLEAN DEFAULT true,
+  status TEXT NOT NULL DEFAULT 'pending_payment' CHECK (status IN ('pending_payment', 'generating', 'completed', 'rejected')),
+  slip_image_url TEXT,
+  zip_path TEXT,
+  download_token TEXT UNIQUE,
+  file_count INTEGER DEFAULT 0,
+  admin_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_codegen_orders_user ON codegen_orders(user_id);
+CREATE INDEX idx_codegen_orders_status ON codegen_orders(status);
+CREATE INDEX idx_codegen_orders_token ON codegen_orders(download_token);
+
+ALTER TABLE codegen_orders ENABLE ROW LEVEL SECURITY;
+
+-- Users can insert and view their own orders
+CREATE POLICY "codegen_orders_insert" ON codegen_orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "codegen_orders_user_select" ON codegen_orders FOR SELECT USING (true);
+CREATE POLICY "codegen_orders_admin_update" ON codegen_orders FOR UPDATE USING (true);
+
+-- Storage bucket for codegen slips and ZIPs
+INSERT INTO storage.buckets (id, name, public) VALUES ('codegen', 'codegen', false)
+ON CONFLICT (id) DO NOTHING;

@@ -9,6 +9,8 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "archiver": "^7.0.1",
+    "jszip": "^3.10.1"
   }
 }

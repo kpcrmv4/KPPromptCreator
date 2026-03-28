@@ -1633,6 +1633,14 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
         // Store filename for download
         resultSection.dataset.fileName = fileName;
 
+        // Show GAS codegen card if platform is GAS
+        const codegenCard = document.getElementById('codegenCard');
+        if (codegenCard) {
+            const isGas = platform === 'google-apps-script';
+            codegenCard.style.display = isGas ? '' : 'none';
+            if (isGas) renderCodegenEstimate(responseWithFingerprint);
+        }
+
         // Track stats
         trackPromptGenerated(platform, currentMode);
 
@@ -2929,6 +2937,357 @@ function getTopKey(obj) {
     return topKey;
 }
 
+// ===== GAS Code Generation =====
+
+/**
+ * Estimate price based on prompt content analysis
+ * Base: 500 (simple) / 700 (moderate) / 900 (complex)
+ * Auto-detect from the generated prompt text
+ */
+function estimateCodegenPrice(promptText) {
+    const text = promptText.toLowerCase();
+    let score = 0;
+    const breakdown = [];
+
+    // Count features (lines starting with - that describe functionality)
+    const featureLines = (text.match(/^[\-\*]\s+.{10,}/gm) || []).length;
+    score += Math.min(featureLines, 20);
+
+    // Detect complexity signals
+    const signals = [
+        { pattern: /login|auth|สมัครสมาชิก|password|session|ล็อกอิน/i, points: 3, label: 'Auth/Login' },
+        { pattern: /pdf|google docs|template.*placeholder|ใบ.*ราคา|เอกสาร/i, points: 3, label: 'PDF/Docs' },
+        { pattern: /line messaging|telegram bot|แจ้งเตือน.*line|notify/i, points: 3, label: 'Notification' },
+        { pattern: /drive.*sharing|แชร์ไฟล์|permission.*drive|สิทธิ์/i, points: 3, label: 'Drive' },
+        { pattern: /dashboard|แดชบอร์ด|chart|กราฟ|สรุป.*ยอด/i, points: 2, label: 'Dashboard' },
+        { pattern: /crud|เพิ่ม.*แก้ไข.*ลบ|create.*read.*update/i, points: 2, label: 'CRUD' },
+        { pattern: /multi.*view|หลายมุมมอง|alpine\.js|spa/i, points: 2, label: 'Multi-view' },
+        { pattern: /approval|อนุมัติ|หลายขั้นตอน|workflow/i, points: 3, label: 'Workflow' },
+        { pattern: /upload|อัปโหลด|แนบไฟล์/i, points: 2, label: 'Upload' },
+        { pattern: /export.*excel|export.*pdf|ส่งออก/i, points: 2, label: 'Export' },
+        { pattern: /role|บทบาท|admin.*user|สิทธิ์.*ผู้ใช้/i, points: 2, label: 'Roles' },
+        { pattern: /search|ค้นหา|filter|กรอง/i, points: 1, label: 'Search/Filter' },
+    ];
+
+    signals.forEach(s => {
+        if (s.pattern.test(text)) {
+            score += s.points;
+            breakdown.push(s.label);
+        }
+    });
+
+    // Count sheets/data models mentioned
+    const sheetMatches = text.match(/sheet|แผ่นงาน|ตาราง|spreadsheet/gi) || [];
+    score += Math.min(sheetMatches.length, 5);
+
+    // Determine tier
+    let tier, price, tierLabel, tierClass;
+    if (score <= 10) {
+        tier = 'simple'; price = 500; tierLabel = t('codegenTierSimple'); tierClass = 'est-tag-simple';
+    } else if (score <= 20) {
+        tier = 'moderate'; price = 700; tierLabel = t('codegenTierModerate'); tierClass = 'est-tag-moderate';
+    } else {
+        tier = 'complex'; price = 900; tierLabel = t('codegenTierComplex'); tierClass = 'est-tag-complex';
+    }
+
+    return { tier, price, tierLabel, tierClass, breakdown, score };
+}
+
+function renderCodegenEstimate(promptText) {
+    const est = estimateCodegenPrice(promptText);
+    const detailsEl = document.getElementById('codegenEstimateDetails');
+    const priceEl = document.getElementById('codegenPrice');
+    if (!detailsEl || !priceEl) return;
+
+    const tags = est.breakdown.slice(0, 5).map(b => `<span class="est-tag">${b}</span>`).join(' ');
+    detailsEl.innerHTML = `<span class="est-tag ${est.tierClass}">${est.tierLabel}</span> ${tags}`;
+    priceEl.textContent = `฿${est.price}`;
+
+    // Store price for later use
+    window._kpCodegenPrice = est.price;
+}
+
+function initCodegenButton() {
+    const btn = document.getElementById('codegenBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        const promptContent = document.getElementById('resultText')?.value;
+        const projectName = document.getElementById('projectName')?.value || 'GAS Project';
+
+        if (!promptContent) {
+            showToast(t('codegenNoPrompt'), 'error');
+            return;
+        }
+
+        // Check login — show modal if not logged in
+        const token = localStorage.getItem('kp_token');
+        if (!token) {
+            const loggedIn = await showAuthModal();
+            if (!loggedIn) return;
+        }
+
+        // Show payment modal
+        const est = estimateCodegenPrice(promptContent);
+        showPaymentModal({
+            projectName,
+            promptContent,
+            tier: est.tier,
+            price: est.price,
+            includeInstaller: document.getElementById('codegenInstaller')?.checked !== false
+        });
+    });
+}
+
+// ===== Auth Modal (Login/Register without page change) =====
+
+function showAuthModal() {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'kp-modal-overlay';
+        overlay.innerHTML = `
+        <div class="kp-modal" style="max-width:400px;text-align:left;">
+            <div class="kp-modal-icon"><i class="bi bi-person-lock"></i></div>
+            <div style="text-align:center;margin-bottom:16px;">
+                <div style="font-size:16px;font-weight:700;">${t('authModalTitle')}</div>
+                <div style="font-size:13px;color:var(--text-muted);">${t('authModalDesc')}</div>
+            </div>
+            <div id="authModalTabs" style="display:flex;gap:0;margin-bottom:16px;">
+                <button class="auth-tab active" data-tab="login" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px 0 0 8px;cursor:pointer;font-weight:600;font-size:13px;background:var(--primary);color:white;">${t('authLogin')}</button>
+                <button class="auth-tab" data-tab="register" style="flex:1;padding:8px;border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;cursor:pointer;font-weight:600;font-size:13px;background:var(--surface);color:var(--text-muted);">${t('authRegister')}</button>
+            </div>
+            <form id="authModalForm">
+                <div id="authRegisterFields" style="display:none;">
+                    <input type="text" id="authModalName" placeholder="${t('authNamePlaceholder')}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:14px;">
+                </div>
+                <input type="email" id="authModalEmail" placeholder="${t('authEmailPlaceholder')}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:14px;" required>
+                <input type="password" id="authModalPassword" placeholder="${t('authPasswordPlaceholder')}" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;font-size:14px;" required>
+                <div id="authModalError" style="display:none;color:#ef4444;font-size:12px;margin-bottom:8px;"></div>
+                <button type="submit" class="kp-modal-btn kp-modal-confirm" style="width:100%;padding:12px;" id="authModalSubmit">${t('authLogin')}</button>
+            </form>
+            <div class="kp-modal-actions" style="margin-top:12px;">
+                <button class="kp-modal-btn kp-modal-cancel" style="width:100%;">${t('authClose')}</button>
+            </div>
+        </div>`;
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('show'));
+
+        let mode = 'login';
+
+        function close(result) {
+            overlay.classList.remove('show');
+            overlay.classList.add('closing');
+            setTimeout(() => { overlay.remove(); resolve(result); }, 200);
+        }
+
+        // Tab switching
+        overlay.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                mode = tab.dataset.tab;
+                overlay.querySelectorAll('.auth-tab').forEach(t => {
+                    t.style.background = t.dataset.tab === mode ? 'var(--primary)' : 'var(--surface)';
+                    t.style.color = t.dataset.tab === mode ? 'white' : 'var(--text-muted)';
+                    t.classList.toggle('active', t.dataset.tab === mode);
+                });
+                document.getElementById('authRegisterFields').style.display = mode === 'register' ? '' : 'none';
+                document.getElementById('authModalSubmit').textContent = mode === 'login' ? t('authLogin') : t('authRegister');
+            });
+        });
+
+        // Close
+        overlay.querySelector('.kp-modal-cancel').addEventListener('click', () => close(false));
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+
+        // Submit
+        document.getElementById('authModalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('authModalError');
+            const submitBtn = document.getElementById('authModalSubmit');
+            errEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '...';
+
+            const email = document.getElementById('authModalEmail').value.trim();
+            const password = document.getElementById('authModalPassword').value;
+
+            try {
+                let res;
+                if (mode === 'register') {
+                    const name = document.getElementById('authModalName').value.trim();
+                    if (!name) throw new Error(t('authNameRequired'));
+                    res = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, display_name: name })
+                    });
+                } else {
+                    res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                }
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed');
+
+                // Save token
+                localStorage.setItem('kp_token', data.token);
+                if (data.user) localStorage.setItem('kp_user', JSON.stringify(data.user));
+
+                showToast(mode === 'login' ? t('authLoginSuccess') : t('authRegisterSuccess'));
+                close(true);
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = '';
+                submitBtn.disabled = false;
+                submitBtn.textContent = mode === 'login' ? t('authLogin') : t('authRegister');
+            }
+        });
+    });
+}
+
+// ===== Payment Modal (QR PromptPay + Slip Upload) =====
+
+function showPaymentModal(orderData) {
+    // Get PromptPay number from admin settings or fallback
+    const promptpayNumber = window._kpPromptPayNumber || '0000000000';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'kp-modal-overlay';
+    overlay.innerHTML = `
+    <div class="kp-modal" style="max-width:440px;text-align:left;">
+        <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:18px;font-weight:700;">${t('paymentTitle')}</div>
+            <div style="font-size:13px;color:var(--text-muted);">${orderData.projectName}</div>
+        </div>
+
+        <div style="text-align:center;padding:20px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
+            <div style="font-size:32px;font-weight:800;color:var(--primary);margin-bottom:8px;">฿${orderData.price}</div>
+            <img id="paymentQR" src="https://promptpay.io/${promptpayNumber}/${orderData.price}.png" alt="QR PromptPay" style="width:200px;height:200px;margin:0 auto;border-radius:8px;border:1px solid #e2e8f0;">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">${t('paymentScanQR')}</div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">${t('paymentUploadSlip')}</label>
+            <div id="paymentSlipArea" style="border:2px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('paymentSlipInput').click()">
+                <div style="font-size:24px;margin-bottom:4px;">📎</div>
+                <div style="font-size:13px;color:var(--text-muted);">${t('paymentClickUpload')}</div>
+                <img id="paymentSlipPreview" style="display:none;max-width:200px;max-height:200px;margin:8px auto 0;border-radius:6px;">
+            </div>
+            <input type="file" id="paymentSlipInput" accept="image/*" style="display:none;">
+        </div>
+
+        <div id="paymentError" style="display:none;color:#ef4444;font-size:12px;margin-bottom:8px;"></div>
+
+        <button class="kp-modal-btn kp-modal-confirm" style="width:100%;padding:12px;" id="paymentSubmitBtn" disabled>${t('paymentSubmit')}</button>
+        <div class="kp-modal-actions" style="margin-top:8px;">
+            <button class="kp-modal-btn kp-modal-cancel" style="width:100%;">${t('paymentCancel')}</button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    let slipBase64 = null;
+    let slipFilename = null;
+
+    function close() {
+        overlay.classList.remove('show');
+        overlay.classList.add('closing');
+        setTimeout(() => overlay.remove(), 200);
+    }
+
+    overlay.querySelector('.kp-modal-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    // Slip upload preview
+    document.getElementById('paymentSlipInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        slipFilename = file.name;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            slipBase64 = ev.target.result;
+            const preview = document.getElementById('paymentSlipPreview');
+            preview.src = slipBase64;
+            preview.style.display = '';
+            document.getElementById('paymentSlipArea').style.borderColor = '#22c55e';
+            document.getElementById('paymentSubmitBtn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Submit order
+    document.getElementById('paymentSubmitBtn').addEventListener('click', async () => {
+        const submitBtn = document.getElementById('paymentSubmitBtn');
+        const errEl = document.getElementById('paymentError');
+        errEl.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = t('paymentSubmitting');
+
+        try {
+            const token = localStorage.getItem('kp_token');
+            const res = await fetch('/api/codegen-orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    projectName: orderData.projectName,
+                    promptContent: orderData.promptContent,
+                    tier: orderData.tier,
+                    price: orderData.price,
+                    includeInstaller: orderData.includeInstaller,
+                    slipImageBase64: slipBase64,
+                    slipFilename: slipFilename
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+
+            close();
+
+            // Show success modal
+            await kpConfirm(
+                `<div style="text-align:center;">
+                    <div style="font-size:48px;margin-bottom:8px;">✅</div>
+                    <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${t('paymentSuccess')}</div>
+                    <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">${t('paymentSuccessDesc')}</div>
+                    <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:var(--text-muted);">
+                        ${t('paymentOrderId')}: <strong>${data.order.id.substring(0, 8)}...</strong>
+                    </div>
+                </div>`,
+                { icon: 'check-circle', type: 'info', confirmText: t('paymentGoToOrders') }
+            );
+
+            // Redirect to orders page
+            window.location.href = '/orders.html';
+
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.style.display = '';
+            submitBtn.disabled = false;
+            submitBtn.textContent = t('paymentSubmit');
+        }
+    });
+}
+
+// Load PromptPay number from public config
+async function loadPromptPayNumber() {
+    try {
+        const res = await fetch('/api/codegen-orders/config');
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.promptpayNumber) window._kpPromptPayNumber = data.promptpayNumber;
+        }
+    } catch {}
+}
+
+
 // ===== Supabase Stats Sync =====
 
 const STATS_API_URL = '/api/stats';
@@ -3091,4 +3450,6 @@ async function updateVoteCount() {
 document.addEventListener('DOMContentLoaded', () => {
     renderFooterStatsGlobal();
     initVoteButton();
+    initCodegenButton();
+    loadPromptPayNumber();
 });

@@ -960,3 +960,60 @@ async function prefillFromSavedPrompt() {
     }, 300);
   } catch {}
 }
+
+// =============================================
+// Admin: Codegen Orders Management
+// =============================================
+async function loadAdminCodegenOrders() {
+  const container = document.getElementById('admin-codegen-orders');
+  if (!container) return;
+
+  try {
+    const { orders } = await api('/admin/codegen-orders?status=pending_payment');
+    container.innerHTML = orders.length ? orders.map(o => `
+      <div class="bg-white rounded-xl border border-slate-200 p-4 mb-3">
+        <div class="flex justify-between items-start gap-3 flex-wrap mb-3">
+          <div>
+            <div class="font-semibold text-slate-800">${escapeHtml(o.project_name)}</div>
+            <div class="text-xs text-slate-500">${escapeHtml(o.user?.display_name || o.user?.email || '')}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-lg font-bold text-violet-600">฿${o.price}</div>
+            <div class="text-xs text-slate-400">${o.tier} &bull; ${new Date(o.created_at).toLocaleString('th-TH')}</div>
+          </div>
+        </div>
+        ${o.slip_image_url ? `<div class="mb-3"><img src="${o.slip_image_url}" class="max-w-[200px] rounded-lg border border-slate-200 cursor-pointer" onclick="window.open(this.src,'_blank')" alt="slip"></div>` : ''}
+        <div class="flex gap-2">
+          <button onclick="processCodegenOrder('${o.id}', 'approve')" class="flex-1 py-2 bg-emerald-600 text-white text-sm rounded-lg font-medium hover:bg-emerald-700 transition-colors">✅ อนุมัติ + สร้างโค้ด</button>
+          <button onclick="processCodegenOrder('${o.id}', 'reject')" class="py-2 px-4 bg-red-50 text-red-600 text-sm rounded-lg font-medium hover:bg-red-100 transition-colors">ปฏิเสธ</button>
+        </div>
+      </div>
+    `).join('') : '<p class="text-sm text-slate-400 text-center py-8">ไม่มีคำสั่งซื้อที่รอตรวจสอบ</p>';
+  } catch {
+    container.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">โหลดไม่สำเร็จ</p>';
+  }
+}
+
+async function processCodegenOrder(orderId, action) {
+  const confirmMsg = action === 'approve'
+    ? 'อนุมัติและสั่ง AI สร้างโค้ดให้ลูกค้า?'
+    : 'ปฏิเสธคำสั่งซื้อนี้?';
+  const ok = await kpConfirm(confirmMsg, {
+    icon: action === 'approve' ? 'check-circle' : 'x-circle',
+    type: action === 'approve' ? 'confirm' : 'danger',
+    confirmText: action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'
+  });
+  if (!ok) return;
+
+  try {
+    showToast(action === 'approve' ? 'กำลังอนุมัติและสร้างโค้ด... อาจใช้เวลา 30-60 วินาที' : 'กำลังปฏิเสธ...');
+    const result = await api('/admin/codegen-orders', {
+      method: 'PUT',
+      body: JSON.stringify({ orderId, action })
+    });
+    showToast(action === 'approve' ? `สร้างโค้ดสำเร็จ! (${result.fileCount} ไฟล์)` : 'ปฏิเสธแล้ว', 'success');
+    loadAdminCodegenOrders();
+  } catch (err) {
+    showToast(err.error || 'ดำเนินการไม่สำเร็จ', 'error');
+  }
+}

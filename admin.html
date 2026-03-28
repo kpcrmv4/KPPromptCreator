@@ -6,7 +6,10 @@
   <title>Admin Panel — KP Marketplace</title>
   <meta name="description" content="จัดการระบบ Marketplace อนุมัติ Prompt และจัดการสมาชิก">
   <meta name="robots" content="noindex">
-  <link rel="canonical" href="https://kppromptcreator.com/admin.html">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="/images/logo.png">
+  <link rel="canonical" href="https://kppromptcreator.tech/admin.html">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -267,6 +270,15 @@
         </button>
         <button
           class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
+          data-tab="admin-tab-codegen"
+          onclick="switchAdminTab('admin-tab-codegen', this)"
+        >
+          <i data-lucide="code-2" class="w-4 h-4"></i>
+          Code Gen
+          <span id="admin-codegen-badge" class="hidden bg-violet-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[1.1rem] text-center"></span>
+        </button>
+        <button
+          class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
           data-tab="admin-tab-notifications"
           onclick="switchAdminTab('admin-tab-notifications', this)"
         >
@@ -338,6 +350,19 @@
       <div class="admin-tab-content hidden" id="admin-tab-topups">
         <div class="p-4 sm:p-6">
           <div id="admin-topups">
+            <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+              <div class="spinner"></div>
+              <p class="text-sm">กำลังโหลด...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Code Gen ── -->
+      <div class="admin-tab-content hidden" id="admin-tab-codegen">
+        <div class="p-4 sm:p-6">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">คำสั่งซื้อ Code Generation ที่รอตรวจสอบ</h3>
+          <div id="admin-codegen-orders">
             <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
               <div class="spinner"></div>
               <p class="text-sm">กำลังโหลด...</p>
