@@ -258,6 +258,7 @@ function initApp() {
     // Google Web App Wizard mode
     document.getElementById('gasWizAnalyzeBtn').addEventListener('click', startGasWizardAnalysis);
     document.getElementById('gasWizGenerateBtn').addEventListener('click', gasWizardGenerate);
+    initGasWizConsultChat();
 
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
@@ -993,6 +994,10 @@ function renderGasWizAnalysis(analysis) {
 
     document.getElementById('gasWizAnalysisContent').innerHTML = html;
 
+    // Show consult AI section
+    const consultSection = document.getElementById('gasWizConsultSection');
+    if (consultSection) consultSection.style.display = '';
+
     // Bind editable events
     bindGasWizEditableEvents();
 }
@@ -1117,6 +1122,188 @@ function bindGasWizEditableEvents() {
             const inputs = document.querySelectorAll('.gas-wiz-edit-model-name');
             if (inputs.length > 0) inputs[inputs.length - 1].focus();
         });
+    }
+}
+
+// ===== GAS Wizard: Consult AI Chat =====
+let gasWizChatHistory = [];
+
+function initGasWizConsultChat() {
+    const toggleBtn = document.getElementById('gasWizConsultToggle');
+    const chatArea = document.getElementById('gasWizConsultChat');
+    const sendBtn = document.getElementById('gasWizChatSendBtn');
+    const input = document.getElementById('gasWizChatInput');
+    const reanalyzeBtn = document.getElementById('gasWizReanalyzeBtn');
+
+    if (!toggleBtn || !chatArea) return;
+
+    toggleBtn.addEventListener('click', () => {
+        const isHidden = chatArea.style.display === 'none';
+        chatArea.style.display = isHidden ? '' : 'none';
+        toggleBtn.classList.toggle('active', isHidden);
+        if (isHidden && gasWizChatHistory.length === 0) {
+            // Show initial AI greeting
+            appendGasWizChatMsg('ai', t('gasWizChatGreeting'));
+        }
+    });
+
+    sendBtn.addEventListener('click', () => sendGasWizChatMsg());
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendGasWizChatMsg();
+        }
+    });
+
+    if (reanalyzeBtn) {
+        reanalyzeBtn.addEventListener('click', () => reanalyzeWithChat());
+    }
+}
+
+function appendGasWizChatMsg(role, text) {
+    const container = document.getElementById('gasWizChatMessages');
+    const div = document.createElement('div');
+    div.className = `gas-wiz-chat-msg gas-wiz-chat-${role}`;
+    div.textContent = text;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendGasWizChatMsg() {
+    const input = document.getElementById('gasWizChatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) { showToast(t('toastNoApiKey')); return; }
+
+    input.value = '';
+    appendGasWizChatMsg('user', msg);
+    gasWizChatHistory.push({ role: 'user', text: msg });
+
+    // Show typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'gas-wiz-chat-msg gas-wiz-chat-ai gas-wiz-typing';
+    typingDiv.textContent = '...';
+    const container = document.getElementById('gasWizChatMessages');
+    container.appendChild(typingDiv);
+    container.scrollTop = container.scrollHeight;
+
+    // Build context with current analysis
+    const analysis = gasWizData.analysis;
+    const contextPrompt = `คุณเป็นที่ปรึกษา Google Apps Script ผู้เชี่ยวชาญ
+กำลังช่วยผู้ใช้ปรับปรุงผลวิเคราะห์โปรเจกต์นี้:
+
+ชื่อโปรเจกต์: ${gasWizData.name}
+คำอธิบาย: ${gasWizData.desc}
+
+ผลวิเคราะห์ปัจจุบัน:
+${JSON.stringify(analysis, null, 2)}
+
+ประวัติการสนทนา:
+${gasWizChatHistory.map(h => `${h.role === 'user' ? 'ผู้ใช้' : 'AI'}: ${h.text}`).join('\n')}
+
+ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย ไม่ต้องใส่ code block
+ถ้าผู้ใช้ถามเรื่องฟีเจอร์/โครงสร้าง ให้แนะนำเพิ่มเติมหรืออธิบาย
+ถ้าผู้ใช้บอกว่าอยากเพิ่ม/ลบ/แก้อะไร ให้แนะนำวิธีปรับ`;
+
+    try {
+        const reply = await callGeminiAPI(apiKey, contextPrompt);
+        typingDiv.remove();
+        appendGasWizChatMsg('ai', reply);
+        gasWizChatHistory.push({ role: 'ai', text: reply });
+
+        // Show re-analyze button after first exchange
+        const reanalyzeBtn = document.getElementById('gasWizReanalyzeBtn');
+        if (reanalyzeBtn) reanalyzeBtn.style.display = '';
+    } catch (err) {
+        typingDiv.remove();
+        appendGasWizChatMsg('ai', `เกิดข้อผิดพลาด: ${err.message}`);
+    }
+}
+
+async function reanalyzeWithChat() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) { showToast(t('toastNoApiKey')); return; }
+
+    const reanalyzeBtn = document.getElementById('gasWizReanalyzeBtn');
+    if (reanalyzeBtn) {
+        reanalyzeBtn.disabled = true;
+        reanalyzeBtn.innerHTML = `<span class="spinner-sm"></span> ${t('gasWizReanalyzing')}`;
+    }
+
+    const chatContext = gasWizChatHistory.map(h =>
+        `${h.role === 'user' ? 'ผู้ใช้' : 'AI'}: ${h.text}`
+    ).join('\n');
+
+    const prompt = `คุณเป็นผู้เชี่ยวชาญ Google Apps Script web app
+วิเคราะห์โปรเจกต์นี้ใหม่ โดยอิงจากข้อมูลเดิมและการสนทนาเพิ่มเติม
+ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+
+ชื่อ: ${gasWizData.name}
+คำอธิบาย: ${gasWizData.desc}
+
+ผลวิเคราะห์เดิม:
+${JSON.stringify(gasWizData.analysis, null, 2)}
+
+การสนทนาเพิ่มเติม:
+${chatContext}
+
+ให้ปรับ JSON ตามที่ผู้ใช้คุยไว้ (เพิ่ม/ลบ/แก้ฟีเจอร์, แผ่นงาน, ความซับซ้อน, ตั้งค่า):
+{
+  "summary": "สรุปโปรเจกต์ 2-3 ประโยค (ปรับตามที่คุย)",
+  "features": [
+    {"name": "ชื่อฟีเจอร์", "description": "อธิบายสั้นๆ", "priority": "high|medium|low"}
+  ],
+  "dataModels": [
+    {"name": "ชื่อแผ่นงาน (Sheet)", "fields": ["field1", "field2"]}
+  ],
+  "estimatedComplexity": "simple|moderate|complex",
+  "gasSettings": {
+    "guideMode": "beginner|balanced|expert",
+    "uiStyle": "modern|formal|dashboard",
+    "database": "google-sheets|supabase",
+    "pageType": "single-page|spa",
+    "authentication": "none|google-sheets-auth",
+    "responsive": "responsive|desktop-only",
+    "workflows": { "pdf": true/false, "drive": true/false, "bottomNav": true/false, "swal": true/false },
+    "notifyChannel": "none|line-messaging-api|telegram-bot|gmail-app"
+  },
+  "gasReasons": {
+    "guideMode": "เหตุผลสั้นๆ",
+    "uiStyle": "เหตุผลสั้นๆ",
+    "database": "เหตุผลสั้นๆ",
+    "workflows": "เหตุผลสั้นๆ",
+    "notifyChannel": "เหตุผลสั้นๆ"
+  }
+}
+
+ตอบเป็น JSON เท่านั้น`;
+
+    try {
+        const raw = await callGeminiAPI(apiKey, prompt);
+        const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+        const data = JSON.parse(jsonStr);
+        gasWizData.analysis = data;
+
+        renderGasWizAnalysis(data);
+        applyGasWizSettings(data.gasSettings);
+
+        // Reset chat
+        gasWizChatHistory = [];
+        document.getElementById('gasWizChatMessages').innerHTML = '';
+        document.getElementById('gasWizConsultChat').style.display = 'none';
+        document.getElementById('gasWizConsultToggle').classList.remove('active');
+        if (reanalyzeBtn) { reanalyzeBtn.style.display = 'none'; }
+
+        showToast(t('gasWizReanalyzeDone'));
+    } catch (err) {
+        showToast(`เกิดข้อผิดพลาด: ${err.message}`);
+    } finally {
+        if (reanalyzeBtn) {
+            reanalyzeBtn.disabled = false;
+            reanalyzeBtn.innerHTML = `<i class="bi bi-arrow-repeat"></i> ${t('gasWizReanalyzeBtn')}`;
+        }
     }
 }
 
@@ -2320,6 +2507,16 @@ function resetForm() {
     document.getElementById('gasWizStep2').className = 'wizard-step';
     document.getElementById('gasWizAnalysisContent').innerHTML = '';
     document.getElementById('gasWizSettingsPanel').style.display = 'none';
+    // Reset consult chat
+    gasWizChatHistory = [];
+    const consultChat = document.getElementById('gasWizConsultChat');
+    if (consultChat) consultChat.style.display = 'none';
+    const consultSection = document.getElementById('gasWizConsultSection');
+    if (consultSection) consultSection.style.display = 'none';
+    const chatMsgs = document.getElementById('gasWizChatMessages');
+    if (chatMsgs) chatMsgs.innerHTML = '';
+    const reanalyzeBtn = document.getElementById('gasWizReanalyzeBtn');
+    if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
     gasWizData = {};
 
     applyValidationRules();

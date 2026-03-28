@@ -364,6 +364,24 @@
                                 <span data-i18n="wizAnalysisLoading">AI กำลังวิเคราะห์โปรเจกต์...</span>
                             </div>
                             <div id="gasWizAnalysisContent"></div>
+                            <!-- Consult AI Chat -->
+                            <div id="gasWizConsultSection" style="display:none;">
+                                <button class="btn btn-outline btn-sm" id="gasWizConsultToggle" style="margin:12px 0;">
+                                    <i class="bi bi-chat-dots"></i> <span data-i18n="gasWizConsultBtn">ปรึกษา AI เพิ่มเติม</span>
+                                </button>
+                                <div id="gasWizConsultChat" style="display:none;">
+                                    <div class="gas-wiz-chat-messages" id="gasWizChatMessages"></div>
+                                    <div class="gas-wiz-chat-input">
+                                        <textarea id="gasWizChatInput" rows="2" placeholder="เช่น อยากเพิ่มระบบแจ้งเตือนผ่าน LINE ด้วย..." data-i18n-placeholder="gasWizChatPlaceholder"></textarea>
+                                        <button class="btn btn-primary btn-sm" id="gasWizChatSendBtn">
+                                            <i class="bi bi-send"></i>
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" id="gasWizReanalyzeBtn" style="display:none; margin-top:8px;">
+                                        <i class="bi bi-arrow-repeat"></i> <span data-i18n="gasWizReanalyzeBtn">วิเคราะห์อีกครั้งตามที่คุย</span>
+                                    </button>
+                                </div>
+                            </div>
                             <!-- GAS Settings (injected after AI analysis) -->
                             <div id="gasWizSettingsPanel" style="display:none;">
                                 <h4 class="gas-wiz-settings-title"><i class="bi bi-gear"></i> <span data-i18n="gasWizSettingsTitle">การตั้งค่า GAS (AI เลือกให้แล้ว — แก้ได้)</span></h4>
