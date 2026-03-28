@@ -3022,11 +3022,6 @@ async function renderFooterStatsGlobal() {
     const total = globalStats ? globalStats.totalPrompts : localStats.total;
     const voteCount = globalStats ? globalStats.aiCodeGenVotes : 0;
 
-    if (total === 0 && voteCount === 0) {
-        container.style.display = 'none';
-        return;
-    }
-
     container.style.display = '';
 
     const platformLabels = {
@@ -3043,20 +3038,16 @@ async function renderFooterStatsGlobal() {
     html += `<div class="footer-stats-grid">`;
 
     // Total prompts
-    if (total > 0) {
-        html += `<div class="footer-stat-item">
-            <span class="footer-stat-number">${total.toLocaleString()}</span>
-            <span class="footer-stat-label">${t('footerStatTotal')}</span>
-        </div>`;
-    }
+    html += `<div class="footer-stat-item">
+        <span class="footer-stat-number">${total.toLocaleString()}</span>
+        <span class="footer-stat-label">${t('footerStatTotal')}</span>
+    </div>`;
 
     // Vote count
-    if (voteCount > 0) {
-        html += `<div class="footer-stat-item">
-            <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
-            <span class="footer-stat-label">${t('footerStatVotes')}</span>
-        </div>`;
-    }
+    html += `<div class="footer-stat-item">
+        <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
+        <span class="footer-stat-label">${t('footerStatVotes')}</span>
+    </div>`;
 
     // Platform breakdown
     const platforms = globalStats ? globalStats.platforms : Object.entries(localStats.platforms).map(([platform, count]) => ({ platform, count }));
