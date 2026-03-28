@@ -195,15 +195,9 @@ function initApp() {
     // Fetch skills button
     document.getElementById('fetchSkillsBtn').addEventListener('click', fetchSkills);
 
-    // Google Web App Wizard button
-    document.getElementById('gasWizardBtn').addEventListener('click', openGasWizard);
-    document.getElementById('wizardClose').addEventListener('click', closeWizard);
-    document.getElementById('wizardCancel').addEventListener('click', closeWizard);
-    document.getElementById('wizardApply').addEventListener('click', applyGasWizardSelections);
-    document.getElementById('wizardOverlay').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) closeWizard();
-    });
-    document.getElementById('gasWizAutoFillBtn').addEventListener('click', gasWizardAutoFill);
+    // Google Web App Wizard mode
+    document.getElementById('gasWizAnalyzeBtn').addEventListener('click', startGasWizardAnalysis);
+    document.getElementById('gasWizGenerateBtn').addEventListener('click', gasWizardGenerate);
 
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
@@ -815,65 +809,80 @@ function getWizardLabels() {
     };
 }
 
-// ===== Google Web App Wizard =====
+// ===== Google Web App Wizard Mode =====
 
-function openGasWizard() {
-    const overlay = document.getElementById('wizardOverlay');
-    overlay.classList.add('active');
-}
+let gasWizData = {};
 
-async function gasWizardAutoFill() {
+async function startGasWizardAnalysis() {
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) {
-        showToast(t('toastNoApiKeyWizard'));
-        return;
-    }
-    const projectName = document.getElementById('projectName').value.trim();
-    const projectDesc = document.getElementById('projectDesc').value.trim();
-    if (!projectName || !projectDesc) {
-        showToast(t('toastNoProjectWizard'));
+        showToast(t('toastNoApiKeyWiz'));
         return;
     }
 
-    const btn = document.getElementById('gasWizAutoFillBtn');
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> ' + t('gasWizAnalyzing');
+    const name = document.getElementById('gasWizProjectName').value.trim();
+    const desc = document.getElementById('gasWizProjectDesc').value.trim();
+    const targetAI = document.getElementById('gasWizTargetAI').value;
+
+    if (!name || !desc) {
+        showToast(t('toastNoProjectWiz'));
+        return;
+    }
+
+    gasWizData = { name, desc, targetAI };
+
+    // Mark step 1 completed, activate step 2
+    document.getElementById('gasWizStep1').className = 'wizard-step completed';
+    document.getElementById('gasWizStep2').className = 'wizard-step active';
+    document.getElementById('gasWizAnalysisLoading').style.display = 'flex';
+    document.getElementById('gasWizAnalysisContent').innerHTML = '';
+    document.getElementById('gasWizSettingsPanel').style.display = 'none';
 
     const prompt = `คุณเป็นผู้เชี่ยวชาญ Google Apps Script web app
-วิเคราะห์โปรเจกต์นี้และแนะนำการตั้งค่าที่เหมาะสมที่สุดสำหรับ GAS web app
+วิเคราะห์โปรเจกต์นี้แล้วตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
 
-โปรเจกต์: ${projectName}
-คำอธิบาย: ${projectDesc}
+ชื่อ: ${name}
+คำอธิบาย: ${desc}
 
-ตอบเป็น JSON เท่านั้น (ไม่ต้องครอบด้วย code block) ตามรูปแบบนี้:
 {
-  "summary": "สรุปสั้นๆ ว่าทำไมถึงแนะนำการตั้งค่านี้ (1-2 ประโยค)",
-  "guideMode": "beginner|balanced|expert",
-  "uiStyle": "modern|formal|dashboard",
-  "workflows": {
-    "pdf": true/false,
-    "drive": true/false,
-    "bottomNav": true/false,
-    "swal": true/false
+  "summary": "สรุปโปรเจกต์ 2-3 ประโยค",
+  "features": [
+    {"name": "ชื่อฟีเจอร์", "description": "อธิบายสั้นๆ", "priority": "high|medium|low"}
+  ],
+  "dataModels": [
+    {"name": "ชื่อ model/ตาราง", "fields": ["field1", "field2"]}
+  ],
+  "estimatedComplexity": "simple|moderate|complex",
+  "gasSettings": {
+    "guideMode": "beginner|balanced|expert",
+    "uiStyle": "modern|formal|dashboard",
+    "database": "google-sheets|supabase",
+    "pageType": "single-page|spa",
+    "authentication": "none|google-sheets-auth",
+    "responsive": "responsive|desktop-only",
+    "workflows": { "pdf": true/false, "drive": true/false, "bottomNav": true/false, "swal": true/false },
+    "notifyChannel": "none|line-messaging-api|telegram-bot|gmail-app"
   },
-  "notifyChannel": "none|line-messaging-api|telegram-bot|gmail-app",
-  "reasons": {
+  "gasReasons": {
     "guideMode": "เหตุผลสั้นๆ",
     "uiStyle": "เหตุผลสั้นๆ",
+    "database": "เหตุผลสั้นๆ",
     "workflows": "เหตุผลสั้นๆ",
     "notifyChannel": "เหตุผลสั้นๆ"
   }
 }
 
 หลักเกณฑ์:
-- guideMode: ถ้าโปรเจกต์ดูซับซ้อนหรือผู้ใช้ไม่ระบุประสบการณ์ → beginner, ถ้าเป็นงานทั่วไป → balanced, ถ้าเป็น advanced → expert
-- uiStyle: ถ้าเป็นระบบราชการ/องค์กร → formal, ถ้าเป็น backoffice/ตาราง → dashboard, ทั่วไป → modern
-- workflows.pdf: true ถ้ามีเรื่อง PDF, เอกสาร, Google Docs template, ใบเสนอราคา, รายงาน
-- workflows.drive: true ถ้ามีเรื่องแชร์ไฟล์, สิทธิ์, โฟลเดอร์, อัปโหลด
-- workflows.bottomNav: true ถ้าเป็น mobile-first หรือมีหลายเมนู
-- workflows.swal: true เกือบทุกกรณี (default)
-- notifyChannel: ตามที่ระบุในคำอธิบาย, ถ้าไม่ระบุ → none
+- guideMode: ถ้าซับซ้อนหรือไม่ระบุประสบการณ์ → beginner, งานทั่วไป → balanced, advanced → expert
+- uiStyle: ราชการ/องค์กร → formal, backoffice/ตาราง → dashboard, ทั่วไป → modern
+- database: ถ้าต้องการ relational หรือ auth ซับซ้อน → supabase, ทั่วไป → google-sheets
+- pageType: ถ้ามีหลายมุมมอง/เมนู → spa (multi-view), หน้าเดียว → single-page
+- authentication: ถ้ามี login → google-sheets-auth, ไม่มี → none
+- workflows.pdf: true ถ้ามี PDF/เอกสาร/template/ใบเสนอราคา
+- workflows.drive: true ถ้ามีแชร์ไฟล์/สิทธิ์/โฟลเดอร์
+- workflows.bottomNav: true ถ้า mobile-first
+- workflows.swal: true เกือบทุกกรณี
+- notifyChannel: ตามที่ระบุ, ไม่ระบุ → none
 
 ตอบเป็น JSON เท่านั้น`;
 
@@ -881,58 +890,121 @@ async function gasWizardAutoFill() {
         const raw = await callGeminiAPI(apiKey, prompt);
         const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         const data = JSON.parse(jsonStr);
-        applyGasAutoFillResult(data);
+        gasWizData.analysis = data;
+
+        document.getElementById('gasWizAnalysisLoading').style.display = 'none';
+        renderGasWizAnalysis(data);
+        applyGasWizSettings(data.gasSettings);
+
+        document.getElementById('gasWizSettingsPanel').style.display = 'block';
     } catch (err) {
-        showToast(t('gasWizAutoFillError'));
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
+        document.getElementById('gasWizAnalysisLoading').style.display = 'none';
+        document.getElementById('gasWizAnalysisContent').innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p><button class="btn btn-outline btn-sm" onclick="startGasWizardAnalysis()">${t('retryBtn')}</button></div>`;
     }
 }
 
-function applyGasAutoFillResult(data) {
-    // Apply guide mode
-    if (data.guideMode) {
-        const radio = document.querySelector(`input[name="gasGuideMode"][value="${data.guideMode}"]`);
-        if (radio) radio.checked = true;
+function renderGasWizAnalysis(analysis) {
+    let html = `<div class="wiz-summary-box">${analysis.summary}</div>`;
+
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ${t('wizFeatures')}</h4><ul>`;
+    analysis.features.forEach(f => {
+        const badge = f.priority === 'high' ? '🔴' : f.priority === 'medium' ? '🟡' : '🟢';
+        html += `<li>${badge} <strong>${f.name}</strong> - ${f.description}</li>`;
+    });
+    html += `</ul></div>`;
+
+    if (analysis.dataModels && analysis.dataModels.length > 0) {
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4><ul>`;
+        analysis.dataModels.forEach(m => {
+            html += `<li><strong>${m.name}</strong>: ${m.fields.join(', ')}</li>`;
+        });
+        html += `</ul></div>`;
     }
 
-    // Apply UI style
-    if (data.uiStyle) {
-        const radio = document.querySelector(`input[name="gasUiStyle"][value="${data.uiStyle}"]`);
+    const complexityLabel = { simple: t('wizComplexitySimple'), moderate: t('wizComplexityModerate'), complex: t('wizComplexityComplex') };
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-speedometer2"></i> ${t('gasWizComplexity')}: ${complexityLabel[analysis.estimatedComplexity] || analysis.estimatedComplexity}</h4></div>`;
+
+    document.getElementById('gasWizAnalysisContent').innerHTML = html;
+}
+
+function applyGasWizSettings(settings) {
+    if (!settings) return;
+
+    if (settings.guideMode) {
+        const radio = document.querySelector(`input[name="gasGuideMode"][value="${settings.guideMode}"]`);
         if (radio) radio.checked = true;
     }
-
-    // Apply workflows
-    if (data.workflows) {
-        const workflowMap = {
-            pdf: 'gasWorkflowPdf',
-            drive: 'gasWorkflowDrive',
-            bottomNav: 'gasWorkflowBottomNav',
-            swal: 'gasWorkflowSwal'
-        };
-        for (const [key, id] of Object.entries(workflowMap)) {
+    if (settings.uiStyle) {
+        const radio = document.querySelector(`input[name="gasUiStyle"][value="${settings.uiStyle}"]`);
+        if (radio) radio.checked = true;
+    }
+    if (settings.database) {
+        setRadioIfExists('database', settings.database);
+    }
+    if (settings.pageType) {
+        setRadioIfExists('pageType', settings.pageType);
+    }
+    if (settings.authentication) {
+        setRadioIfExists('authentication', settings.authentication);
+    }
+    if (settings.responsive) {
+        setRadioIfExists('responsive', settings.responsive);
+    }
+    if (settings.workflows) {
+        const map = { pdf: 'gasWorkflowPdf', drive: 'gasWorkflowDrive', bottomNav: 'gasWorkflowBottomNav', swal: 'gasWorkflowSwal' };
+        for (const [key, id] of Object.entries(map)) {
             const cb = document.getElementById(id);
-            if (cb) cb.checked = !!data.workflows[key];
+            if (cb) cb.checked = !!settings.workflows[key];
         }
     }
-
-    // Apply notify channel
-    if (data.notifyChannel) {
-        const radio = document.querySelector(`input[name="gasNotifyChannel"][value="${data.notifyChannel}"]`);
+    if (settings.notifyChannel) {
+        const radio = document.querySelector(`input[name="gasNotifyChannel"][value="${settings.notifyChannel}"]`);
         if (radio) radio.checked = true;
     }
-
-    showToast(t('gasWizAutoFillDone'));
 }
 
-function applyGasWizardSelections() {
-    closeWizard();
-    showToast(t('gasWizApplied'));
-}
+async function gasWizardGenerate() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+        showToast(t('toastNoApiKey'));
+        return;
+    }
 
-function closeWizard() {
-    document.getElementById('wizardOverlay').classList.remove('active');
+    // Force GAS platform + settings into main form
+    setRadioIfExists('platform', 'google-apps-script');
+    setRadioIfExists('hosting', 'gas-deploy');
+    setRadioIfExists('cssFramework', 'bootstrap');
+    setRadioIfExists('language', 'javascript');
+    setRadioIfExists('packageManager', 'none');
+    setRadioIfExists('testing', 'none');
+    setRadioIfExists('apiStyle', 'rest');
+    setRadioIfExists('pwa', 'no');
+    setRadioIfExists('targetAI', gasWizData.targetAI);
+
+    // Set project info into main form
+    document.getElementById('projectName').value = gasWizData.name;
+
+    const analysis = gasWizData.analysis;
+    let richDesc = gasWizData.desc;
+    richDesc += `\n\n## ฟีเจอร์ที่วิเคราะห์ได้:\n`;
+    analysis.features.forEach(f => {
+        richDesc += `- ${f.name} (${f.priority}): ${f.description}\n`;
+    });
+    if (analysis.dataModels && analysis.dataModels.length > 0) {
+        richDesc += `\n## Data Models:\n`;
+        analysis.dataModels.forEach(m => {
+            richDesc += `- ${m.name}: ${m.fields.join(', ')}\n`;
+        });
+    }
+    document.getElementById('projectDesc').value = richDesc;
+
+    applyValidationRules();
+
+    // Generate prompt using the main generatePrompt function
+    await generatePrompt();
+
+    showToast(t('toastGenerated'));
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ===== Generate Prompt =====
@@ -1305,11 +1377,21 @@ function switchMode(mode) {
     // Toggle AI sections
     document.getElementById('chat-section').style.display = mode === 'ai-chat' ? '' : 'none';
     document.getElementById('wizard-section').style.display = mode === 'ai-wizard' ? '' : 'none';
+    document.getElementById('gas-wizard-section').style.display = mode === 'gas-wizard' ? '' : 'none';
 
     // Result section stays visible if it has content
     // Initialize chat on first open
     if (mode === 'ai-chat' && !chatInitialized) {
         initChat();
+    }
+
+    // When entering GAS wizard mode, force platform to GAS
+    if (mode === 'gas-wizard') {
+        const gasRadio = document.querySelector('input[name="platform"][value="google-apps-script"]');
+        if (gasRadio) {
+            gasRadio.checked = true;
+            gasRadio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 }
 
@@ -2030,9 +2112,22 @@ function resetForm() {
         });
     });
 
-    document.querySelectorAll('#wizardBody input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('#gas-wizard-section input[type="checkbox"]').forEach(cb => {
         cb.checked = cb.defaultChecked;
     });
+
+    // Reset GAS wizard section
+    const gasWizName = document.getElementById('gasWizProjectName');
+    const gasWizDesc = document.getElementById('gasWizProjectDesc');
+    if (gasWizName) gasWizName.value = '';
+    if (gasWizDesc) gasWizDesc.value = '';
+    const gasWizTarget = document.getElementById('gasWizTargetAI');
+    if (gasWizTarget) gasWizTarget.selectedIndex = 0;
+    document.getElementById('gasWizStep1').className = 'wizard-step active';
+    document.getElementById('gasWizStep2').className = 'wizard-step';
+    document.getElementById('gasWizAnalysisContent').innerHTML = '';
+    document.getElementById('gasWizSettingsPanel').style.display = 'none';
+    gasWizData = {};
 
     applyValidationRules();
     if (typeof initGasModeControls === 'function') {

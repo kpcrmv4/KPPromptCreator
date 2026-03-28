@@ -109,11 +109,11 @@
                                 <span class="mode-desc" data-i18n="modeWizardDesc">AI วิเคราะห์เป็น step cards</span>
                             </div>
                         </button>
-                        <button class="mode-btn mode-btn-gas" id="gasWizardBtn" style="display:none;">
+                        <button class="mode-btn mode-btn-gas" data-mode="gas-wizard" id="gasWizardBtn" style="display:none;">
                             <i class="bi bi-google"></i>
                             <div>
                                 <span class="mode-title" data-i18n="gasWizardBtn">Google Web App Wizard</span>
-                                <span class="mode-desc" data-i18n="gasWizardBtnDesc">ตั้งค่า GAS + AI ช่วยเลือก</span>
+                                <span class="mode-desc" data-i18n="gasWizardBtnDesc">สำหรับมือใหม่ GAS — AI ช่วยทุกขั้นตอน</span>
                             </div>
                         </button>
                     </div>
@@ -279,6 +279,108 @@
                             <button class="btn btn-primary btn-lg" id="wizGenerateBtn">
                                 <i class="bi bi-magic"></i> Generate Prompt
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== Google Web App Wizard Mode ===== -->
+            <section class="card ai-mode-section" id="gas-wizard-section" style="display: none;">
+                <div class="card-header">
+                    <span class="step-badge"><i class="bi bi-google"></i></span>
+                    <h2 data-i18n="gasWizardTitle">Google Web App Wizard</h2>
+                </div>
+                <div class="card-body">
+                    <!-- GAS Wizard Step 1: Project Info -->
+                    <div class="wizard-step active" id="gasWizStep1">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">1</span>
+                            <span class="wiz-step-title" data-i18n="gasWizStep1Title">อธิบายโปรเจกต์ของคุณ</span>
+                        </div>
+                        <div class="wiz-step-body">
+                            <div class="form-group">
+                                <label for="gasWizProjectName" data-i18n="wizProjectNameLabel">ชื่อโปรเจกต์</label>
+                                <input type="text" id="gasWizProjectName" placeholder="เช่น ระบบจัดการสต็อกสินค้า" data-i18n-placeholder="wizProjectNamePlaceholder">
+                            </div>
+                            <div class="form-group">
+                                <label for="gasWizProjectDesc" data-i18n="wizProjectDescLabel">อธิบายสิ่งที่ต้องการ ยิ่งละเอียดยิ่งดี</label>
+                                <textarea id="gasWizProjectDesc" rows="5" placeholder="เช่น ระบบบันทึกรายรับรายจ่าย มีฟอร์มกรอกข้อมูล เก็บลง Google Sheets แดชบอร์ดสรุปยอด แจ้งเตือนผ่าน LINE..." data-i18n-placeholder="gasWizProjectDescPlaceholder"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="gasWizTargetAI" data-i18n="wizTargetAILabel">AI ที่จะนำไปใช้</label>
+                                <select id="gasWizTargetAI">
+                                    <option value="claude">Claude (Anthropic)</option>
+                                    <option value="gemini-cli">Gemini CLI</option>
+                                    <option value="cursor">Cursor</option>
+                                    <option value="github-copilot">GitHub Copilot</option>
+                                    <option value="codex">OpenAI Codex</option>
+                                    <option value="windsurf">Windsurf</option>
+                                    <option value="other" data-i18n="wizTargetAIOther">อื่นๆ</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" id="gasWizAnalyzeBtn">
+                                <i class="bi bi-cpu"></i> <span data-i18n="gasWizAnalyzeBtn">วิเคราะห์โปรเจกต์</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- GAS Wizard Step 2: AI Analysis + GAS Settings -->
+                    <div class="wizard-step" id="gasWizStep2">
+                        <div class="wiz-step-header">
+                            <span class="wiz-step-num">2</span>
+                            <span class="wiz-step-title" data-i18n="gasWizStep2Title">ผลวิเคราะห์ + ตั้งค่า GAS</span>
+                        </div>
+                        <div class="wiz-step-body" id="gasWizSettingsBody">
+                            <div class="loading-state" id="gasWizAnalysisLoading" style="display: none;">
+                                <div class="spinner"></div>
+                                <span data-i18n="wizAnalysisLoading">AI กำลังวิเคราะห์โปรเจกต์...</span>
+                            </div>
+                            <div id="gasWizAnalysisContent"></div>
+                            <!-- GAS Settings (injected after AI analysis) -->
+                            <div id="gasWizSettingsPanel" style="display:none;">
+                                <h4 class="gas-wiz-settings-title"><i class="bi bi-gear"></i> <span data-i18n="gasWizSettingsTitle">การตั้งค่า GAS (AI เลือกให้แล้ว — แก้ได้)</span></h4>
+
+                                <div class="gas-wiz-section">
+                                    <label class="gas-wiz-label" data-i18n="gasGuideModeLabel">ระดับคำอธิบาย</label>
+                                    <div class="option-grid three-cols gas-option-grid">
+                                        <label class="option-card"><input type="radio" name="gasGuideMode" value="beginner" checked><div class="option-content"><i class="bi bi-mortarboard"></i><span class="option-title" data-i18n="gasGuideBeginnerTitle">Beginner</span><span class="option-desc" data-i18n="gasGuideBeginnerDesc">อธิบาย setup/deploy/scopes แบบทีละขั้น</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasGuideMode" value="balanced"><div class="option-content"><i class="bi bi-signpost-split"></i><span class="option-title" data-i18n="gasGuideBalancedTitle">Balanced</span><span class="option-desc" data-i18n="gasGuideBalancedDesc">กระชับขึ้น แต่ยังมีคำอธิบายพอเข้าใจ</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasGuideMode" value="expert"><div class="option-content"><i class="bi bi-lightning-charge"></i><span class="option-title" data-i18n="gasGuideExpertTitle">Expert</span><span class="option-desc" data-i18n="gasGuideExpertDesc">เน้น architecture และข้อควรระวังแบบสั้น</span></div></label>
+                                    </div>
+                                </div>
+
+                                <div class="gas-wiz-section">
+                                    <label class="gas-wiz-label" data-i18n="gasUiStyleLabel">โทน UI ที่อยากได้</label>
+                                    <div class="option-grid three-cols gas-option-grid">
+                                        <label class="option-card"><input type="radio" name="gasUiStyle" value="modern" checked><div class="option-content"><i class="bi bi-stars"></i><span class="option-title" data-i18n="gasUiModernTitle">Modern</span><span class="option-desc" data-i18n="gasUiModernDesc">ทันสมัย อ่านง่าย ใช้งานทั่วไป</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasUiStyle" value="formal"><div class="option-content"><i class="bi bi-building"></i><span class="option-title" data-i18n="gasUiFormalTitle">Formal</span><span class="option-desc" data-i18n="gasUiFormalDesc">สุภาพ เหมาะกับองค์กรหรือราชการ</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasUiStyle" value="dashboard"><div class="option-content"><i class="bi bi-layout-sidebar-inset"></i><span class="option-title" data-i18n="gasUiDashboardTitle">Dashboard</span><span class="option-desc" data-i18n="gasUiDashboardDesc">เหมาะกับงานหลังบ้าน ตาราง และตัวกรอง</span></div></label>
+                                    </div>
+                                </div>
+
+                                <div class="gas-wiz-section">
+                                    <label class="gas-wiz-label" data-i18n="gasWorkflowLabel">งานที่ระบบควรเน้น</label>
+                                    <div class="option-grid gas-option-grid">
+                                        <label class="option-card"><input type="checkbox" id="gasWorkflowPdf"><div class="option-content"><i class="bi bi-file-earmark-pdf"></i><span class="option-title" data-i18n="gasWorkflowPdfTitle">Docs to PDF</span><span class="option-desc" data-i18n="gasWorkflowPdfDesc">Google Docs template + placeholder + export PDF</span></div></label>
+                                        <label class="option-card"><input type="checkbox" id="gasWorkflowDrive"><div class="option-content"><i class="bi bi-folder-symlink"></i><span class="option-title" data-i18n="gasWorkflowDriveTitle">Drive Sharing</span><span class="option-desc" data-i18n="gasWorkflowDriveDesc">แชร์ไฟล์ จัดการสิทธิ์ และย้ายโฟลเดอร์</span></div></label>
+                                        <label class="option-card"><input type="checkbox" id="gasWorkflowBottomNav"><div class="option-content"><i class="bi bi-menu-button-wide"></i><span class="option-title" data-i18n="gasWorkflowBottomNavTitle">Bottom Menu</span><span class="option-desc" data-i18n="gasWorkflowBottomNavDesc">เหมาะกับ mobile-first และเมนูหลักไม่เยอะ</span></div></label>
+                                        <label class="option-card"><input type="checkbox" id="gasWorkflowSwal" checked><div class="option-content"><i class="bi bi-bell"></i><span class="option-title" data-i18n="gasWorkflowSwalTitle">Swal.fire</span><span class="option-desc" data-i18n="gasWorkflowSwalDesc">ใช้แจ้งเตือน ยืนยัน และ error modal เป็นค่าเริ่มต้น</span></div></label>
+                                    </div>
+                                </div>
+
+                                <div class="gas-wiz-section">
+                                    <label class="gas-wiz-label" data-i18n="gasNotifyLabel">ช่องทางแจ้งเตือนหลัก</label>
+                                    <div class="option-grid gas-option-grid">
+                                        <label class="option-card"><input type="radio" name="gasNotifyChannel" value="none" checked><div class="option-content"><i class="bi bi-bell-slash"></i><span class="option-title" data-i18n="gasNotifyNoneTitle">No Push Alert</span><span class="option-desc" data-i18n="gasNotifyNoneDesc">ยังไม่ต้องบังคับช่องทางแจ้งเตือน</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasNotifyChannel" value="line-messaging-api"><div class="option-content"><i class="bi bi-line"></i><span class="option-title" data-i18n="gasNotifyLineTitle">LINE Messaging API</span><span class="option-desc" data-i18n="gasNotifyLineDesc">ใช้ LINE Official Account แทน LINE Notify ที่ยุติแล้ว</span></div></label>
+                                        <label class="option-card"><input type="radio" name="gasNotifyChannel" value="telegram-bot"><div class="option-content"><i class="bi bi-telegram"></i><span class="option-title" data-i18n="gasNotifyTelegramTitle">Telegram Bot</span><span class="option-desc" data-i18n="gasNotifyTelegramDesc">เหมาะกับการแจ้งเตือนเร็วและ setup ค่อนข้างตรงไปตรงมา</span></div></label>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-primary btn-lg" id="gasWizGenerateBtn" style="margin-top:16px;">
+                                    <i class="bi bi-magic"></i> <span data-i18n="gasWizGenerateBtn">Generate Prompt</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -888,184 +990,7 @@
         </footer>
     </div>
 
-    <!-- Google Web App Wizard Modal -->
-    <div class="wizard-overlay" id="wizardOverlay">
-        <div class="wizard-modal" style="max-width:720px;">
-            <div class="wizard-header">
-                <div>
-                    <h3><i class="bi bi-google"></i> <span data-i18n="gasWizardTitle">Google Web App Wizard</span></h3>
-                    <p class="wizard-subtitle" data-i18n="gasWizardSubtitle">ตั้งค่า GAS project — ใช้ AI วิเคราะห์อัตโนมัติหรือเลือกเอง</p>
-                </div>
-                <button class="wizard-close" id="wizardClose"><i class="bi bi-x-lg"></i></button>
-            </div>
-            <div class="wizard-body" id="wizardBody">
-                <!-- AI Auto-fill banner -->
-                <div class="gas-wiz-autofill" id="gasWizAutoFill">
-                    <div class="gas-wiz-autofill-text">
-                        <i class="bi bi-stars"></i>
-                        <span data-i18n="gasWizAutoFillText">AI วิเคราะห์จากคำอธิบายโปรเจกต์แล้วเลือกให้อัตโนมัติ</span>
-                    </div>
-                    <button class="btn btn-primary btn-sm" id="gasWizAutoFillBtn">
-                        <i class="bi bi-magic"></i> <span data-i18n="gasWizAutoFillBtn">วิเคราะห์และตั้งค่าอัตโนมัติ</span>
-                    </button>
-                </div>
-
-                <!-- Guide Mode -->
-                <div class="gas-wiz-section">
-                    <label class="gas-wiz-label" data-i18n="gasGuideModeLabel">ระดับคำอธิบาย</label>
-                    <div class="option-grid three-cols gas-option-grid">
-                        <label class="option-card">
-                            <input type="radio" name="gasGuideMode" value="beginner" checked>
-                            <div class="option-content">
-                                <i class="bi bi-mortarboard"></i>
-                                <span class="option-title" data-i18n="gasGuideBeginnerTitle">Beginner</span>
-                                <span class="option-desc" data-i18n="gasGuideBeginnerDesc">อธิบาย setup/deploy/scopes แบบทีละขั้น</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasGuideMode" value="balanced">
-                            <div class="option-content">
-                                <i class="bi bi-signpost-split"></i>
-                                <span class="option-title" data-i18n="gasGuideBalancedTitle">Balanced</span>
-                                <span class="option-desc" data-i18n="gasGuideBalancedDesc">กระชับขึ้น แต่ยังมีคำอธิบายพอเข้าใจ</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasGuideMode" value="expert">
-                            <div class="option-content">
-                                <i class="bi bi-lightning-charge"></i>
-                                <span class="option-title" data-i18n="gasGuideExpertTitle">Expert</span>
-                                <span class="option-desc" data-i18n="gasGuideExpertDesc">เน้น architecture และข้อควรระวังแบบสั้น</span>
-                            </div>
-                        </label>
-                    </div>
-                    <p class="gas-inline-hint" data-i18n="gasGuideModeHint">Hard rules จะถูกใส่อัตโนมัติทุกโหมด ความต่างคือระดับการอธิบายให้คนอ่าน</p>
-                </div>
-
-                <!-- UI Style -->
-                <div class="gas-wiz-section">
-                    <label class="gas-wiz-label" data-i18n="gasUiStyleLabel">โทน UI ที่อยากได้</label>
-                    <div class="option-grid three-cols gas-option-grid">
-                        <label class="option-card">
-                            <input type="radio" name="gasUiStyle" value="modern" checked>
-                            <div class="option-content">
-                                <i class="bi bi-stars"></i>
-                                <span class="option-title" data-i18n="gasUiModernTitle">Modern</span>
-                                <span class="option-desc" data-i18n="gasUiModernDesc">ทันสมัย อ่านง่าย ใช้งานทั่วไป</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasUiStyle" value="formal">
-                            <div class="option-content">
-                                <i class="bi bi-building"></i>
-                                <span class="option-title" data-i18n="gasUiFormalTitle">Formal</span>
-                                <span class="option-desc" data-i18n="gasUiFormalDesc">สุภาพ เหมาะกับองค์กรหรือราชการ</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasUiStyle" value="dashboard">
-                            <div class="option-content">
-                                <i class="bi bi-layout-sidebar-inset"></i>
-                                <span class="option-title" data-i18n="gasUiDashboardTitle">Dashboard</span>
-                                <span class="option-desc" data-i18n="gasUiDashboardDesc">เหมาะกับงานหลังบ้าน ตาราง และตัวกรอง</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Workflow Emphasis -->
-                <div class="gas-wiz-section">
-                    <label class="gas-wiz-label" data-i18n="gasWorkflowLabel">งานที่ระบบควรเน้น</label>
-                    <div class="option-grid gas-option-grid">
-                        <label class="option-card">
-                            <input type="checkbox" id="gasWorkflowPdf">
-                            <div class="option-content">
-                                <i class="bi bi-file-earmark-pdf"></i>
-                                <span class="option-title" data-i18n="gasWorkflowPdfTitle">Docs to PDF</span>
-                                <span class="option-desc" data-i18n="gasWorkflowPdfDesc">Google Docs template + placeholder + export PDF</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="checkbox" id="gasWorkflowDrive">
-                            <div class="option-content">
-                                <i class="bi bi-folder-symlink"></i>
-                                <span class="option-title" data-i18n="gasWorkflowDriveTitle">Drive Sharing</span>
-                                <span class="option-desc" data-i18n="gasWorkflowDriveDesc">แชร์ไฟล์ จัดการสิทธิ์ และย้ายโฟลเดอร์</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="checkbox" id="gasWorkflowBottomNav">
-                            <div class="option-content">
-                                <i class="bi bi-menu-button-wide"></i>
-                                <span class="option-title" data-i18n="gasWorkflowBottomNavTitle">Bottom Menu</span>
-                                <span class="option-desc" data-i18n="gasWorkflowBottomNavDesc">เหมาะกับ mobile-first และเมนูหลักไม่เยอะ</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="checkbox" id="gasWorkflowSwal" checked>
-                            <div class="option-content">
-                                <i class="bi bi-bell"></i>
-                                <span class="option-title" data-i18n="gasWorkflowSwalTitle">Swal.fire</span>
-                                <span class="option-desc" data-i18n="gasWorkflowSwalDesc">ใช้แจ้งเตือน ยืนยัน และ error modal เป็นค่าเริ่มต้น</span>
-                            </div>
-                        </label>
-                    </div>
-                    <p class="gas-inline-hint" data-i18n="gasWorkflowHint">ถ้าไม่ติ๊ก ระบบยังพยายามเดาจากคำอธิบายโปรเจกต์ให้อัตโนมัติ</p>
-                </div>
-
-                <!-- Notification Channel -->
-                <div class="gas-wiz-section">
-                    <label class="gas-wiz-label" data-i18n="gasNotifyLabel">ช่องทางแจ้งเตือนหลัก</label>
-                    <div class="option-grid gas-option-grid">
-                        <label class="option-card">
-                            <input type="radio" name="gasNotifyChannel" value="none" checked>
-                            <div class="option-content">
-                                <i class="bi bi-bell-slash"></i>
-                                <span class="option-title" data-i18n="gasNotifyNoneTitle">No Push Alert</span>
-                                <span class="option-desc" data-i18n="gasNotifyNoneDesc">ยังไม่ต้องบังคับช่องทางแจ้งเตือน</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasNotifyChannel" value="line-messaging-api">
-                            <div class="option-content">
-                                <i class="bi bi-line"></i>
-                                <span class="option-title" data-i18n="gasNotifyLineTitle">LINE Messaging API</span>
-                                <span class="option-desc" data-i18n="gasNotifyLineDesc">ใช้ LINE Official Account แทน LINE Notify ที่ยุติแล้ว</span>
-                            </div>
-                        </label>
-                        <label class="option-card">
-                            <input type="radio" name="gasNotifyChannel" value="telegram-bot">
-                            <div class="option-content">
-                                <i class="bi bi-telegram"></i>
-                                <span class="option-title" data-i18n="gasNotifyTelegramTitle">Telegram Bot</span>
-                                <span class="option-desc" data-i18n="gasNotifyTelegramDesc">เหมาะกับการแจ้งเตือนเร็วและ setup ค่อนข้างตรงไปตรงมา</span>
-                            </div>
-                        </label>
-                    </div>
-                    <p class="gas-inline-hint" data-i18n="gasNotifyHint">ถ้าเลือก LINE ระบบจะห้ามใช้ LINE Notify และอธิบายแนวทางผ่าน LINE Messaging API ให้แทน</p>
-                </div>
-
-                <!-- Auto Rules Info -->
-                <div class="gas-wiz-section gas-wiz-rules">
-                    <label class="gas-wiz-label"><i class="bi bi-shield-check"></i> <span data-i18n="gasAutoRulesLabel">กฎที่ระบบจะใส่อัตโนมัติ</span></label>
-                    <ul class="gas-auto-list">
-                        <li data-i18n="gasAutoRuleScope">กัน AI หลุดไป React, Next.js, Node.js, npm และ import/export</li>
-                        <li data-i18n="gasAutoRuleDate">ย้ำเรื่อง Date, timezone และการใช้ Utilities.formatDate()</li>
-                        <li data-i18n="gasAutoRuleZeros">เตือนเรื่องเลข 0 นำหน้าหายใน Google Sheets</li>
-                        <li data-i18n="gasAutoRuleDrive">เตือนเรื่อง Drive permission, scope และ try/catch</li>
-                        <li data-i18n="gasAutoRuleMultiView">ตีความ multi-view บน GAS เป็น HtmlService หน้าเดียว และแนะนำ Alpine.js ผ่าน CDN</li>
-                        <li data-i18n="gasAutoRuleDeploy">บังคับแนวคิด doGet/doPost, HtmlService และ google.script.run</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="wizard-footer" id="wizardFooter">
-                <button class="btn btn-primary" id="wizardApply">
-                    <i class="bi bi-check2-all"></i> <span data-i18n="wizardApply">ใช้ที่เลือกทั้งหมด</span>
-                </button>
-                <button class="btn btn-outline" id="wizardCancel" data-i18n="wizardCancel">ปิด</button>
-            </div>
-        </div>
-    </div>
+    <!-- GAS Wizard Modal removed — settings moved to #gas-wizard-section -->
 
     <!-- Save Prompt Modal -->
     <div class="wizard-overlay" id="savePromptOverlay" style="display:none;">
