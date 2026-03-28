@@ -47,7 +47,7 @@
             <div class="kp-hero-glow"></div>
             <div class="kp-hero-content">
                 <div class="kp-hero-badge"><i class="bi bi-stars"></i> AI-Powered</div>
-                <h1 class="kp-hero-title">สร้าง <span class="kp-hero-highlight">AI Prompt</span><br class="mobile-br"> ให้เข้าใจโปรเจกต์ของคุณ</h1>
+                <h1 class="kp-hero-title" data-i18n="heroTitle">สร้าง <span class="kp-hero-highlight">AI Prompt</span><br class="mobile-br"> ให้เข้าใจโปรเจกต์ของคุณ</h1>
                 <p class="kp-hero-desc" data-i18n="tagline">สร้างไฟล์แนะนำโปรเจกต์ให้ AI <span class="kp-hide-xs">อย่าง Claude, Gemini, ChatGPT</span> เข้าใจงานของคุณได้ทันที</p>
                 <div class="kp-hero-chips">
                     <span class="kp-chip"><i class="bi bi-lightning-charge-fill"></i> Claude</span>
@@ -989,8 +989,8 @@
                 <button class="btn btn-primary btn-lg" id="generateBtn">
                     <i class="bi bi-magic"></i> Generate Prompt
                 </button>
-                <button class="btn btn-outline btn-lg" id="resetBtn" title="รีเซ็ตทั้งหมด">
-                    <i class="bi bi-eraser"></i> รีเซ็ต
+                <button class="btn btn-outline btn-lg" id="resetBtn" data-i18n-title="resetBtnTitle" title="รีเซ็ตทั้งหมด">
+                    <i class="bi bi-eraser"></i> <span data-i18n="resetBtn">รีเซ็ต</span>
                 </button>
             </div>
 
@@ -1019,7 +1019,7 @@
                     <div id="resultContent" class="result-content" style="display: none;">
                         <div class="signature-warning" id="signatureWarning" style="display: none;">
                             <i class="bi bi-shield-lock"></i>
-                            <span>หากต้องการนำ Prompt ไปลงขายใน Marketplace ห้ามลบส่วน <strong>KP-PROMPT-CREATOR-SIGNATURE</strong> ด้านล่าง</span>
+                            <span data-i18n="signatureWarning">หากต้องการนำ Prompt ไปลงขายใน Marketplace ห้ามลบส่วน <strong>KP-PROMPT-CREATOR-SIGNATURE</strong> ด้านล่าง</span>
                         </div>
                         <textarea id="resultText" class="result-textarea" spellcheck="false"></textarea>
                         <!-- Post-generation usage guide -->
