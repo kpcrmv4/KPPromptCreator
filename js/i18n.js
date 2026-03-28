@@ -3,6 +3,7 @@
 const TRANSLATIONS = {
     th: {
         // Header
+        heroTitle: 'สร้าง <span class="kp-hero-highlight">AI Prompt</span><br class="mobile-br"> ให้เข้าใจโปรเจกต์ของคุณ',
         tagline: 'สร้างไฟล์แนะนำโปรเจกต์ให้ AI <br class="mobile-br">เข้าใจงานของคุณได้ทันที',
 
         // Step 1: API Key
@@ -181,6 +182,9 @@ const TRANSLATIONS = {
 
         // Result
         stepResult: 'ผลลัพธ์',
+        signatureWarning: 'หากต้องการนำ Prompt ไปลงขายใน Marketplace ห้ามลบส่วน <strong>KP-PROMPT-CREATOR-SIGNATURE</strong> ด้านล่าง',
+        resetBtn: 'รีเซ็ต',
+        resetBtnTitle: 'รีเซ็ตทั้งหมด',
         copyBtn: 'คัดลอก',
         downloadBtn: 'ดาวน์โหลด .md',
         saveBtn: 'บันทึก Prompt',
@@ -364,6 +368,7 @@ const TRANSLATIONS = {
     },
     en: {
         // Header
+        heroTitle: 'Create <span class="kp-hero-highlight">AI Prompts</span><br class="mobile-br"> for Your Projects',
         tagline: 'Create project instruction files <br class="mobile-br">for AI to understand your work instantly',
 
         // Step 1: API Key
@@ -542,6 +547,9 @@ const TRANSLATIONS = {
 
         // Result
         stepResult: 'Result',
+        signatureWarning: 'To sell this Prompt on the Marketplace, do not remove the <strong>KP-PROMPT-CREATOR-SIGNATURE</strong> section below.',
+        resetBtn: 'Reset',
+        resetBtnTitle: 'Reset all options',
         copyBtn: 'Copy',
         downloadBtn: 'Download .md',
         saveBtn: 'Save Prompt',
@@ -776,5 +784,10 @@ function applyTranslations() {
 
     if (typeof refreshGasModeCopy === 'function') {
         refreshGasModeCopy();
+    }
+
+    // Re-render dynamically generated content
+    if (typeof renderFooterStatsGlobal === 'function') {
+        renderFooterStatsGlobal();
     }
 }
