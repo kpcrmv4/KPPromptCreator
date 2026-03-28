@@ -232,7 +232,8 @@ async function purchasePrompt(promptId, price = null) {
     return;
   }
   const freePrompt = isFreePrompt(price);
-  if (!confirm(freePrompt ? 'ยืนยันการรับ Prompt ฟรีนี้?' : 'ยืนยันการซื้อ Prompt นี้?')) return;
+  const ok = await kpConfirm(freePrompt ? 'ยืนยันการรับ Prompt ฟรีนี้?' : 'ยืนยันการซื้อ Prompt นี้?', { icon: 'cart-check', confirmText: freePrompt ? 'รับเลย' : 'ซื้อเลย' });
+  if (!ok) return;
 
   try {
     const data = await api('/prompts/purchase', {
@@ -246,7 +247,8 @@ async function purchasePrompt(promptId, price = null) {
   } catch (err) {
     if (err.need_topup) {
       showToast(`${err.error} — เติมเงินก่อน`, 'error');
-      if (confirm('ต้องการไปเติมเงินหรือไม่?')) window.location.href = '/topup.html';
+      const goTopup = await kpConfirm('ต้องการไปเติมเงินหรือไม่?', { icon: 'wallet2', confirmText: 'ไปเติมเงิน' });
+      if (goTopup) window.location.href = '/topup.html';
     } else {
       showToast(err.error || 'ซื้อไม่สำเร็จ', 'error');
     }
@@ -876,7 +878,8 @@ async function downloadSavedPrompt(savedPromptId) {
 }
 
 async function deleteSavedPrompt(savedPromptId) {
-  if (!confirm('ลบ Prompt นี้?')) return;
+  const ok = await kpConfirm('ลบ Prompt นี้?', { icon: 'trash', type: 'danger', confirmText: 'ลบ' });
+  if (!ok) return;
   try {
     await api(`/saved-prompts?saved_prompt_id=${savedPromptId}`, { method: 'DELETE' });
     showToast('ลบสำเร็จ', 'success');
@@ -885,7 +888,8 @@ async function deleteSavedPrompt(savedPromptId) {
 }
 
 async function deleteCollection(collectionId) {
-  if (!confirm('ลบคอลเล็คชั่นนี้? (Prompt ภายในจะไม่ถูกลบ)')) return;
+  const ok2 = await kpConfirm('ลบคอลเล็คชั่นนี้?<br><small style="color:var(--text-muted)">(Prompt ภายในจะไม่ถูกลบ)</small>', { icon: 'trash', type: 'danger', confirmText: 'ลบ' });
+  if (!ok2) return;
   try {
     await api(`/collections?collection_id=${collectionId}`, { method: 'DELETE' });
     showToast('ลบคอลเล็คชั่นสำเร็จ', 'success');

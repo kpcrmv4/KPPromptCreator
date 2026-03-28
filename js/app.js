@@ -1727,6 +1727,68 @@ function getRadioValue(name) {
     return el ? el.value : null;
 }
 
+// ===== Custom Confirm Modal =====
+
+function kpConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'kp-modal-overlay';
+
+        const icon = options.icon || 'question-circle';
+        const confirmText = options.confirmText || 'ตกลง';
+        const cancelText = options.cancelText || 'ยกเลิก';
+        const type = options.type || 'confirm'; // confirm | danger | info
+
+        const typeClass = type === 'danger' ? 'kp-modal-danger' : type === 'info' ? 'kp-modal-info' : '';
+
+        overlay.innerHTML = `
+            <div class="kp-modal ${typeClass}">
+                <div class="kp-modal-icon">
+                    <i class="bi bi-${icon}"></i>
+                </div>
+                <div class="kp-modal-message">${message}</div>
+                <div class="kp-modal-actions">
+                    ${type !== 'info' ? `<button class="kp-modal-btn kp-modal-cancel">${cancelText}</button>` : ''}
+                    <button class="kp-modal-btn kp-modal-confirm">${confirmText}</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Animate in
+        requestAnimationFrame(() => overlay.classList.add('show'));
+
+        function close(result) {
+            overlay.classList.remove('show');
+            overlay.classList.add('closing');
+            setTimeout(() => { overlay.remove(); resolve(result); }, 200);
+        }
+
+        overlay.querySelector('.kp-modal-confirm').addEventListener('click', () => close(true));
+        const cancelBtn = overlay.querySelector('.kp-modal-cancel');
+        if (cancelBtn) cancelBtn.addEventListener('click', () => close(false));
+
+        // Click outside to cancel
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close(false);
+        });
+
+        // Escape key to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') { document.removeEventListener('keydown', escHandler); close(false); }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Focus confirm button
+        overlay.querySelector('.kp-modal-confirm').focus();
+    });
+}
+
+function kpAlert(message, options = {}) {
+    return kpConfirm(message, { ...options, type: 'info', confirmText: options.confirmText || 'ตกลง' });
+}
+
 function showToast(message) {
     let toast = document.querySelector('.toast');
     if (!toast) {
@@ -2470,8 +2532,9 @@ async function wizardGenerate() {
 
 // ===== Reset Form =====
 
-function resetForm() {
-    if (!confirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?\n(API Key จะไม่ถูกลบ)')) return;
+async function resetForm() {
+    const ok = await kpConfirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?<br><small style="color:var(--text-muted)">(API Key จะไม่ถูกลบ)</small>', { icon: 'arrow-counterclockwise', type: 'danger', confirmText: 'รีเซ็ต' });
+    if (!ok) return;
 
     // Reset text inputs (except API key)
     document.getElementById('projectName').value = '';

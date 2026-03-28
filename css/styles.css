@@ -1185,6 +1185,139 @@ textarea {
     color: inherit;
 }
 
+/* ===== Custom Confirm Modal ===== */
+.kp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    padding: 16px;
+}
+
+.kp-modal-overlay.show {
+    opacity: 1;
+}
+
+.kp-modal-overlay.closing {
+    opacity: 0;
+}
+
+.kp-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 32px 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    transform: scale(0.9) translateY(10px);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kp-modal-overlay.show .kp-modal {
+    transform: scale(1) translateY(0);
+}
+
+.kp-modal-overlay.closing .kp-modal {
+    transform: scale(0.95) translateY(5px);
+}
+
+.kp-modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+.kp-modal-danger .kp-modal-icon {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.kp-modal-info .kp-modal-icon {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.kp-modal-message {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 24px;
+}
+
+.kp-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.kp-modal-btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    min-width: 90px;
+}
+
+.kp-modal-cancel {
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+.kp-modal-cancel:hover {
+    background: var(--border-light);
+    color: var(--text);
+}
+
+.kp-modal-confirm {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+}
+
+.kp-modal-confirm:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 92, 252, 0.4);
+}
+
+.kp-modal-confirm:active {
+    transform: translateY(0);
+}
+
+.kp-modal-danger .kp-modal-confirm {
+    background: #ef4444;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.kp-modal-danger .kp-modal-confirm:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Dark mode support */
+[data-theme="dark"] .kp-modal {
+    background: var(--surface);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
 /* ===== Toast ===== */
 .toast {
     position: fixed;
