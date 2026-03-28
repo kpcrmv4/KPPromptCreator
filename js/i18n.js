@@ -105,15 +105,14 @@ const TRANSLATIONS = {
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
-        gasWizardBtnDesc: 'ตั้งค่า GAS + AI ช่วยเลือก',
+        gasWizardBtnDesc: 'สำหรับมือใหม่ GAS — AI ช่วยทุกขั้นตอน',
         gasWizardTitle: 'Google Web App Wizard',
-        gasWizardSubtitle: 'ตั้งค่า GAS project — ใช้ AI วิเคราะห์อัตโนมัติหรือเลือกเอง',
-        gasWizAutoFillText: 'AI วิเคราะห์จากคำอธิบายโปรเจกต์แล้วเลือกให้อัตโนมัติ',
-        gasWizAutoFillBtn: 'วิเคราะห์และตั้งค่าอัตโนมัติ',
-        gasWizAnalyzing: 'กำลังวิเคราะห์...',
-        gasWizAutoFillDone: 'ตั้งค่าอัตโนมัติเรียบร้อย!',
-        gasWizAutoFillError: 'วิเคราะห์ไม่สำเร็จ กรุณาลองใหม่',
-        gasWizApplied: 'บันทึกการตั้งค่า GAS Wizard แล้ว!',
+        gasWizStep1Title: 'อธิบายโปรเจกต์ของคุณ',
+        gasWizStep2Title: 'ผลวิเคราะห์ + ตั้งค่า GAS',
+        gasWizAnalyzeBtn: 'วิเคราะห์โปรเจกต์',
+        gasWizSettingsTitle: 'การตั้งค่า GAS (AI เลือกให้แล้ว — แก้ได้)',
+        gasWizGenerateBtn: 'Generate Prompt',
+        gasWizComplexity: 'ความซับซ้อน',
         gasGuideModeLabel: 'ระดับคำอธิบาย',
         gasGuideBeginnerTitle: 'Beginner',
         gasGuideBeginnerDesc: 'อธิบาย setup, deploy, scopes และจุดพังบ่อยแบบทีละขั้น',
@@ -194,9 +193,7 @@ const TRANSLATIONS = {
         // Footer
         footerText: 'KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย',
 
-        // Wizard Modal
-        wizardApply: 'บันทึกการตั้งค่า',
-        wizardCancel: 'ปิด',
+        gasWizProjectDescPlaceholder: 'เช่น ระบบบันทึกรายรับรายจ่าย มีฟอร์มกรอกข้อมูล เก็บลง Google Sheets แดชบอร์ดสรุปยอด แจ้งเตือนผ่าน LINE...',
 
         // Toast messages
         toastCopied: 'คัดลอกแล้ว!',
@@ -451,15 +448,14 @@ const TRANSLATIONS = {
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
-        gasWizardBtnDesc: 'GAS config + AI auto-fill',
+        gasWizardBtnDesc: 'For GAS beginners — AI guides every step',
         gasWizardTitle: 'Google Web App Wizard',
-        gasWizardSubtitle: 'Configure your GAS project — use AI auto-fill or choose manually',
-        gasWizAutoFillText: 'AI analyzes your project description and selects settings automatically',
-        gasWizAutoFillBtn: 'Analyze & auto-configure',
-        gasWizAnalyzing: 'Analyzing...',
-        gasWizAutoFillDone: 'Auto-configured successfully!',
-        gasWizAutoFillError: 'Analysis failed. Please try again.',
-        gasWizApplied: 'GAS Wizard settings saved!',
+        gasWizStep1Title: 'Describe your project',
+        gasWizStep2Title: 'Analysis + GAS Settings',
+        gasWizAnalyzeBtn: 'Analyze project',
+        gasWizSettingsTitle: 'GAS Settings (AI pre-selected — editable)',
+        gasWizGenerateBtn: 'Generate Prompt',
+        gasWizComplexity: 'Complexity',
         gasGuideModeLabel: 'Explanation level',
         gasGuideBeginnerTitle: 'Beginner',
         gasGuideBeginnerDesc: 'Explain setup, deploy, scopes, and common failure points step by step',
@@ -540,9 +536,7 @@ const TRANSLATIONS = {
         // Footer
         footerText: 'KP Prompt Creator &mdash; Made with <i class="bi bi-heart-fill"></i> for the developer community',
 
-        // Wizard Modal
-        wizardApply: 'Save settings',
-        wizardCancel: 'Close',
+        gasWizProjectDescPlaceholder: 'e.g. Income/expense tracker with form, Google Sheets storage, summary dashboard, LINE notifications...',
 
         // Toast messages
         toastCopied: 'Copied!',
