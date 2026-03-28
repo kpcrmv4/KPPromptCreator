@@ -125,6 +125,12 @@ async function handleCreatePrompt(e) {
       detail_images
     };
 
+    // Link back to saved prompt if selling from saved
+    if (window._kpSellSavedPromptId) {
+      body.saved_prompt_id = window._kpSellSavedPromptId;
+      window._kpSellSavedPromptId = null;
+    }
+
     const result = await api('/prompts', { method: 'POST', body: JSON.stringify(body) });
 
     if (result.warnings?.length) result.warnings.forEach(w => showToast(w, 'error'));
@@ -932,6 +938,9 @@ async function prefillFromSavedPrompt() {
     const { saved_prompts } = await api('/saved-prompts');
     const sp = saved_prompts.find(x => x.id === savedId);
     if (!sp) return;
+
+    // Store for linking after marketplace creation
+    window._kpSellSavedPromptId = savedId;
 
     // Switch to create tab
     setTimeout(() => {

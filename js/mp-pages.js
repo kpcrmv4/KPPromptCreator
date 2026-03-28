@@ -726,7 +726,14 @@ async function loadMyPrompts() {
         ${p.tech_stack?.length ? `<div class="flex flex-wrap gap-1 mb-3">${p.tech_stack.slice(0, 4).map(t => `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-xs rounded">${escapeHtml(t)}</span>`).join('')}${p.tech_stack.length > 4 ? `<span class="text-xs text-slate-400">+${p.tech_stack.length - 4}</span>` : ''}</div>` : ''}
         ${!p.marketplace_prompt_id ? `<button onclick="goToSellPrompt('${p.id}')" class="w-full py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg> ลงขายใน Marketplace
-        </button>` : `<span class="block text-center text-xs text-emerald-600 bg-emerald-50 py-2 rounded-lg">กำลังขายใน Marketplace</span>`}
+        </button>` : `<div class="flex gap-2">
+          <a href="/prompt-detail.html?id=${p.marketplace_prompt_id}" class="flex-1 py-2 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> ดูในตลาด
+          </a>
+          <button onclick="sharePrompt('${p.marketplace_prompt_id}', '${escapeHtml(p.title)}')" class="flex-1 py-2 text-xs font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors flex items-center justify-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg> แชร์
+          </button>
+        </div>`}
       </div>
     `).join('')}</div>`;
   } catch {
@@ -842,7 +849,10 @@ async function viewCollection(collectionId, collectionName) {
           </div>
         </div>
         <p class="text-xs text-slate-400 mb-2">${p.target_ai ? escapeHtml(p.target_ai) + ' — ' : ''}${new Date(p.created_at).toLocaleDateString('th-TH')}</p>
-        ${!p.marketplace_prompt_id ? `<button onclick="goToSellPrompt('${p.id}')" class="w-full py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4"/></svg> ลงขายใน Marketplace</button>` : ''}
+        ${!p.marketplace_prompt_id ? `<button onclick="goToSellPrompt('${p.id}')" class="w-full py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors flex items-center justify-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4"/></svg> ลงขายใน Marketplace</button>` : `<div class="flex gap-2">
+          <a href="/prompt-detail.html?id=${p.marketplace_prompt_id}" class="flex-1 py-2 text-xs font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors text-center">ดูในตลาด</a>
+          <button onclick="sharePrompt('${p.marketplace_prompt_id}', '${escapeHtml(p.title)}')" class="flex-1 py-2 text-xs font-medium text-violet-600 bg-violet-50 rounded-lg hover:bg-violet-100 transition-colors">แชร์</button>
+        </div>`}
       </div>
     `).join('')}</div>`;
   } catch {
@@ -875,6 +885,59 @@ async function downloadSavedPrompt(savedPromptId) {
     URL.revokeObjectURL(a.href);
     showToast('ดาวน์โหลดสำเร็จ', 'success');
   } catch (err) { showToast(err.error || 'ดาวน์โหลดไม่สำเร็จ', 'error'); }
+}
+
+async function sharePrompt(promptId, title) {
+  const url = `${window.location.origin}/prompt-detail.html?id=${promptId}`;
+
+  // Try native share first (mobile)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: title, text: `ดู Prompt "${title}" บน KP Prompt Creator`, url });
+      return;
+    } catch {}
+  }
+
+  // Fallback: show share modal
+  const shareOptions = [
+    { name: 'Copy Link', icon: '🔗', action: () => { navigator.clipboard.writeText(url); showToast('คัดลอกลิงก์แล้ว', 'success'); } },
+    { name: 'Facebook', icon: '📘', action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank') },
+    { name: 'LINE', icon: '💬', action: () => window.open(`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`, '_blank') },
+    { name: 'X (Twitter)', icon: '🐦', action: () => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`ดู Prompt "${title}" บน KP Prompt Creator`)}`, '_blank') },
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'kp-modal-overlay';
+  overlay.innerHTML = `
+    <div class="kp-modal">
+      <div class="kp-modal-icon">🔗</div>
+      <div class="kp-modal-message" style="margin-bottom:8px;font-weight:600;">แชร์ Prompt</div>
+      <input type="text" value="${url}" readonly style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#64748b;margin-bottom:12px;background:#f8fafc;" onclick="this.select()">
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        ${shareOptions.map((s, i) => `<button class="kp-share-btn" data-share-idx="${i}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 16px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;transition:all .2s;font-size:12px;min-width:70px;">
+          <span style="font-size:20px;">${s.icon}</span>${s.name}
+        </button>`).join('')}
+      </div>
+      <div class="kp-modal-actions" style="margin-top:16px;">
+        <button class="kp-modal-btn kp-modal-cancel">ปิด</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+
+  function close() {
+    overlay.classList.remove('show');
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 200);
+  }
+
+  overlay.querySelector('.kp-modal-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  shareOptions.forEach((s, i) => {
+    overlay.querySelector(`[data-share-idx="${i}"]`).addEventListener('click', () => { s.action(); close(); });
+  });
 }
 
 async function deleteSavedPrompt(savedPromptId) {
