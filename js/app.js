@@ -910,7 +910,7 @@ async function startGasWizardAnalysis() {
     {"name": "ชื่อฟีเจอร์", "description": "อธิบายสั้นๆ", "priority": "high|medium|low"}
   ],
   "dataModels": [
-    {"name": "ชื่อ model/ตาราง", "fields": ["field1", "field2"]}
+    {"name": "ชื่อแผ่นงาน (Sheet)", "fields": ["field1", "field2"]}
   ],
   "estimatedComplexity": "simple|moderate|complex",
   "gasSettings": {
@@ -978,7 +978,7 @@ function renderGasWizAnalysis(analysis) {
 
     // Editable data models
     if (analysis.dataModels && analysis.dataModels.length > 0) {
-        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4>`;
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> ${t('gasWizDataModelsTitle')}</h4>`;
         html += `<ul class="gas-wiz-editable-list" id="gasWizDataModelList">`;
         analysis.dataModels.forEach((m, i) => {
             html += renderGasWizDataModelItem(m, i);
@@ -1184,7 +1184,7 @@ async function gasWizardGenerate() {
         richDesc += `- ${f.name} (${f.priority}): ${f.description}\n`;
     });
     if (analysis.dataModels && analysis.dataModels.length > 0) {
-        richDesc += `\n## Data Models:\n`;
+        richDesc += `\n## แผ่นงาน (Sheets):\n`;
         analysis.dataModels.forEach(m => {
             richDesc += `- ${m.name}: ${m.fields.join(', ')}\n`;
         });
@@ -2060,7 +2060,7 @@ async function startWizardAnalysis() {
     {"name": "ประเภทผู้ใช้", "description": "อธิบาย"}
   ],
   "dataModels": [
-    {"name": "ชื่อ model/ตาราง", "fields": ["field1", "field2"]}
+    {"name": "ชื่อแผ่นงาน (Sheet)", "fields": ["field1", "field2"]}
   ],
   "nonFunctional": ["ความต้องการที่ไม่ใช่ฟีเจอร์ เช่น performance, security"],
   "estimatedComplexity": "simple|moderate|complex",
@@ -2106,7 +2106,7 @@ function renderWizardAnalysis(analysis) {
 
     // Data models
     if (analysis.dataModels && analysis.dataModels.length > 0) {
-        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4><ul>`;
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> ${t('gasWizDataModelsTitle')}</h4><ul>`;
         analysis.dataModels.forEach(m => {
             html += `<li><strong>${m.name}</strong>: ${m.fields.join(', ')}</li>`;
         });
@@ -2260,7 +2260,7 @@ async function wizardGenerate() {
         });
     }
     if (analysis.dataModels) {
-        richDesc += `\n## Data Models:\n`;
+        richDesc += `\n## แผ่นงาน (Sheets):\n`;
         analysis.dataModels.forEach(m => {
             richDesc += `- ${m.name}: ${m.fields.join(', ')}\n`;
         });
