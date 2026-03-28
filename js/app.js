@@ -220,6 +220,11 @@ function initApp() {
         localStorage.setItem('gemini_api_key', e.target.value.trim());
     });
 
+    // API Key security info
+    document.getElementById('apiKeySecurityBtn').addEventListener('click', () => {
+        kpConfirm(t('apiKeySecurityInfo'), { icon: 'shield-lock-fill', type: 'info', confirmText: t('apiKeySecurityOk') });
+    });
+
     // Toggle API key visibility
     document.getElementById('toggleApiKey').addEventListener('click', () => {
         const input = document.getElementById('apiKey');
