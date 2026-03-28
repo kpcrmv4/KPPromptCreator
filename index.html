@@ -1027,6 +1027,20 @@
                             <div class="usage-guide-title"><i class="bi bi-rocket-takeoff"></i> <span data-i18n="guideTitle">เอาไปใช้ยังไง?</span></div>
                             <ol class="usage-guide-steps" id="usageGuideSteps"></ol>
                         </div>
+                        <!-- Vote: AI Code Gen feature -->
+                        <div class="vote-card" id="voteCard">
+                            <div class="vote-content">
+                                <div class="vote-text">
+                                    <span class="vote-title" data-i18n="voteTitle">อยากให้ AI สร้างเว็บจาก Prompt นี้ให้เลยไหม?</span>
+                                    <span class="vote-desc" data-i18n="voteDesc">กดหัวใจโหวต! ถ้าคนสนใจเยอะพอ เราจะทำระบบนี้ให้</span>
+                                </div>
+                                <button class="vote-heart-btn" id="voteHeartBtn">
+                                    <i class="bi bi-heart"></i>
+                                    <span class="vote-count" id="voteCount">0</span>
+                                </button>
+                            </div>
+                            <div class="vote-particles" id="voteParticles"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1034,8 +1048,11 @@
 
         <!-- Footer -->
         <footer class="app-footer">
-            <p data-i18n="footerText">KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย</p>
-            <a href="https://www.facebook.com/kpwebappstudio" target="_blank" rel="noopener" class="footer-github"><i class="bi bi-facebook"></i> Facebook</a>
+            <div class="footer-stats-section" id="footerStats" style="display:none;"></div>
+            <div class="footer-bottom">
+                <p data-i18n="footerText">KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย</p>
+                <a href="https://www.facebook.com/kpwebappstudio" target="_blank" rel="noopener" class="footer-github"><i class="bi bi-facebook"></i> Facebook</a>
+            </div>
         </footer>
     </div>
 

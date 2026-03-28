@@ -308,7 +308,8 @@ async function purchasePrompt(promptId) {
     return;
   }
 
-  if (!confirm('ยืนยันการซื้อ Prompt นี้?')) return;
+  const ok = await kpConfirm('ยืนยันการซื้อ Prompt นี้?', { icon: 'cart-check', confirmText: 'ซื้อเลย' });
+  if (!ok) return;
 
   try {
     const data = await api('/prompts/purchase', {
@@ -322,7 +323,8 @@ async function purchasePrompt(promptId) {
   } catch (err) {
     if (err.need_topup) {
       showToast(`${err.error} — เติมเงินก่อน`, 'error');
-      if (confirm('ต้องการไปเติมเงินหรือไม่?')) {
+      const goTopup = await kpConfirm('ต้องการไปเติมเงินหรือไม่?', { icon: 'wallet2', confirmText: 'ไปเติมเงิน' });
+      if (goTopup) {
         window.location.href = '/topup.html';
       }
     } else {
@@ -905,9 +907,11 @@ async function processPayout(payoutId, action) {
       proof_filename = file.name;
     }
 
-    if (!confirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?')) return;
+    const okPay = await kpConfirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?', { icon: 'check-circle', confirmText: 'ยืนยัน' });
+    if (!okPay) return;
   } else {
-    if (!confirm('ยืนยันปฏิเสธคำขอถอนเงิน? เครดิตจะถูกคืนให้ผู้ขาย')) return;
+    const okReject = await kpConfirm('ยืนยันปฏิเสธคำขอถอนเงิน?<br><small style="color:var(--text-muted)">เครดิตจะถูกคืนให้ผู้ขาย</small>', { icon: 'x-circle', type: 'danger', confirmText: 'ปฏิเสธ' });
+    if (!okReject) return;
   }
 
   try {
@@ -1151,7 +1155,8 @@ async function handleImageUpload(promptId) {
 }
 
 async function deleteImage(imageId, promptId) {
-  if (!confirm('ลบรูปนี้?')) return;
+  const ok = await kpConfirm('ลบรูปนี้?', { icon: 'trash', type: 'danger', confirmText: 'ลบ' });
+  if (!ok) return;
   try {
     await api(`/images/delete?image_id=${imageId}`, { method: 'DELETE' });
     showToast('ลบรูปสำเร็จ', 'success');

@@ -382,7 +382,8 @@ async function handleImageUpload(promptId) {
 }
 
 async function deleteImage(imageId, promptId) {
-  if (!confirm('ลบรูปนี้?')) return;
+  const ok = await kpConfirm('ลบรูปนี้?', { icon: 'trash', type: 'danger', confirmText: 'ลบ' });
+  if (!ok) return;
   try {
     await api(`/images/delete?image_id=${imageId}`, { method: 'DELETE' });
     showToast('ลบสำเร็จ', 'success');
@@ -749,9 +750,11 @@ async function processPayout(payoutId, action) {
       });
       proof_filename = file.name;
     }
-    if (!confirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?')) return;
+    const okPay = await kpConfirm('ยืนยันว่าโอนเงินให้ผู้ขายแล้ว?', { icon: 'check-circle', confirmText: 'ยืนยัน' });
+    if (!okPay) return;
   } else {
-    if (!confirm('ยืนยันปฏิเสธคำขอถอนเงิน? เครดิตจะถูกคืนให้ผู้ขาย')) return;
+    const okReject = await kpConfirm('ยืนยันปฏิเสธคำขอถอนเงิน?<br><small style="color:var(--text-muted)">เครดิตจะถูกคืนให้ผู้ขาย</small>', { icon: 'x-circle', type: 'danger', confirmText: 'ปฏิเสธ' });
+    if (!okReject) return;
   }
 
   try {
@@ -900,9 +903,11 @@ async function processTopup(topupId, action) {
       amountInput?.focus();
       return;
     }
-    if (!confirm(`ยืนยันเติมเครดิต ฿${amount} ให้สมาชิก?`)) return;
+    const okCredit = await kpConfirm(`ยืนยันเติมเครดิต ฿${amount} ให้สมาชิก?`, { icon: 'coin', confirmText: 'เติมเลย' });
+    if (!okCredit) return;
   } else {
-    if (!confirm('ยืนยันปฏิเสธคำขอเติมเครดิต?')) return;
+    const okRejectCredit = await kpConfirm('ยืนยันปฏิเสธคำขอเติมเครดิต?', { icon: 'x-circle', type: 'danger', confirmText: 'ปฏิเสธ' });
+    if (!okRejectCredit) return;
   }
 
   try {

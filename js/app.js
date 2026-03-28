@@ -1628,6 +1628,9 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
         // Store filename for download
         resultSection.dataset.fileName = fileName;
 
+        // Track stats
+        trackPromptGenerated(platform, currentMode);
+
     } catch (error) {
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
@@ -1722,6 +1725,68 @@ function downloadResult() {
 function getRadioValue(name) {
     const el = document.querySelector(`input[name="${name}"]:checked`);
     return el ? el.value : null;
+}
+
+// ===== Custom Confirm Modal =====
+
+function kpConfirm(message, options = {}) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'kp-modal-overlay';
+
+        const icon = options.icon || 'question-circle';
+        const confirmText = options.confirmText || 'ตกลง';
+        const cancelText = options.cancelText || 'ยกเลิก';
+        const type = options.type || 'confirm'; // confirm | danger | info
+
+        const typeClass = type === 'danger' ? 'kp-modal-danger' : type === 'info' ? 'kp-modal-info' : '';
+
+        overlay.innerHTML = `
+            <div class="kp-modal ${typeClass}">
+                <div class="kp-modal-icon">
+                    <i class="bi bi-${icon}"></i>
+                </div>
+                <div class="kp-modal-message">${message}</div>
+                <div class="kp-modal-actions">
+                    ${type !== 'info' ? `<button class="kp-modal-btn kp-modal-cancel">${cancelText}</button>` : ''}
+                    <button class="kp-modal-btn kp-modal-confirm">${confirmText}</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Animate in
+        requestAnimationFrame(() => overlay.classList.add('show'));
+
+        function close(result) {
+            overlay.classList.remove('show');
+            overlay.classList.add('closing');
+            setTimeout(() => { overlay.remove(); resolve(result); }, 200);
+        }
+
+        overlay.querySelector('.kp-modal-confirm').addEventListener('click', () => close(true));
+        const cancelBtn = overlay.querySelector('.kp-modal-cancel');
+        if (cancelBtn) cancelBtn.addEventListener('click', () => close(false));
+
+        // Click outside to cancel
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close(false);
+        });
+
+        // Escape key to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') { document.removeEventListener('keydown', escHandler); close(false); }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Focus confirm button
+        overlay.querySelector('.kp-modal-confirm').focus();
+    });
+}
+
+function kpAlert(message, options = {}) {
+    return kpConfirm(message, { ...options, type: 'info', confirmText: options.confirmText || 'ตกลง' });
 }
 
 function showToast(message) {
@@ -2467,8 +2532,9 @@ async function wizardGenerate() {
 
 // ===== Reset Form =====
 
-function resetForm() {
-    if (!confirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?\n(API Key จะไม่ถูกลบ)')) return;
+async function resetForm() {
+    const ok = await kpConfirm('รีเซ็ตตัวเลือกทั้งหมดเป็นค่าเริ่มต้น?<br><small style="color:var(--text-muted)">(API Key จะไม่ถูกลบ)</small>', { icon: 'arrow-counterclockwise', type: 'danger', confirmText: 'รีเซ็ต' });
+    if (!ok) return;
 
     // Reset text inputs (except API key)
     document.getElementById('projectName').value = '';
@@ -2809,3 +2875,224 @@ async function handleSavePrompt(e) {
     btn.innerHTML = '<i class="bi bi-bookmark-check"></i> บันทึก';
   }
 }
+
+// ===== Stats Tracking =====
+
+function getStats() {
+    try {
+        return JSON.parse(localStorage.getItem('kp_prompt_stats') || 'null') || {
+            total: 0,
+            platforms: {},
+            modes: {},
+            firstUsed: null,
+            lastUsed: null
+        };
+    } catch {
+        return { total: 0, platforms: {}, modes: {}, firstUsed: null, lastUsed: null };
+    }
+}
+
+function saveStats(stats) {
+    localStorage.setItem('kp_prompt_stats', JSON.stringify(stats));
+}
+
+function trackPromptGenerated(platform, mode) {
+    const stats = getStats();
+    const now = new Date().toISOString();
+
+    stats.total++;
+    stats.platforms[platform] = (stats.platforms[platform] || 0) + 1;
+    stats.modes[mode] = (stats.modes[mode] || 0) + 1;
+    if (!stats.firstUsed) stats.firstUsed = now;
+    stats.lastUsed = now;
+
+    saveStats(stats);
+    renderFooterStatsGlobal();
+
+    // Sync to server
+    syncStatsToServer(platform, mode);
+
+    // Update vote count
+    updateVoteCount();
+}
+
+function getTopKey(obj) {
+    let topKey = null, topVal = 0;
+    for (const [key, val] of Object.entries(obj)) {
+        if (val > topVal) { topKey = key; topVal = val; }
+    }
+    return topKey;
+}
+
+// ===== Supabase Stats Sync =====
+
+const STATS_API_URL = '/api/stats';
+
+function getVisitorId() {
+    let id = localStorage.getItem('kp_visitor_id');
+    if (!id) {
+        id = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem('kp_visitor_id', id);
+    }
+    return id;
+}
+
+async function syncStatsToServer(platform, mode) {
+    try {
+        await fetch(STATS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'prompt', platform, mode })
+        });
+    } catch { /* silent fail — localStorage is primary */ }
+}
+
+async function fetchGlobalStats() {
+    try {
+        const res = await fetch(STATS_API_URL);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch { return null; }
+}
+
+async function submitVote() {
+    const btn = document.getElementById('voteHeartBtn');
+    const countEl = document.getElementById('voteCount');
+    if (!btn || btn.classList.contains('voted')) return;
+
+    btn.classList.add('voted');
+    btn.querySelector('i').className = 'bi bi-heart-fill';
+    localStorage.setItem('kp_voted_ai_code_gen', '1');
+
+    // Particle animation
+    createVoteParticles();
+
+    // Animate count
+    const current = parseInt(countEl.textContent) || 0;
+    countEl.textContent = current + 1;
+
+    try {
+        await fetch(STATS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'vote', visitorId: getVisitorId() })
+        });
+    } catch { /* voted locally */ }
+}
+
+function createVoteParticles() {
+    const container = document.getElementById('voteParticles');
+    if (!container) return;
+
+    const emojis = ['❤️', '💜', '🧡', '💙', '✨', '⭐'];
+    for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('span');
+        particle.className = 'vote-particle';
+        particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        particle.style.setProperty('--x', (Math.random() * 200 - 100) + 'px');
+        particle.style.setProperty('--y', -(Math.random() * 120 + 40) + 'px');
+        particle.style.animationDelay = (Math.random() * 0.3) + 's';
+        container.appendChild(particle);
+        setTimeout(() => particle.remove(), 1500);
+    }
+}
+
+function initVoteButton() {
+    const btn = document.getElementById('voteHeartBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', submitVote);
+
+    // Check if already voted
+    if (localStorage.getItem('kp_voted_ai_code_gen')) {
+        btn.classList.add('voted');
+        btn.querySelector('i').className = 'bi bi-heart-fill';
+    }
+}
+
+// Enhanced renderFooterStats with global data
+async function renderFooterStatsGlobal() {
+    const container = document.getElementById('footerStats');
+    if (!container) return;
+
+    const globalStats = await fetchGlobalStats();
+    const localStats = getStats();
+
+    // Use global if available, fallback to local
+    const total = globalStats ? globalStats.totalPrompts : localStats.total;
+    const voteCount = globalStats ? globalStats.aiCodeGenVotes : 0;
+
+    if (total === 0 && voteCount === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = '';
+
+    const platformLabels = {
+        'google-apps-script': 'Google Apps Script',
+        'nextjs-vercel': 'Next.js',
+        'react-vercel': 'React',
+        'static-html': 'Static HTML',
+        'vue-vercel': 'Vue.js',
+        'svelte-vercel': 'SvelteKit',
+        'nuxt-vercel': 'Nuxt'
+    };
+
+    let html = `<div class="footer-stats-title"><i class="bi bi-bar-chart-fill"></i> ${t('footerStatsTitle')}</div>`;
+    html += `<div class="footer-stats-grid">`;
+
+    // Total prompts
+    if (total > 0) {
+        html += `<div class="footer-stat-item">
+            <span class="footer-stat-number">${total.toLocaleString()}</span>
+            <span class="footer-stat-label">${t('footerStatTotal')}</span>
+        </div>`;
+    }
+
+    // Vote count
+    if (voteCount > 0) {
+        html += `<div class="footer-stat-item">
+            <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
+            <span class="footer-stat-label">${t('footerStatVotes')}</span>
+        </div>`;
+    }
+
+    // Platform breakdown
+    const platforms = globalStats ? globalStats.platforms : Object.entries(localStats.platforms).map(([platform, count]) => ({ platform, count }));
+    if (platforms && platforms.length > 0) {
+        const platformTotal = platforms.reduce((sum, p) => sum + (p.count || 0), 0);
+        html += `<div class="footer-stat-item footer-stat-breakdown">
+            <span class="footer-stat-label">${t('footerStatBreakdown')}</span>
+            <div class="footer-stat-bars">`;
+        platforms.forEach(p => {
+            const pct = platformTotal > 0 ? Math.round((p.count / platformTotal) * 100) : 0;
+            const label = platformLabels[p.platform] || p.platform;
+            html += `<div class="footer-stat-bar-row">
+                <span class="footer-stat-bar-label">${label}</span>
+                <div class="footer-stat-bar"><div class="footer-stat-bar-fill" style="width:${pct}%"></div></div>
+                <span class="footer-stat-bar-count">${p.count}</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// Update vote count when result section shows
+async function updateVoteCount() {
+    const countEl = document.getElementById('voteCount');
+    if (!countEl) return;
+    const globalStats = await fetchGlobalStats();
+    if (globalStats) {
+        countEl.textContent = globalStats.aiCodeGenVotes || 0;
+    }
+}
+
+// Init footer stats on load
+document.addEventListener('DOMContentLoaded', () => {
+    renderFooterStatsGlobal();
+    initVoteButton();
+});

@@ -366,3 +366,55 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Re-init Lucide icons
   if (typeof lucide !== 'undefined') lucide.createIcons();
 });
+
+// =============================================
+// Custom Confirm Modal (shared)
+// =============================================
+
+if (typeof kpConfirm === 'undefined') {
+  window.kpConfirm = function(message, options = {}) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'kp-modal-overlay';
+
+      const iconMap = { 'question-circle': '❓', 'trash': '🗑️', 'cart-check': '🛒', 'check-circle': '✅', 'x-circle': '❌', 'wallet2': '💰', 'coin': '🪙', 'arrow-counterclockwise': '🔄' };
+      const icon = options.icon || 'question-circle';
+      const hasBootstrapIcons = !!document.querySelector('link[href*="bootstrap-icons"]');
+      const iconHtml = hasBootstrapIcons ? `<i class="bi bi-${icon}"></i>` : (iconMap[icon] || '❓');
+      const confirmText = options.confirmText || 'ตกลง';
+      const cancelText = options.cancelText || 'ยกเลิก';
+      const type = options.type || 'confirm';
+      const typeClass = type === 'danger' ? 'kp-modal-danger' : type === 'info' ? 'kp-modal-info' : '';
+
+      overlay.innerHTML = `
+        <div class="kp-modal ${typeClass}">
+          <div class="kp-modal-icon">${iconHtml}</div>
+          <div class="kp-modal-message">${message}</div>
+          <div class="kp-modal-actions">
+            ${type !== 'info' ? `<button class="kp-modal-btn kp-modal-cancel">${cancelText}</button>` : ''}
+            <button class="kp-modal-btn kp-modal-confirm">${confirmText}</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('show'));
+
+      function close(result) {
+        overlay.classList.remove('show');
+        overlay.classList.add('closing');
+        setTimeout(() => { overlay.remove(); resolve(result); }, 200);
+      }
+
+      overlay.querySelector('.kp-modal-confirm').addEventListener('click', () => close(true));
+      const cancelBtn = overlay.querySelector('.kp-modal-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', () => close(false));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+
+      const escHandler = (e) => {
+        if (e.key === 'Escape') { document.removeEventListener('keydown', escHandler); close(false); }
+      };
+      document.addEventListener('keydown', escHandler);
+      overlay.querySelector('.kp-modal-confirm').focus();
+    });
+  };
+}
