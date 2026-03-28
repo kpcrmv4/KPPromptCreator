@@ -105,6 +105,7 @@ const TRANSLATIONS = {
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
+        gasWizardBtnDesc: 'ตั้งค่า GAS + AI ช่วยเลือก',
         gasWizardTitle: 'Google Web App Wizard',
         gasWizardSubtitle: 'ตั้งค่า GAS project — ใช้ AI วิเคราะห์อัตโนมัติหรือเลือกเอง',
         gasWizAutoFillText: 'AI วิเคราะห์จากคำอธิบายโปรเจกต์แล้วเลือกให้อัตโนมัติ',
@@ -450,6 +451,7 @@ const TRANSLATIONS = {
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
+        gasWizardBtnDesc: 'GAS config + AI auto-fill',
         gasWizardTitle: 'Google Web App Wizard',
         gasWizardSubtitle: 'Configure your GAS project — use AI auto-fill or choose manually',
         gasWizAutoFillText: 'AI analyzes your project description and selects settings automatically',

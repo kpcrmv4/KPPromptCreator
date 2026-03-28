@@ -956,24 +956,7 @@ textarea {
     transform: translateX(-50%) translateY(0);
 }
 
-/* ===== Google Web App Wizard Button ===== */
-.btn-magic {
-    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-    color: white;
-    border: none;
-    animation: magicPulse 2s ease-in-out infinite;
-}
-
-.btn-magic:hover {
-    background: linear-gradient(135deg, #5a4bd1, #6c5ce7);
-    color: white;
-    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
-}
-
-@keyframes magicPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.3); }
-    50% { box-shadow: 0 0 0 6px rgba(108, 92, 231, 0); }
-}
+/* btn-magic removed — Google Web App Wizard is now a mode-btn */
 
 /* ===== Wizard Modal ===== */
 .wizard-overlay {
@@ -1281,7 +1264,7 @@ textarea {
 /* ===== Mode Toggle ===== */
 .mode-toggle {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 10px;
 }
 
@@ -1329,6 +1312,20 @@ textarea {
     display: block;
     font-size: 11px;
     color: var(--text-muted);
+}
+
+.mode-btn-gas {
+    border-color: rgba(108, 92, 231, 0.3);
+    background: linear-gradient(135deg, #faf9ff, #f0edff);
+}
+
+.mode-btn-gas:hover {
+    border-color: #6c5ce7;
+    background: linear-gradient(135deg, #f0edff, #e8e4ff);
+}
+
+.mode-btn-gas i {
+    color: #6c5ce7;
 }
 
 /* ===== Chat Mode ===== */

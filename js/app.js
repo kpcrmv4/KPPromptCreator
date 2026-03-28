@@ -217,8 +217,8 @@ function initApp() {
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', downloadResult);
 
-    // Mode selector
-    document.querySelectorAll('.mode-btn').forEach(btn => {
+    // Mode selector (skip GAS wizard button — it opens modal, not switches mode)
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
