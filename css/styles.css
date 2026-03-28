@@ -522,6 +522,22 @@ textarea {
     padding-right: 44px;
 }
 
+.btn-icon-inline {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #22c55e;
+    font-size: 15px;
+    padding: 0 2px;
+    vertical-align: middle;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.btn-icon-inline:hover {
+    color: #16a34a;
+    transform: scale(1.15);
+}
+
 .input-with-icon .btn-icon {
     position: absolute;
     right: 4px;
