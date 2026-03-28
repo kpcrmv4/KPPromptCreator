@@ -966,25 +966,158 @@ async function startGasWizardAnalysis() {
 function renderGasWizAnalysis(analysis) {
     let html = `<div class="wiz-summary-box">${analysis.summary}</div>`;
 
-    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ${t('wizFeatures')}</h4><ul>`;
-    analysis.features.forEach(f => {
-        const badge = f.priority === 'high' ? '🔴' : f.priority === 'medium' ? '🟡' : '🟢';
-        html += `<li>${badge} <strong>${f.name}</strong> - ${f.description}</li>`;
+    // Editable features
+    html += `<div class="wiz-analysis-card"><h4><i class="bi bi-puzzle"></i> ${t('wizFeatures')}</h4>`;
+    html += `<ul class="gas-wiz-editable-list" id="gasWizFeatureList">`;
+    analysis.features.forEach((f, i) => {
+        html += renderGasWizFeatureItem(f, i);
     });
-    html += `</ul></div>`;
+    html += `</ul>`;
+    html += `<button type="button" class="btn btn-outline btn-sm gas-wiz-add-btn" id="gasWizAddFeature"><i class="bi bi-plus-circle"></i> ${t('gasWizAddFeature')}</button>`;
+    html += `</div>`;
 
+    // Editable data models
     if (analysis.dataModels && analysis.dataModels.length > 0) {
-        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4><ul>`;
-        analysis.dataModels.forEach(m => {
-            html += `<li><strong>${m.name}</strong>: ${m.fields.join(', ')}</li>`;
+        html += `<div class="wiz-analysis-card"><h4><i class="bi bi-database"></i> Data Models</h4>`;
+        html += `<ul class="gas-wiz-editable-list" id="gasWizDataModelList">`;
+        analysis.dataModels.forEach((m, i) => {
+            html += renderGasWizDataModelItem(m, i);
         });
-        html += `</ul></div>`;
+        html += `</ul>`;
+        html += `<button type="button" class="btn btn-outline btn-sm gas-wiz-add-btn" id="gasWizAddDataModel"><i class="bi bi-plus-circle"></i> ${t('gasWizAddDataModel')}</button>`;
+        html += `</div>`;
     }
 
     const complexityLabel = { simple: t('wizComplexitySimple'), moderate: t('wizComplexityModerate'), complex: t('wizComplexityComplex') };
     html += `<div class="wiz-analysis-card"><h4><i class="bi bi-speedometer2"></i> ${t('gasWizComplexity')}: ${complexityLabel[analysis.estimatedComplexity] || analysis.estimatedComplexity}</h4></div>`;
 
     document.getElementById('gasWizAnalysisContent').innerHTML = html;
+
+    // Bind editable events
+    bindGasWizEditableEvents();
+}
+
+function renderGasWizFeatureItem(f, index) {
+    const priorityOptions = ['high', 'medium', 'low'];
+    const badge = f.priority === 'high' ? '🔴' : f.priority === 'medium' ? '🟡' : '🟢';
+    let selectHtml = `<select class="gas-wiz-priority-select" data-feature-index="${index}">`;
+    priorityOptions.forEach(p => {
+        const label = p === 'high' ? '🔴 High' : p === 'medium' ? '🟡 Medium' : '🟢 Low';
+        selectHtml += `<option value="${p}" ${f.priority === p ? 'selected' : ''}>${label}</option>`;
+    });
+    selectHtml += `</select>`;
+
+    return `<li class="gas-wiz-editable-item" data-feature-index="${index}">
+        <div class="gas-wiz-item-content">
+            <input type="text" class="gas-wiz-edit-name" data-feature-index="${index}" value="${escapeHtml(f.name)}">
+            <input type="text" class="gas-wiz-edit-desc" data-feature-index="${index}" value="${escapeHtml(f.description)}">
+        </div>
+        <div class="gas-wiz-item-actions">
+            ${selectHtml}
+            <button type="button" class="btn-icon gas-wiz-delete-btn" data-feature-index="${index}" title="ลบ"><i class="bi bi-trash"></i></button>
+        </div>
+    </li>`;
+}
+
+function renderGasWizDataModelItem(m, index) {
+    return `<li class="gas-wiz-editable-item" data-model-index="${index}">
+        <div class="gas-wiz-item-content">
+            <input type="text" class="gas-wiz-edit-model-name" data-model-index="${index}" value="${escapeHtml(m.name)}">
+            <input type="text" class="gas-wiz-edit-model-fields" data-model-index="${index}" value="${escapeHtml(m.fields.join(', '))}">
+        </div>
+        <div class="gas-wiz-item-actions">
+            <button type="button" class="btn-icon gas-wiz-delete-model-btn" data-model-index="${index}" title="ลบ"><i class="bi bi-trash"></i></button>
+        </div>
+    </li>`;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function bindGasWizEditableEvents() {
+    const analysis = gasWizData.analysis;
+    if (!analysis) return;
+
+    // Feature name/desc/priority changes
+    document.querySelectorAll('.gas-wiz-edit-name').forEach(input => {
+        input.addEventListener('input', () => {
+            const i = parseInt(input.dataset.featureIndex);
+            if (analysis.features[i]) analysis.features[i].name = input.value;
+        });
+    });
+    document.querySelectorAll('.gas-wiz-edit-desc').forEach(input => {
+        input.addEventListener('input', () => {
+            const i = parseInt(input.dataset.featureIndex);
+            if (analysis.features[i]) analysis.features[i].description = input.value;
+        });
+    });
+    document.querySelectorAll('.gas-wiz-priority-select').forEach(select => {
+        select.addEventListener('change', () => {
+            const i = parseInt(select.dataset.featureIndex);
+            if (analysis.features[i]) analysis.features[i].priority = select.value;
+        });
+    });
+
+    // Delete feature
+    document.querySelectorAll('.gas-wiz-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.featureIndex);
+            analysis.features.splice(i, 1);
+            renderGasWizAnalysis(analysis);
+        });
+    });
+
+    // Add feature
+    const addFeatureBtn = document.getElementById('gasWizAddFeature');
+    if (addFeatureBtn) {
+        addFeatureBtn.addEventListener('click', () => {
+            analysis.features.push({ name: '', description: '', priority: 'medium' });
+            renderGasWizAnalysis(analysis);
+            // Focus the new feature name input
+            const inputs = document.querySelectorAll('.gas-wiz-edit-name');
+            if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        });
+    }
+
+    // Data model name/fields changes
+    document.querySelectorAll('.gas-wiz-edit-model-name').forEach(input => {
+        input.addEventListener('input', () => {
+            const i = parseInt(input.dataset.modelIndex);
+            if (analysis.dataModels[i]) analysis.dataModels[i].name = input.value;
+        });
+    });
+    document.querySelectorAll('.gas-wiz-edit-model-fields').forEach(input => {
+        input.addEventListener('input', () => {
+            const i = parseInt(input.dataset.modelIndex);
+            if (analysis.dataModels[i]) {
+                analysis.dataModels[i].fields = input.value.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        });
+    });
+
+    // Delete data model
+    document.querySelectorAll('.gas-wiz-delete-model-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.modelIndex);
+            analysis.dataModels.splice(i, 1);
+            renderGasWizAnalysis(analysis);
+        });
+    });
+
+    // Add data model
+    const addModelBtn = document.getElementById('gasWizAddDataModel');
+    if (addModelBtn) {
+        addModelBtn.addEventListener('click', () => {
+            if (!analysis.dataModels) analysis.dataModels = [];
+            analysis.dataModels.push({ name: '', fields: ['id'] });
+            renderGasWizAnalysis(analysis);
+            const inputs = document.querySelectorAll('.gas-wiz-edit-model-name');
+            if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        });
+    }
 }
 
 function applyGasWizSettings(settings) {

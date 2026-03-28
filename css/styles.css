@@ -1731,6 +1731,120 @@ textarea {
     }
 }
 
+/* ===== GAS Wizard Editable Analysis ===== */
+.gas-wiz-editable-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gas-wiz-editable-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: var(--transition);
+}
+
+.gas-wiz-editable-item:hover {
+    border-color: var(--primary-light);
+    background: var(--primary-bg);
+}
+
+.gas-wiz-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.gas-wiz-edit-name,
+.gas-wiz-edit-model-name {
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: var(--text);
+    width: 100%;
+}
+
+.gas-wiz-edit-desc,
+.gas-wiz-edit-model-fields {
+    font-size: 13px;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.gas-wiz-edit-name:focus,
+.gas-wiz-edit-desc:focus,
+.gas-wiz-edit-model-name:focus,
+.gas-wiz-edit-model-fields:focus {
+    outline: none;
+    background: var(--bg);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.gas-wiz-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.gas-wiz-priority-select {
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.btn-icon.gas-wiz-delete-btn,
+.btn-icon.gas-wiz-delete-model-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: var(--transition);
+    font-size: 14px;
+}
+
+.btn-icon.gas-wiz-delete-btn:hover,
+.btn-icon.gas-wiz-delete-model-btn:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.gas-wiz-add-btn {
+    margin-top: 8px;
+}
+
+@media (max-width: 576px) {
+    .gas-wiz-editable-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .gas-wiz-item-actions {
+        justify-content: flex-end;
+    }
+}
+
 /* ===== GAS Wizard Template Picker ===== */
 .gas-wiz-template-picker {
     padding: 16px 20px;
