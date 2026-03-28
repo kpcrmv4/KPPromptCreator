@@ -1330,17 +1330,16 @@ textarea {
     color: var(--text-muted);
 }
 
-.mode-btn-gas {
-    border-color: rgba(108, 92, 231, 0.3);
-    background: linear-gradient(135deg, #faf9ff, #f0edff);
+.mode-btn-gas i {
+    color: #6c5ce7;
 }
 
-.mode-btn-gas:hover {
+.mode-btn-gas.active {
     border-color: #6c5ce7;
     background: linear-gradient(135deg, #f0edff, #e8e4ff);
 }
 
-.mode-btn-gas i {
+.mode-btn-gas.active i {
     color: #6c5ce7;
 }
 
