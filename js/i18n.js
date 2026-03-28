@@ -103,10 +103,16 @@ const TRANSLATIONS = {
         netlifyDesc: 'ใช้งานง่าย, Functions',
         cloudflareDesc: 'Edge network, เร็วทั่วโลก',
 
-        // GAS Mode
-        gasModeBadge: 'GAS Expert Guard + Beginner Guide',
-        gasModeTitle: 'ตัวช่วยเฉพาะสำหรับ Google Apps Script',
-        gasModeDesc: 'ระบบจะล็อก prompt ให้อยู่ในกรอบ GAS-native และเพิ่มคำอธิบายที่มือใหม่ตามได้ทัน',
+        // GAS Wizard
+        gasWizardBtn: 'Google Web App Wizard',
+        gasWizardTitle: 'Google Web App Wizard',
+        gasWizardSubtitle: 'ตั้งค่า GAS project — ใช้ AI วิเคราะห์อัตโนมัติหรือเลือกเอง',
+        gasWizAutoFillText: 'AI วิเคราะห์จากคำอธิบายโปรเจกต์แล้วเลือกให้อัตโนมัติ',
+        gasWizAutoFillBtn: 'วิเคราะห์และตั้งค่าอัตโนมัติ',
+        gasWizAnalyzing: 'กำลังวิเคราะห์...',
+        gasWizAutoFillDone: 'ตั้งค่าอัตโนมัติเรียบร้อย!',
+        gasWizAutoFillError: 'วิเคราะห์ไม่สำเร็จ กรุณาลองใหม่',
+        gasWizApplied: 'บันทึกการตั้งค่า GAS Wizard แล้ว!',
         gasGuideModeLabel: 'ระดับคำอธิบาย',
         gasGuideBeginnerTitle: 'Beginner',
         gasGuideBeginnerDesc: 'อธิบาย setup, deploy, scopes และจุดพังบ่อยแบบทีละขั้น',
@@ -187,13 +193,9 @@ const TRANSLATIONS = {
         // Footer
         footerText: 'KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย',
 
-        // Magic Wizard Modal
-        wizardSubtitle: 'AI วิเคราะห์โปรเจกต์และแนะนำ Tech Stack ที่เหมาะสม',
-        wizardLoading: 'Gemini กำลังวิเคราะห์โปรเจกต์ของคุณ...',
-        wizardApply: 'ใช้ที่เลือกทั้งหมด',
+        // Wizard Modal
+        wizardApply: 'บันทึกการตั้งค่า',
         wizardCancel: 'ปิด',
-        wizardRecommended: 'แนะนำ',
-        wizardAlternative: 'ทางเลือก',
 
         // Toast messages
         toastCopied: 'คัดลอกแล้ว!',
@@ -201,7 +203,7 @@ const TRANSLATIONS = {
         toastApplied: 'ใช้ Tech Stack ที่เลือกแล้ว!',
         toastGenerated: 'สร้าง prompt สำเร็จ!',
         toastNoApiKey: 'กรุณาใส่ Gemini API Key',
-        toastNoApiKeyWizard: 'กรุณาใส่ Gemini API Key ก่อนใช้ Magic Wizard',
+        toastNoApiKeyWizard: 'กรุณาใส่ Gemini API Key ก่อนใช้ Wizard',
         toastNoProject: 'กรุณาใส่ชื่อโปรเจกต์',
         toastNoDesc: 'กรุณาอธิบายหลักการทำงาน',
         toastNoProjectWizard: 'กรุณาใส่ชื่อโปรเจกต์และคำอธิบายก่อน',
@@ -446,10 +448,16 @@ const TRANSLATIONS = {
         netlifyDesc: 'Easy to use, Functions',
         cloudflareDesc: 'Edge network, fast worldwide',
 
-        // GAS Mode
-        gasModeBadge: 'GAS Expert Guard + Beginner Guide',
-        gasModeTitle: 'Google Apps Script Helper',
-        gasModeDesc: 'The generator will lock the prompt to GAS-native patterns and add beginner-friendly guidance automatically.',
+        // GAS Wizard
+        gasWizardBtn: 'Google Web App Wizard',
+        gasWizardTitle: 'Google Web App Wizard',
+        gasWizardSubtitle: 'Configure your GAS project — use AI auto-fill or choose manually',
+        gasWizAutoFillText: 'AI analyzes your project description and selects settings automatically',
+        gasWizAutoFillBtn: 'Analyze & auto-configure',
+        gasWizAnalyzing: 'Analyzing...',
+        gasWizAutoFillDone: 'Auto-configured successfully!',
+        gasWizAutoFillError: 'Analysis failed. Please try again.',
+        gasWizApplied: 'GAS Wizard settings saved!',
         gasGuideModeLabel: 'Explanation level',
         gasGuideBeginnerTitle: 'Beginner',
         gasGuideBeginnerDesc: 'Explain setup, deploy, scopes, and common failure points step by step',
@@ -530,13 +538,9 @@ const TRANSLATIONS = {
         // Footer
         footerText: 'KP Prompt Creator &mdash; Made with <i class="bi bi-heart-fill"></i> for the developer community',
 
-        // Magic Wizard Modal
-        wizardSubtitle: 'AI analyzes your project and recommends the best Tech Stack',
-        wizardLoading: 'Gemini is analyzing your project...',
-        wizardApply: 'Apply All Selected',
+        // Wizard Modal
+        wizardApply: 'Save settings',
         wizardCancel: 'Close',
-        wizardRecommended: 'Recommended',
-        wizardAlternative: 'Alternative',
 
         // Toast messages
         toastCopied: 'Copied!',
@@ -544,7 +548,7 @@ const TRANSLATIONS = {
         toastApplied: 'Applied selected Tech Stack!',
         toastGenerated: 'Prompt generated successfully!',
         toastNoApiKey: 'Please enter Gemini API Key',
-        toastNoApiKeyWizard: 'Please enter Gemini API Key before using Magic Wizard',
+        toastNoApiKeyWizard: 'Please enter Gemini API Key before using the wizard',
         toastNoProject: 'Please enter a project name',
         toastNoDesc: 'Please describe how it works',
         toastNoProjectWizard: 'Please enter project name and description first',

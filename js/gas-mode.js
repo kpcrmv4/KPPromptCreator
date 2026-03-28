@@ -30,9 +30,8 @@ const GAS_INVALID_OUTPUT_PATTERNS = [
 function initGasModeControls() {
     const sync = () => {
         const isGas = getRadioValue('platform') === 'google-apps-script';
-        const panel = document.getElementById('gasModePanel');
-        if (!panel) return;
-        panel.style.display = isGas ? 'block' : 'none';
+        const wizBtn = document.getElementById('gasWizardBtn');
+        if (wizBtn) wizBtn.style.display = isGas ? 'inline-flex' : 'none';
         refreshGasModeCopy(isGas);
     };
 
