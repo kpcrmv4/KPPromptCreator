@@ -1057,13 +1057,14 @@ textarea {
 
 /* ===== Footer Stats ===== */
 .footer-stats-section {
-    max-width: 600px;
-    margin: 0 auto 8px;
+    max-width: 100%;
+    margin: 0 0 8px;
     padding: 20px 24px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     text-align: left;
+    box-sizing: border-box;
 }
 
 .footer-stats-title {
@@ -1159,7 +1160,7 @@ textarea {
 
 @media (max-width: 576px) {
     .footer-stats-section {
-        margin: 0 12px 8px;
+        margin: 0;
         padding: 16px;
     }
     .footer-stat-bar-label {
