@@ -201,6 +201,10 @@ const TRANSLATIONS = {
         resultLoading: 'Gemini กำลังสร้าง prompt...',
 
         // Footer
+        footerStatTotal: 'Prompt ที่สร้างแล้ว',
+        footerStatTopPlatform: 'แพลตฟอร์มที่ใช้บ่อยสุด',
+        footerStatTopMode: 'โหมดที่ใช้บ่อยสุด',
+        footerStatBreakdown: 'สัดส่วนแพลตฟอร์ม',
         footerText: 'KP Prompt Creator &mdash; สร้างด้วย <i class="bi bi-heart-fill"></i> เพื่อชุมชนนักพัฒนาไทย',
 
         gasWizProjectDescPlaceholder: 'เช่น ระบบบันทึกรายรับรายจ่าย มีฟอร์มกรอกข้อมูล เก็บลง Google Sheets แดชบอร์ดสรุปยอด แจ้งเตือนผ่าน LINE...',
@@ -554,6 +558,10 @@ const TRANSLATIONS = {
         resultLoading: 'Gemini is generating prompt...',
 
         // Footer
+        footerStatTotal: 'Prompts Generated',
+        footerStatTopPlatform: 'Most Used Platform',
+        footerStatTopMode: 'Most Used Mode',
+        footerStatBreakdown: 'Platform Breakdown',
         footerText: 'KP Prompt Creator &mdash; Made with <i class="bi bi-heart-fill"></i> for the developer community',
 
         gasWizProjectDescPlaceholder: 'e.g. Income/expense tracker with form, Google Sheets storage, summary dashboard, LINE notifications...',

@@ -910,13 +910,121 @@ textarea {
 /* ===== Footer ===== */
 .app-footer {
     text-align: center;
-    padding: 24px 0 32px;
+    padding: 0 0 32px;
     color: var(--text-muted);
     font-size: 13px;
 }
 
 .app-footer i {
     color: var(--danger);
+}
+
+.footer-bottom {
+    padding-top: 16px;
+}
+
+/* ===== Footer Stats ===== */
+.footer-stats-section {
+    max-width: 600px;
+    margin: 0 auto 8px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: left;
+}
+
+.footer-stats-section::before {
+    content: '';
+    display: block;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.footer-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.footer-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-stat-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.footer-stat-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.footer-stat-breakdown {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.footer-stat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer-stat-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.footer-stat-bar-label {
+    width: 120px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.footer-stat-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.footer-stat-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    min-width: 4px;
+}
+
+.footer-stat-bar-count {
+    width: 28px;
+    text-align: right;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 12px;
+}
+
+@media (max-width: 576px) {
+    .footer-stats-section {
+        margin: 0 12px 8px;
+        padding: 16px;
+    }
+    .footer-stat-bar-label {
+        width: 80px;
+        font-size: 11px;
+    }
 }
 
 .footer-github {

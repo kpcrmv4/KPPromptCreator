@@ -1628,6 +1628,9 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
         // Store filename for download
         resultSection.dataset.fileName = fileName;
 
+        // Track stats
+        trackPromptGenerated(platform, currentMode);
+
     } catch (error) {
         resultLoading.style.display = 'none';
         resultContent.style.display = 'block';
@@ -2809,3 +2812,125 @@ async function handleSavePrompt(e) {
     btn.innerHTML = '<i class="bi bi-bookmark-check"></i> บันทึก';
   }
 }
+
+// ===== Stats Tracking =====
+
+function getStats() {
+    try {
+        return JSON.parse(localStorage.getItem('kp_prompt_stats') || 'null') || {
+            total: 0,
+            platforms: {},
+            modes: {},
+            firstUsed: null,
+            lastUsed: null
+        };
+    } catch {
+        return { total: 0, platforms: {}, modes: {}, firstUsed: null, lastUsed: null };
+    }
+}
+
+function saveStats(stats) {
+    localStorage.setItem('kp_prompt_stats', JSON.stringify(stats));
+}
+
+function trackPromptGenerated(platform, mode) {
+    const stats = getStats();
+    const now = new Date().toISOString();
+
+    stats.total++;
+    stats.platforms[platform] = (stats.platforms[platform] || 0) + 1;
+    stats.modes[mode] = (stats.modes[mode] || 0) + 1;
+    if (!stats.firstUsed) stats.firstUsed = now;
+    stats.lastUsed = now;
+
+    saveStats(stats);
+    renderFooterStats();
+}
+
+function renderFooterStats() {
+    const container = document.getElementById('footerStats');
+    if (!container) return;
+
+    const stats = getStats();
+    if (stats.total === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = '';
+
+    // Find top platform and mode
+    const topPlatform = getTopKey(stats.platforms);
+    const topMode = getTopKey(stats.modes);
+
+    const platformLabels = {
+        'google-apps-script': 'Google Apps Script',
+        'nextjs-vercel': 'Next.js',
+        'react-vercel': 'React',
+        'static-html': 'Static HTML',
+        'vue-vercel': 'Vue.js',
+        'svelte-vercel': 'SvelteKit',
+        'nuxt-vercel': 'Nuxt'
+    };
+
+    const modeLabels = {
+        'manual': 'Manual Mode',
+        'ai-chat': 'AI Chat',
+        'ai-wizard': 'AI Wizard',
+        'gas-wizard': 'GAS Wizard'
+    };
+
+    let html = `<div class="footer-stats-grid">`;
+    html += `<div class="footer-stat-item">
+        <span class="footer-stat-number">${stats.total}</span>
+        <span class="footer-stat-label">${t('footerStatTotal')}</span>
+    </div>`;
+
+    if (topPlatform) {
+        html += `<div class="footer-stat-item">
+            <span class="footer-stat-number">${platformLabels[topPlatform] || topPlatform}</span>
+            <span class="footer-stat-label">${t('footerStatTopPlatform')}</span>
+        </div>`;
+    }
+
+    if (topMode) {
+        html += `<div class="footer-stat-item">
+            <span class="footer-stat-number">${modeLabels[topMode] || topMode}</span>
+            <span class="footer-stat-label">${t('footerStatTopMode')}</span>
+        </div>`;
+    }
+
+    // Platform breakdown
+    const platformEntries = Object.entries(stats.platforms).sort((a, b) => b[1] - a[1]);
+    if (platformEntries.length > 1) {
+        html += `<div class="footer-stat-item footer-stat-breakdown">
+            <span class="footer-stat-label">${t('footerStatBreakdown')}</span>
+            <div class="footer-stat-bars">`;
+        platformEntries.forEach(([key, count]) => {
+            const pct = Math.round((count / stats.total) * 100);
+            const label = platformLabels[key] || key;
+            html += `<div class="footer-stat-bar-row">
+                <span class="footer-stat-bar-label">${label}</span>
+                <div class="footer-stat-bar"><div class="footer-stat-bar-fill" style="width:${pct}%"></div></div>
+                <span class="footer-stat-bar-count">${count}</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function getTopKey(obj) {
+    let topKey = null, topVal = 0;
+    for (const [key, val] of Object.entries(obj)) {
+        if (val > topVal) { topKey = key; topVal = val; }
+    }
+    return topKey;
+}
+
+// Init footer stats on load
+document.addEventListener('DOMContentLoaded', () => {
+    renderFooterStats();
+});
