@@ -195,14 +195,15 @@ function initApp() {
     // Fetch skills button
     document.getElementById('fetchSkillsBtn').addEventListener('click', fetchSkills);
 
-    // Magic Wizard button
-    document.getElementById('magicWizardBtn').addEventListener('click', openMagicWizard);
+    // Google Web App Wizard button
+    document.getElementById('gasWizardBtn').addEventListener('click', openGasWizard);
     document.getElementById('wizardClose').addEventListener('click', closeWizard);
     document.getElementById('wizardCancel').addEventListener('click', closeWizard);
-    document.getElementById('wizardApply').addEventListener('click', applyWizardSelections);
+    document.getElementById('wizardApply').addEventListener('click', applyGasWizardSelections);
     document.getElementById('wizardOverlay').addEventListener('click', (e) => {
         if (e.target === e.currentTarget) closeWizard();
     });
+    document.getElementById('gasWizAutoFillBtn').addEventListener('click', gasWizardAutoFill);
 
     // Generate button
     document.getElementById('generateBtn').addEventListener('click', generatePrompt);
@@ -216,8 +217,8 @@ function initApp() {
     // Download button
     document.getElementById('downloadBtn').addEventListener('click', downloadResult);
 
-    // Mode selector
-    document.querySelectorAll('.mode-btn').forEach(btn => {
+    // Mode selector (skip GAS wizard button — it opens modal, not switches mode)
+    document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
         btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
@@ -803,11 +804,25 @@ async function autoSelectSkills() {
     return topSkills;
 }
 
-// ===== Magic Wizard =====
+// ===== Tech Label Helpers (used by AI Chat + AI Wizard) =====
 
-let wizardSelections = {};
+function getWizardLabels() {
+    return {
+        platform: t('wlPlatform'), database: t('wlDatabase'), cssFramework: t('wlCSSFramework'),
+        language: t('wlLanguage'), pageType: t('wlPageType'), pwa: t('wlPWA'),
+        responsive: t('wlResponsive'), authentication: t('wlAuthentication'), apiStyle: t('wlAPIStyle'),
+        packageManager: t('wlPackageManager'), testing: t('wlTesting'), hosting: t('wlHosting')
+    };
+}
 
-async function openMagicWizard() {
+// ===== Google Web App Wizard =====
+
+function openGasWizard() {
+    const overlay = document.getElementById('wizardOverlay');
+    overlay.classList.add('active');
+}
+
+async function gasWizardAutoFill() {
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) {
         showToast(t('toastNoApiKeyWizard'));
@@ -820,229 +835,100 @@ async function openMagicWizard() {
         return;
     }
 
-    // Show modal with loading
-    const overlay = document.getElementById('wizardOverlay');
-    const body = document.getElementById('wizardBody');
-    const footer = document.getElementById('wizardFooter');
-    overlay.classList.add('active');
-    footer.style.display = 'none';
-    body.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>' + t('wizardLoading') + '</span></div>';
-    const gasRecommendationGuide = typeof getGasRecommendationGuide === 'function' ? getGasRecommendationGuide() : '';
+    const btn = document.getElementById('gasWizAutoFillBtn');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> ' + t('gasWizAnalyzing');
 
-    const wizardPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน web development tech stack
-วิเคราะห์โปรเจกต์นี้และแนะนำ tech stack ที่เหมาะสมที่สุด
+    const prompt = `คุณเป็นผู้เชี่ยวชาญ Google Apps Script web app
+วิเคราะห์โปรเจกต์นี้และแนะนำการตั้งค่าที่เหมาะสมที่สุดสำหรับ GAS web app
 
 โปรเจกต์: ${projectName}
 คำอธิบาย: ${projectDesc}
 
 ตอบเป็น JSON เท่านั้น (ไม่ต้องครอบด้วย code block) ตามรูปแบบนี้:
 {
-  "summary": "สรุปสั้นๆ ว่าทำไมถึงแนะนำ stack นี้",
-  "recommendations": {
-    "platform": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "database": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "cssFramework": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "language": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "pageType": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "pwa": { "value": "...", "reason": "..." },
-    "responsive": { "value": "...", "reason": "..." },
-    "authentication": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "apiStyle": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "packageManager": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "testing": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." },
-    "hosting": { "value": "...", "reason": "...", "alt_value": "...", "alt_reason": "..." }
+  "summary": "สรุปสั้นๆ ว่าทำไมถึงแนะนำการตั้งค่านี้ (1-2 ประโยค)",
+  "guideMode": "beginner|balanced|expert",
+  "uiStyle": "modern|formal|dashboard",
+  "workflows": {
+    "pdf": true/false,
+    "drive": true/false,
+    "bottomNav": true/false,
+    "swal": true/false
+  },
+  "notifyChannel": "none|line-messaging-api|telegram-bot|gmail-app",
+  "reasons": {
+    "guideMode": "เหตุผลสั้นๆ",
+    "uiStyle": "เหตุผลสั้นๆ",
+    "workflows": "เหตุผลสั้นๆ",
+    "notifyChannel": "เหตุผลสั้นๆ"
   }
 }
 
-ค่า value ที่ใช้ได้:
-- platform: google-apps-script, react-vercel, nextjs-vercel, vue-netlify, static-html
-- database: google-sheets, supabase, mongodb-atlas, turso
-- cssFramework: bootstrap, tailwind, daisyui, shadcn-ui, material-ui
-- language: javascript, typescript
-- pageType: single-page, spa
-- pwa: yes, no
-- responsive: responsive, desktop-only
-- authentication: none, google-sheets-auth, supabase-auth, clerk
-- apiStyle: rest, graphql, trpc
-- packageManager: none, npm, pnpm, bun
-- testing: none, vitest, jest, playwright
-- hosting: gas-deploy, vercel, netlify, cloudflare-pages
+หลักเกณฑ์:
+- guideMode: ถ้าโปรเจกต์ดูซับซ้อนหรือผู้ใช้ไม่ระบุประสบการณ์ → beginner, ถ้าเป็นงานทั่วไป → balanced, ถ้าเป็น advanced → expert
+- uiStyle: ถ้าเป็นระบบราชการ/องค์กร → formal, ถ้าเป็น backoffice/ตาราง → dashboard, ทั่วไป → modern
+- workflows.pdf: true ถ้ามีเรื่อง PDF, เอกสาร, Google Docs template, ใบเสนอราคา, รายงาน
+- workflows.drive: true ถ้ามีเรื่องแชร์ไฟล์, สิทธิ์, โฟลเดอร์, อัปโหลด
+- workflows.bottomNav: true ถ้าเป็น mobile-first หรือมีหลายเมนู
+- workflows.swal: true เกือบทุกกรณี (default)
+- notifyChannel: ตามที่ระบุในคำอธิบาย, ถ้าไม่ระบุ → none
 
 ตอบเป็น JSON เท่านั้น`;
 
     try {
-        const finalWizardPrompt = gasRecommendationGuide ? `${wizardPrompt}\n\n${gasRecommendationGuide}` : wizardPrompt;
-        const raw = await callGeminiAPI(apiKey, finalWizardPrompt);
+        const raw = await callGeminiAPI(apiKey, prompt);
         const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
         const data = JSON.parse(jsonStr);
-        renderWizardResults(data);
+        applyGasAutoFillResult(data);
     } catch (err) {
-        body.innerHTML = `<div class="wizard-error"><i class="bi bi-exclamation-triangle"></i><p>${err.message}</p><button class="btn btn-outline btn-sm" onclick="openMagicWizard()">${t('retryBtn')}</button></div>`;
+        showToast(t('gasWizAutoFillError'));
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
     }
 }
 
-function getWizardLabels() {
-    return {
-        platform: t('wlPlatform'), database: t('wlDatabase'), cssFramework: t('wlCSSFramework'),
-        language: t('wlLanguage'), pageType: t('wlPageType'), pwa: t('wlPWA'),
-        responsive: t('wlResponsive'), authentication: t('wlAuthentication'), apiStyle: t('wlAPIStyle'),
-        packageManager: t('wlPackageManager'), testing: t('wlTesting'), hosting: t('wlHosting')
-    };
-}
-
-function getValueDisplayLabel(field, value, recommendations) {
-    if (!value) return value;
-
-    const platformContext = field === 'platform'
-        ? value
-        : (recommendations?.platform?.value || getRadioValue('platform'));
-
-    const labels = {
-        platform: {
-            'google-apps-script': 'Google Apps Script (GAS)',
-            'react-vercel': 'React + Vercel',
-            'nextjs-vercel': 'Next.js + Vercel',
-            'vue-netlify': 'Vue.js + Netlify',
-            'static-html': 'Static HTML/JS'
-        },
-        database: {
-            'google-sheets': 'Google Sheets',
-            'supabase': 'Supabase',
-            'mongodb-atlas': 'MongoDB Atlas',
-            'turso': 'Turso'
-        },
-        cssFramework: {
-            'bootstrap': 'Bootstrap',
-            'tailwind': 'Tailwind CSS',
-            'daisyui': 'DaisyUI',
-            'shadcn-ui': 'Shadcn/ui',
-            'material-ui': 'Material UI'
-        },
-        language: {
-            'javascript': 'JavaScript',
-            'typescript': 'TypeScript'
-        },
-        pageType: {
-            'single-page': t('pageNameSingle'),
-            'spa': platformContext === 'google-apps-script' ? t('pageNameGasMultiView') : t('pageNameSPA')
-        },
-        pwa: {
-            'yes': t('pwaYes'),
-            'no': t('pwaNo')
-        },
-        responsive: {
-            'responsive': 'Responsive',
-            'desktop-only': 'Desktop Only'
-        },
-        authentication: {
-            'none': t('authNameNone'),
-            'google-sheets-auth': 'Google Sheets Auth (Hash)',
-            'supabase-auth': 'Supabase Auth',
-            'clerk': 'Clerk'
-        },
-        apiStyle: {
-            'rest': 'REST API',
-            'graphql': 'GraphQL',
-            'trpc': 'tRPC'
-        },
-        packageManager: {
-            'none': t('pkgNameNone'),
-            'npm': 'npm',
-            'pnpm': 'pnpm',
-            'bun': 'Bun'
-        },
-        testing: {
-            'none': t('testNameNone'),
-            'vitest': 'Vitest',
-            'jest': 'Jest',
-            'playwright': 'Playwright'
-        },
-        hosting: {
-            'gas-deploy': 'GAS Web App Deploy',
-            'vercel': 'Vercel',
-            'netlify': 'Netlify',
-            'cloudflare-pages': 'Cloudflare Pages'
-        }
-    };
-
-    return labels[field]?.[value] || value;
-}
-
-function renderWizardResults(data) {
-    const body = document.getElementById('wizardBody');
-    const footer = document.getElementById('wizardFooter');
-    wizardSelections = {};
-
-    let html = '';
-    if (data.summary) {
-        html += `<div class="wizard-summary">${data.summary}</div>`;
+function applyGasAutoFillResult(data) {
+    // Apply guide mode
+    if (data.guideMode) {
+        const radio = document.querySelector(`input[name="gasGuideMode"][value="${data.guideMode}"]`);
+        if (radio) radio.checked = true;
     }
 
-    for (const [field, rec] of Object.entries(data.recommendations)) {
-        const label = getWizardLabels()[field] || field;
-        const displayValue = getValueDisplayLabel(field, rec.value, data.recommendations);
-        const displayAltValue = rec.alt_value ? getValueDisplayLabel(field, rec.alt_value, data.recommendations) : '';
-        wizardSelections[field] = rec.value;
-
-        html += `<div class="wizard-item"><div class="wizard-item-label">${label}</div><div class="wizard-item-options">`;
-
-        // Recommended option
-        html += `<button class="wizard-option selected" data-field="${field}" data-value="${rec.value}" onclick="selectWizardOption(this)">
-            <div class="wizard-option-radio"></div>
-            <div class="wizard-option-content">
-                <div class="wizard-option-header">
-                    <span class="wizard-option-title">${displayValue}</span>
-                    <span class="wizard-option-badge recommended">${t('wizardRecommended')}</span>
-                </div>
-                <span class="wizard-option-reason">${rec.reason}</span>
-            </div>
-        </button>`;
-
-        // Alternative option (if exists)
-        if (rec.alt_value) {
-            html += `<button class="wizard-option" data-field="${field}" data-value="${rec.alt_value}" onclick="selectWizardOption(this)">
-                <div class="wizard-option-radio"></div>
-                <div class="wizard-option-content">
-                    <div class="wizard-option-header">
-                        <span class="wizard-option-title">${displayAltValue}</span>
-                        <span class="wizard-option-badge alternative">${t('wizardAlternative')}</span>
-                    </div>
-                    <span class="wizard-option-reason">${rec.alt_reason}</span>
-                </div>
-            </button>`;
-        }
-
-        html += '</div></div>';
+    // Apply UI style
+    if (data.uiStyle) {
+        const radio = document.querySelector(`input[name="gasUiStyle"][value="${data.uiStyle}"]`);
+        if (radio) radio.checked = true;
     }
 
-    body.innerHTML = html;
-    footer.style.display = 'flex';
-}
-
-function selectWizardOption(btn) {
-    const field = btn.dataset.field;
-    const value = btn.dataset.value;
-    wizardSelections[field] = value;
-
-    // Toggle selected state within same wizard-item
-    const parent = btn.closest('.wizard-item-options');
-    parent.querySelectorAll('.wizard-option').forEach(opt => opt.classList.remove('selected'));
-    btn.classList.add('selected');
-}
-
-function applyWizardSelections() {
-    for (const [field, value] of Object.entries(wizardSelections)) {
-        const radio = document.querySelector(`input[name="${field}"][value="${value}"]`);
-        if (radio && !radio.disabled) {
-            radio.checked = true;
+    // Apply workflows
+    if (data.workflows) {
+        const workflowMap = {
+            pdf: 'gasWorkflowPdf',
+            drive: 'gasWorkflowDrive',
+            bottomNav: 'gasWorkflowBottomNav',
+            swal: 'gasWorkflowSwal'
+        };
+        for (const [key, id] of Object.entries(workflowMap)) {
+            const cb = document.getElementById(id);
+            if (cb) cb.checked = !!data.workflows[key];
         }
     }
-    applyValidationRules();
+
+    // Apply notify channel
+    if (data.notifyChannel) {
+        const radio = document.querySelector(`input[name="gasNotifyChannel"][value="${data.notifyChannel}"]`);
+        if (radio) radio.checked = true;
+    }
+
+    showToast(t('gasWizAutoFillDone'));
+}
+
+function applyGasWizardSelections() {
     closeWizard();
-    showToast(t('toastApplied'));
-
-    // Scroll to tech section
-    document.getElementById('tech-section').scrollIntoView({ behavior: 'smooth' });
+    showToast(t('gasWizApplied'));
 }
 
 function closeWizard() {
@@ -2144,7 +2030,7 @@ function resetForm() {
         });
     });
 
-    document.querySelectorAll('#gasModePanel input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('#wizardBody input[type="checkbox"]').forEach(cb => {
         cb.checked = cb.defaultChecked;
     });
 
