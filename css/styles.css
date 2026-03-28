@@ -940,6 +940,107 @@ textarea {
     padding-top: 16px;
 }
 
+/* ===== GAS Code Generation Card ===== */
+.codegen-card {
+    margin-top: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff, #fdf2f8);
+    border: 2px solid #c7d2fe;
+    border-radius: 16px;
+    transition: var(--transition);
+}
+
+.codegen-card:hover {
+    border-color: #818cf8;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+}
+
+.codegen-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.codegen-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.codegen-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.codegen-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.codegen-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.codegen-options {
+    margin-bottom: 14px;
+}
+
+.codegen-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.codegen-option input[type="checkbox"] {
+    accent-color: var(--primary);
+}
+
+.codegen-progress {
+    margin-bottom: 12px;
+}
+
+.codegen-progress-bar {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.codegen-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.codegen-progress-text {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.codegen-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 12px;
+}
+
 /* ===== Vote Card ===== */
 .vote-card {
     position: relative;

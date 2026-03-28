@@ -1044,6 +1044,29 @@
                             </div>
                             <div class="vote-particles" id="voteParticles"></div>
                         </div>
+                        <!-- GAS Code Generation -->
+                        <div class="codegen-card" id="codegenCard" style="display:none;">
+                            <div class="codegen-header">
+                                <div class="codegen-icon"><i class="bi bi-file-earmark-zip"></i></div>
+                                <div class="codegen-text">
+                                    <span class="codegen-title" data-i18n="codegenTitle">AI สร้างโค้ด GAS ให้เลย!</span>
+                                    <span class="codegen-desc" data-i18n="codegenDesc">ได้ไฟล์โค้ดพร้อมใช้ + คู่มือ deploy ใน ZIP เดียว</span>
+                                </div>
+                            </div>
+                            <div class="codegen-options">
+                                <label class="codegen-option">
+                                    <input type="checkbox" id="codegenInstaller" checked>
+                                    <span data-i18n="codegenInstallerLabel">รวม Auto Installer (setup.bat/sh + GUI)</span>
+                                </label>
+                            </div>
+                            <div class="codegen-progress" id="codegenProgress" style="display:none;">
+                                <div class="codegen-progress-bar"><div class="codegen-progress-fill" id="codegenProgressFill"></div></div>
+                                <span class="codegen-progress-text" id="codegenProgressText"></span>
+                            </div>
+                            <button class="btn btn-primary codegen-btn" id="codegenBtn">
+                                <i class="bi bi-magic"></i> <span data-i18n="codegenBtn">สร้างโค้ด + ดาวน์โหลด ZIP</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -1633,6 +1633,12 @@ ${targetAI === 'windsurf' ? '11. ใช้รูปแบบ .windsurfrules ท�
         // Store filename for download
         resultSection.dataset.fileName = fileName;
 
+        // Show GAS codegen card if platform is GAS
+        const codegenCard = document.getElementById('codegenCard');
+        if (codegenCard) {
+            codegenCard.style.display = platform === 'google-apps-script' ? '' : 'none';
+        }
+
         // Track stats
         trackPromptGenerated(platform, currentMode);
 
@@ -2929,6 +2935,88 @@ function getTopKey(obj) {
     return topKey;
 }
 
+// ===== GAS Code Generation =====
+
+function initCodegenButton() {
+    const btn = document.getElementById('codegenBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        const promptContent = document.getElementById('resultText')?.value;
+        const projectName = document.getElementById('projectName')?.value || 'GAS Project';
+        const includeInstaller = document.getElementById('codegenInstaller')?.checked;
+
+        if (!promptContent) {
+            showToast(t('codegenNoPrompt'), 'error');
+            return;
+        }
+
+        const progress = document.getElementById('codegenProgress');
+        const progressFill = document.getElementById('codegenProgressFill');
+        const progressText = document.getElementById('codegenProgressText');
+        btn.disabled = true;
+
+        progress.style.display = '';
+        progressFill.style.width = '10%';
+        progressText.textContent = t('codegenStep1');
+
+        try {
+            // Step 1: Sending to AI
+            progressFill.style.width = '20%';
+            progressText.textContent = t('codegenStep2');
+
+            const response = await fetch('/api/gas-codegen/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ promptContent, projectName, includeInstaller })
+            });
+
+            progressFill.style.width = '70%';
+            progressText.textContent = t('codegenStep3');
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error || `HTTP ${response.status}`);
+            }
+
+            // Step 2: Download ZIP
+            progressFill.style.width = '90%';
+            progressText.textContent = t('codegenStep4');
+
+            const warnings = JSON.parse(response.headers.get('X-KP-Warnings') || '[]');
+            const fileCount = response.headers.get('X-KP-File-Count') || '?';
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${projectName.replace(/[^a-zA-Z0-9ก-๙\-_]/g, '_')}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            // Done
+            progressFill.style.width = '100%';
+            progressText.textContent = t('codegenDone', { count: fileCount });
+
+            if (warnings.length > 0) {
+                warnings.forEach(w => showToast(`⚠️ ${w}`));
+            }
+
+            showToast(t('codegenSuccess'));
+
+        } catch (err) {
+            progressFill.style.width = '0%';
+            progressText.textContent = '';
+            progress.style.display = 'none';
+            showToast(`${t('codegenError')}: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+
 // ===== Supabase Stats Sync =====
 
 const STATS_API_URL = '/api/stats';
@@ -3091,4 +3179,5 @@ async function updateVoteCount() {
 document.addEventListener('DOMContentLoaded', () => {
     renderFooterStatsGlobal();
     initVoteButton();
+    initCodegenButton();
 });
