@@ -1438,6 +1438,25 @@ textarea {
     color: var(--text-muted);
 }
 
+/* Footer vote progress */
+.footer-vote-progress-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.footer-vote-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-vote-progress {
+    margin-top: 0;
+    padding-top: 12px;
+    border-top: none;
+}
+
 .footer-stat-breakdown {
     flex-direction: column;
     align-items: stretch;
