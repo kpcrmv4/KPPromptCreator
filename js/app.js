@@ -3335,6 +3335,9 @@ async function submitVote() {
     const current = parseInt(countEl.textContent) || 0;
     countEl.textContent = current + 1;
 
+    // Update progress bar
+    updateVoteProgress(current + 1);
+
     try {
         await fetch(STATS_API_URL, {
             method: 'POST',
@@ -3372,6 +3375,9 @@ function initVoteButton() {
         btn.classList.add('voted');
         btn.querySelector('i').className = 'bi bi-heart-fill';
     }
+
+    // Initialize progress bar with current count
+    updateVoteCount();
 }
 
 // Enhanced renderFooterStats with global data
@@ -3436,13 +3442,66 @@ async function renderFooterStatsGlobal() {
     container.innerHTML = html;
 }
 
+// Update vote progress bar
+function updateVoteProgress(count) {
+    const GOAL = 100;
+    const pct = Math.min(Math.round((count / GOAL) * 100), 100);
+
+    const fill = document.getElementById('voteProgressFill');
+    const glow = document.getElementById('voteProgressGlow');
+    const percentEl = document.getElementById('voteProgressPercent');
+    const countDisplay = document.getElementById('voteProgressCount');
+    const msgEl = document.getElementById('voteProgressMsg');
+    const section = document.getElementById('voteProgressSection');
+
+    if (!fill) return;
+
+    fill.style.width = pct + '%';
+    if (glow) glow.style.setProperty('--glow-width', pct + '%');
+    if (percentEl) percentEl.textContent = pct + '%';
+    if (countDisplay) countDisplay.textContent = count;
+
+    // Update milestones
+    document.querySelectorAll('.vote-milestone').forEach(m => {
+        const at = parseInt(m.dataset.at);
+        if (count >= at) m.classList.add('reached');
+        else m.classList.remove('reached');
+    });
+
+    // Motivational messages
+    if (section) {
+        section.classList.remove('goal-reached', 'milestone-hit');
+    }
+
+    if (msgEl) {
+        if (count >= GOAL) {
+            msgEl.textContent = '🎉🎊 ครบ 100 คนแล้ว! เตรียมพัฒนาได้เลย! 🚀';
+            if (section) section.classList.add('goal-reached');
+        } else if (count >= 75) {
+            msgEl.textContent = '🔥🔥🔥 ใกล้มากแล้ว! อีกแค่ ' + (GOAL - count) + ' คน!';
+            if (section) section.classList.add('milestone-hit');
+        } else if (count >= 50) {
+            msgEl.textContent = '🚀 ครึ่งทางแล้ว! มาช่วยกันดันให้ถึงเป้า!';
+            if (section) section.classList.add('milestone-hit');
+        } else if (count >= 25) {
+            msgEl.textContent = '💪 เยี่ยมมาก! กำลังไปได้ดี! ชวนเพื่อนมาอีก!';
+        } else if (count >= 10) {
+            msgEl.textContent = '💪 เริ่มต้นดี! ชวนเพื่อนมาโหวตกัน!';
+        } else {
+            msgEl.textContent = '✨ มาร่วมโหวตกันเถอะ!';
+        }
+    }
+}
+
 // Update vote count when result section shows
 async function updateVoteCount() {
     const countEl = document.getElementById('voteCount');
     if (!countEl) return;
     const globalStats = await fetchGlobalStats();
     if (globalStats) {
-        countEl.textContent = globalStats.aiCodeGenVotes || 0;
+        const votes = globalStats.aiCodeGenVotes || 0;
+        countEl.textContent = votes;
+        updateVoteProgress(votes);
     }
 }
 
