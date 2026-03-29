@@ -3413,10 +3413,50 @@ async function renderFooterStatsGlobal() {
         <span class="footer-stat-label">${t('footerStatTotal')}</span>
     </div>`;
 
-    // Vote count
-    html += `<div class="footer-stat-item">
-        <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
-        <span class="footer-stat-label">${t('footerStatVotes')}</span>
+    // Vote count with progress bar
+    const VOTE_GOAL = 100;
+    const votePct = Math.min(Math.round((voteCount / VOTE_GOAL) * 100), 100);
+    let voteMsg = '';
+    let voteMsgClass = '';
+    if (voteCount >= VOTE_GOAL) {
+        voteMsg = '🎉🎊 ครบ 100 คนแล้ว! เตรียมพัฒนาได้เลย! 🚀';
+        voteMsgClass = 'goal-reached';
+    } else if (voteCount >= 75) {
+        voteMsg = '🔥🔥🔥 ใกล้มากแล้ว! อีกแค่ ' + (VOTE_GOAL - voteCount) + ' คน!';
+        voteMsgClass = 'milestone-hit';
+    } else if (voteCount >= 50) {
+        voteMsg = '🚀 ครึ่งทางแล้ว! มาช่วยกันดันให้ถึงเป้า!';
+        voteMsgClass = 'milestone-hit';
+    } else if (voteCount >= 25) {
+        voteMsg = '💪 เยี่ยมมาก! กำลังไปได้ดี! ชวนเพื่อนมาอีก!';
+    } else if (voteCount >= 10) {
+        voteMsg = '💪 เริ่มต้นดี! ชวนเพื่อนมาโหวตกัน!';
+    } else {
+        voteMsg = '✨ มาร่วมโหวตกันเถอะ!';
+    }
+
+    html += `<div class="footer-stat-item footer-vote-progress-wrapper">
+        <div class="footer-vote-header">
+            <span class="footer-stat-number footer-stat-heart">❤️ ${voteCount.toLocaleString()}</span>
+            <span class="footer-stat-label">${t('footerStatVotes')}</span>
+        </div>
+        <div class="vote-progress-section footer-vote-progress ${voteMsgClass}">
+            <div class="vote-progress-header">
+                <span class="vote-progress-label">🔥 ${voteCount} / ${VOTE_GOAL} คน</span>
+                <span class="vote-progress-percent">${votePct}%</span>
+            </div>
+            <div class="vote-progress-track">
+                <div class="vote-progress-fill" style="width: ${votePct}%"></div>
+                <div class="vote-progress-glow" style="--glow-width: ${votePct}%"></div>
+            </div>
+            <div class="vote-progress-msg">${voteMsg}</div>
+            <div class="vote-milestone-markers">
+                <span class="vote-milestone ${voteCount >= 25 ? 'reached' : ''}" data-at="25">25</span>
+                <span class="vote-milestone ${voteCount >= 50 ? 'reached' : ''}" data-at="50">50</span>
+                <span class="vote-milestone ${voteCount >= 75 ? 'reached' : ''}" data-at="75">75</span>
+                <span class="vote-milestone milestone-goal ${voteCount >= 100 ? 'reached' : ''}" data-at="100">🎯 100</span>
+            </div>
+        </div>
     </div>`;
 
     // Platform breakdown
