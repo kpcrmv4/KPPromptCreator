@@ -361,7 +361,22 @@
       <!-- ── Tab: Code Gen ── -->
       <div class="admin-tab-content hidden" id="admin-tab-codegen">
         <div class="p-4 sm:p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-4">คำสั่งซื้อ Code Generation ที่รอตรวจสอบ</h3>
+          <h3 class="text-lg font-bold text-slate-800 mb-2">Code Generation Orders</h3>
+          <!-- Status filter tabs -->
+          <div class="flex gap-1 mb-4 overflow-x-auto pb-1">
+            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border-2 border-amber-400" data-status="pending_payment" onclick="switchCodegenStatusTab('pending_payment', this)">
+              รอดำเนินการ <span id="codegen-count-pending" class="ml-1 opacity-70"></span>
+            </button>
+            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="review" onclick="switchCodegenStatusTab('review', this)">
+              รอตรวจสอบ <span id="codegen-count-review" class="ml-1 opacity-70"></span>
+            </button>
+            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="completed" onclick="switchCodegenStatusTab('completed', this)">
+              เสร็จแล้ว <span id="codegen-count-completed" class="ml-1 opacity-70"></span>
+            </button>
+            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="rejected" onclick="switchCodegenStatusTab('rejected', this)">
+              ปฏิเสธ <span id="codegen-count-rejected" class="ml-1 opacity-70"></span>
+            </button>
+          </div>
           <div id="admin-codegen-orders">
             <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
               <div class="spinner"></div>
