@@ -513,7 +513,7 @@ CREATE TABLE codegen_orders (
   tier TEXT NOT NULL CHECK (tier IN ('simple', 'moderate', 'complex')),
   price INTEGER NOT NULL,
   include_installer BOOLEAN DEFAULT true,
-  status TEXT NOT NULL DEFAULT 'pending_payment' CHECK (status IN ('pending_payment', 'generating', 'completed', 'rejected')),
+  status TEXT NOT NULL DEFAULT 'pending_payment' CHECK (status IN ('pending_payment', 'generating', 'review', 'completed', 'rejected')),
   slip_image_url TEXT,
   zip_path TEXT,
   download_token TEXT UNIQUE,
@@ -529,11 +529,58 @@ CREATE INDEX idx_codegen_orders_token ON codegen_orders(download_token);
 
 ALTER TABLE codegen_orders ENABLE ROW LEVEL SECURITY;
 
--- Users can insert and view their own orders
-CREATE POLICY "codegen_orders_insert" ON codegen_orders FOR INSERT WITH CHECK (true);
-CREATE POLICY "codegen_orders_user_select" ON codegen_orders FOR SELECT USING (true);
-CREATE POLICY "codegen_orders_admin_update" ON codegen_orders FOR UPDATE USING (true);
+-- Authenticated users can create their own orders
+CREATE POLICY "codegen_orders_user_insert"
+ON codegen_orders FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+-- Users can view their own orders, admins can view all
+CREATE POLICY "codegen_orders_select"
+ON codegen_orders FOR SELECT
+USING (
+  auth.uid() = user_id
+  OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Only admins can update orders (approve/reject/upload)
+CREATE POLICY "codegen_orders_admin_update"
+ON codegen_orders FOR UPDATE
+USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- Storage bucket for codegen slips and ZIPs
-INSERT INTO storage.buckets (id, name, public) VALUES ('codegen', 'codegen', false)
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'codegen', 'codegen', false,
+  52428800,  -- 50MB max
+  ARRAY['application/zip', 'application/x-zip-compressed', 'application/octet-stream', 'image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Storage policies for codegen bucket
+CREATE POLICY "codegen_service_upload"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'codegen' AND auth.role() = 'service_role');
+
+CREATE POLICY "codegen_service_update"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'codegen' AND auth.role() = 'service_role');
+
+CREATE POLICY "codegen_user_read"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'codegen'
+  AND (storage.foldername(name))[1] = 'zips'
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
+
+CREATE POLICY "codegen_service_read"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'codegen' AND auth.role() = 'service_role');
+
+CREATE POLICY "codegen_service_delete"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'codegen' AND auth.role() = 'service_role');

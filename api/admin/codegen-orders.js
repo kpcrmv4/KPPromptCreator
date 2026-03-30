@@ -72,7 +72,7 @@ async function processOrder(req, res) {
   if (!user) return;
 
   const { orderId, action, adminNote } = req.body;
-  const validActions = ['approve', 'reject', 'upload', 'generate_preview'];
+  const validActions = ['approve', 'reject', 'upload', 'upload_code', 'generate_preview'];
   if (!orderId || !validActions.includes(action)) {
     return res.status(400).json({ error: `orderId and action (${validActions.join('/')}) required` });
   }
@@ -146,6 +146,68 @@ async function processOrder(req, res) {
 
     } catch (err) {
       return res.status(500).json({ error: 'อัปโหลดไม่สำเร็จ: ' + err.message });
+    }
+  }
+
+  // === UPLOAD_CODE: Admin uploads individual code files → system wraps with installer ===
+  if (action === 'upload_code') {
+    if (!['pending_payment', 'review'].includes(order.status)) {
+      return res.status(400).json({ error: 'คำสั่งซื้อนี้ไม่สามารถอัปโหลดได้' });
+    }
+
+    const { codeFiles } = req.body;
+    if (!codeFiles || !Array.isArray(codeFiles) || codeFiles.length === 0) {
+      return res.status(400).json({ error: 'กรุณาแนบไฟล์โค้ดอย่างน้อย 1 ไฟล์' });
+    }
+
+    try {
+      // Validate files: each must have name and content
+      const files = codeFiles.map(f => ({
+        name: (f.name || '').trim(),
+        content: f.content || ''
+      })).filter(f => f.name);
+
+      if (files.length === 0) {
+        return res.status(400).json({ error: 'ไฟล์โค้ดไม่ถูกต้อง' });
+      }
+
+      // Validate GAS files
+      const warnings = validateGasFiles(files);
+
+      // Build ZIP with installer using existing buildGasZip
+      const zipBuffer = await buildGasZip(order.project_name, files, {
+        includeInstaller: order.include_installer !== false
+      });
+
+      // Upload to storage
+      const safeName = order.project_name.replace(/[^a-zA-Z0-9ก-๙\-_]/g, '_');
+      const zipPath = `zips/${order.user_id}/${order.id}/${safeName}.zip`;
+      const { error: uploadErr } = await supabaseAdmin.storage
+        .from('codegen')
+        .upload(zipPath, zipBuffer, { contentType: 'application/zip', upsert: true });
+
+      if (uploadErr) throw new Error('Upload failed: ' + uploadErr.message);
+
+      // Update order as completed
+      await supabaseAdmin
+        .from('codegen_orders')
+        .update({
+          status: 'completed',
+          zip_path: zipPath,
+          file_count: files.length,
+          admin_note: adminNote || 'อัปโหลดโค้ด + สร้าง Installer โดย Admin',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      // Notify user
+      await notifyUser(order.user_id, 'codegen_completed', 'โค้ดพร้อมดาวน์โหลด!',
+        `"${order.project_name}" สร้างเสร็จแล้ว (${files.length} ไฟล์) ดาวน์โหลดได้ที่หน้าคำสั่งซื้อ`, orderId);
+
+      return res.json({ ok: true, status: 'completed', fileCount: files.length, warnings });
+
+    } catch (err) {
+      return res.status(500).json({ error: 'สร้าง ZIP ไม่สำเร็จ: ' + err.message });
     }
   }
 

@@ -1035,8 +1035,11 @@ function renderCodegenOrderCard(o) {
         <button onclick="processCodegenOrder('${o.id}', 'generate_preview')" class="w-full py-2 bg-indigo-600 text-white text-sm rounded-lg font-medium hover:bg-indigo-700 transition-colors">
           🔍 AI สร้าง → Admin ตรวจสอบก่อนส่ง
         </button>
+        <button onclick="showUploadCodeModal('${o.id}', '${escapeHtml(o.project_name)}')" class="w-full py-2 bg-teal-600 text-white text-sm rounded-lg font-medium hover:bg-teal-700 transition-colors">
+          📝 อัปโหลดโค้ด (ระบบสร้าง Installer ให้)
+        </button>
         <button onclick="showUploadZipModal('${o.id}', '${escapeHtml(o.project_name)}')" class="w-full py-2 bg-violet-600 text-white text-sm rounded-lg font-medium hover:bg-violet-700 transition-colors">
-          📦 อัปโหลด ZIP ที่ทำเอง
+          📦 อัปโหลด ZIP สำเร็จรูป
         </button>
         <button onclick="processCodegenOrder('${o.id}', 'reject')" class="w-full py-2 bg-red-50 text-red-600 text-sm rounded-lg font-medium hover:bg-red-100 transition-colors">
           ✖ ปฏิเสธ
@@ -1054,8 +1057,11 @@ function renderCodegenOrderCard(o) {
         <button onclick="processCodegenOrder('${o.id}', 'approve')" class="w-full py-2 bg-emerald-600 text-white text-sm rounded-lg font-medium hover:bg-emerald-700 transition-colors">
           ✅ ผ่านการทดสอบ — ส่งให้ลูกค้าเลย
         </button>
+        <button onclick="showUploadCodeModal('${o.id}', '${escapeHtml(o.project_name)}')" class="w-full py-2 bg-teal-600 text-white text-sm rounded-lg font-medium hover:bg-teal-700 transition-colors">
+          📝 อัปโหลดโค้ดแก้ไข (ระบบสร้าง Installer ให้)
+        </button>
         <button onclick="showUploadZipModal('${o.id}', '${escapeHtml(o.project_name)}')" class="w-full py-2 bg-violet-600 text-white text-sm rounded-lg font-medium hover:bg-violet-700 transition-colors">
-          📦 อัปโหลด ZIP เวอร์ชันแก้ไข
+          📦 อัปโหลด ZIP สำเร็จรูป
         </button>
         <button onclick="processCodegenOrder('${o.id}', 'reject')" class="w-full py-2 bg-red-50 text-red-600 text-sm rounded-lg font-medium hover:bg-red-100 transition-colors">
           ✖ ปฏิเสธ
@@ -1266,4 +1272,176 @@ function showUploadZipModal(orderId, projectName) {
       submitBtn.textContent = 'อัปโหลดและส่งให้ลูกค้า';
     }
   });
+}
+
+// =============================================
+// Upload Code Files Modal — admin uploads individual code files, system wraps with installer
+// =============================================
+function showUploadCodeModal(orderId, projectName) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+  overlay.id = 'upload-code-modal';
+  overlay.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6" style="max-height:90vh;overflow-y:auto;">
+      <div class="text-center mb-4">
+        <div class="text-2xl mb-2">📝</div>
+        <h3 class="text-lg font-bold text-slate-800">อัปโหลดโค้ด GAS</h3>
+        <p class="text-sm text-slate-500">${escapeHtml(projectName)}</p>
+        <p class="text-xs text-teal-600 mt-1">ระบบจะสร้าง Auto Installer (setup.bat + clasp) ครอบให้อัตโนมัติ</p>
+      </div>
+
+      <!-- File list -->
+      <div id="code-files-list" class="space-y-2 mb-4"></div>
+
+      <!-- Add file button -->
+      <div class="flex gap-2 mb-4">
+        <button onclick="addCodeFileEntry()" class="flex-1 py-2 border-2 border-dashed border-slate-300 text-slate-500 text-sm rounded-lg font-medium hover:border-teal-400 hover:text-teal-600 transition-colors">
+          + เพิ่มไฟล์
+        </button>
+        <button onclick="addCodeFileFromDisk()" class="py-2 px-4 border-2 border-dashed border-slate-300 text-slate-500 text-sm rounded-lg font-medium hover:border-blue-400 hover:text-blue-600 transition-colors">
+          📂 เลือกจากเครื่อง
+        </button>
+        <input type="file" id="code-file-disk-input" multiple accept=".gs,.js,.html,.json,.css,.txt" class="hidden">
+      </div>
+
+      <!-- Template buttons -->
+      <div class="flex flex-wrap gap-1 mb-4">
+        <span class="text-xs text-slate-400">เพิ่มเร็ว:</span>
+        <button onclick="addCodeFileEntry('Code.gs')" class="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-teal-100 hover:text-teal-700">Code.gs</button>
+        <button onclick="addCodeFileEntry('appsscript.json')" class="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-teal-100 hover:text-teal-700">appsscript.json</button>
+        <button onclick="addCodeFileEntry('Index.html')" class="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-teal-100 hover:text-teal-700">Index.html</button>
+        <button onclick="addCodeFileEntry('CSS.html')" class="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-teal-100 hover:text-teal-700">CSS.html</button>
+        <button onclick="addCodeFileEntry('JavaScript.html')" class="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded hover:bg-teal-100 hover:text-teal-700">JavaScript.html</button>
+      </div>
+
+      <!-- What will be included -->
+      <div class="p-3 bg-teal-50 rounded-lg text-xs text-teal-700 mb-4">
+        <strong>ลูกค้าจะได้รับ ZIP ที่มี:</strong>
+        <div class="mt-1 space-y-0.5">
+          <div>✅ โค้ด GAS ที่คุณอัปโหลด (ในโฟลเดอร์ src/)</div>
+          <div>✅ setup.bat — ติดตั้งคลิกเดียว (Windows)</div>
+          <div>✅ setup.sh — ติดตั้งคลิกเดียว (Mac/Linux)</div>
+          <div>✅ Installer GUI — หน้าเว็บสำหรับ deploy ผ่าน clasp</div>
+          <div>✅ README.md — คู่มือการติดตั้ง</div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-slate-700 mb-1">หมายเหตุ (ถ้ามี)</label>
+        <input type="text" id="upload-code-note" placeholder="เช่น ทดสอบแล้ว v2.0" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+      </div>
+
+      <div id="upload-code-error" class="hidden text-sm text-red-500 mb-3"></div>
+
+      <div class="flex gap-2">
+        <button id="upload-code-submit" onclick="submitUploadCode('${orderId}')" class="flex-1 py-2.5 bg-teal-600 text-white text-sm rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          สร้าง ZIP + ส่งให้ลูกค้า
+        </button>
+        <button onclick="document.getElementById('upload-code-modal').remove()" class="py-2.5 px-4 bg-slate-100 text-slate-600 text-sm rounded-lg font-medium hover:bg-slate-200 transition-colors">
+          ยกเลิก
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // File from disk handler
+  document.getElementById('code-file-disk-input').addEventListener('change', e => {
+    Array.from(e.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        addCodeFileEntry(file.name, ev.target.result);
+      };
+      reader.readAsText(file);
+    });
+    e.target.value = '';
+  });
+
+  // Add initial Code.gs entry
+  addCodeFileEntry('Code.gs');
+  updateCodeFileSubmitState();
+}
+
+function addCodeFileFromDisk() {
+  document.getElementById('code-file-disk-input').click();
+}
+
+let _codeFileCounter = 0;
+function addCodeFileEntry(filename, content) {
+  const list = document.getElementById('code-files-list');
+  if (!list) return;
+  const id = 'code-file-' + (++_codeFileCounter);
+
+  const entry = document.createElement('div');
+  entry.className = 'border border-slate-200 rounded-lg p-3';
+  entry.id = id;
+  entry.innerHTML = `
+    <div class="flex items-center gap-2 mb-2">
+      <input type="text" class="code-file-name flex-1 px-2 py-1 border border-slate-300 rounded text-sm font-mono" placeholder="ชื่อไฟล์ เช่น Code.gs" value="${escapeHtml(filename || '')}">
+      <button onclick="document.getElementById('${id}').remove(); updateCodeFileSubmitState();" class="px-2 py-1 text-red-400 hover:text-red-600 text-sm">✕</button>
+    </div>
+    <textarea class="code-file-content w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono bg-slate-50 resize-y" rows="6" placeholder="วางโค้ดที่นี่...">${escapeHtml(content || '')}</textarea>`;
+
+  list.appendChild(entry);
+
+  // Listen for changes to update submit state
+  entry.querySelector('.code-file-name').addEventListener('input', updateCodeFileSubmitState);
+  entry.querySelector('.code-file-content').addEventListener('input', updateCodeFileSubmitState);
+
+  updateCodeFileSubmitState();
+}
+
+function updateCodeFileSubmitState() {
+  const btn = document.getElementById('upload-code-submit');
+  if (!btn) return;
+  const files = getCodeFilesFromModal();
+  btn.disabled = files.length === 0;
+}
+
+function getCodeFilesFromModal() {
+  const entries = document.querySelectorAll('#code-files-list > div');
+  const files = [];
+  entries.forEach(entry => {
+    const name = entry.querySelector('.code-file-name')?.value?.trim();
+    const content = entry.querySelector('.code-file-content')?.value || '';
+    if (name && content.trim()) {
+      files.push({ name, content });
+    }
+  });
+  return files;
+}
+
+async function submitUploadCode(orderId) {
+  const files = getCodeFilesFromModal();
+  if (files.length === 0) return;
+
+  const submitBtn = document.getElementById('upload-code-submit');
+  const errEl = document.getElementById('upload-code-error');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'กำลังสร้าง ZIP...';
+  errEl.classList.add('hidden');
+
+  try {
+    const adminNote = document.getElementById('upload-code-note')?.value?.trim();
+    const result = await api('/admin/codegen-orders', {
+      method: 'PUT',
+      body: JSON.stringify({
+        orderId,
+        action: 'upload_code',
+        codeFiles: files,
+        adminNote: adminNote || undefined
+      })
+    });
+
+    document.getElementById('upload-code-modal').remove();
+    const warnText = result.warnings?.length ? `\n⚠️ ${result.warnings.join(', ')}` : '';
+    showToast(`สร้าง ZIP + ส่งให้ลูกค้าสำเร็จ! (${result.fileCount} ไฟล์)${warnText}`, 'success');
+    loadAdminCodegenOrders();
+  } catch (err) {
+    errEl.textContent = err.error || 'สร้าง ZIP ไม่สำเร็จ';
+    errEl.classList.remove('hidden');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'สร้าง ZIP + ส่งให้ลูกค้า';
+  }
 }
