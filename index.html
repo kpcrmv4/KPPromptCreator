@@ -1100,37 +1100,57 @@
                             </div>
                             <div class="vote-particles" id="voteParticles"></div>
                         </div>
-                        <!-- GAS Code Generation (hidden - coming soon) -->
-                        <div class="codegen-card" id="codegenCard" style="display:none !important;">
+                        <!-- GAS Code Generation -->
+                        <div class="codegen-card" id="codegenCard" style="display:none;">
                             <div class="codegen-header">
                                 <div class="codegen-icon"><i class="bi bi-file-earmark-zip"></i></div>
                                 <div class="codegen-text">
                                     <span class="codegen-title" data-i18n="codegenTitle">AI สร้างโค้ด GAS ให้เลย!</span>
-                                    <span class="codegen-desc" data-i18n="codegenDesc">ได้ไฟล์โค้ดพร้อมใช้ + คู่มือ deploy ใน ZIP เดียว</span>
+                                    <span class="codegen-desc" data-i18n="codegenDesc">โค้ดพร้อมใช้ + ทดสอบแล้ว + ติดตั้งคลิกเดียวผ่าน clasp</span>
                                 </div>
+                            </div>
+                            <!-- What's included -->
+                            <div class="codegen-includes" style="padding:10px 14px;background:var(--surface);border-radius:8px;margin-bottom:12px;font-size:13px;line-height:1.8;">
+                                <div style="font-weight:600;margin-bottom:4px;" data-i18n="codegenIncludesTitle">รวมในแพ็คเกจ:</div>
+                                <div><i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> <span data-i18n="codegenInclude1">โค้ด GAS สมบูรณ์พร้อมใช้งาน</span></div>
+                                <div><i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> <span data-i18n="codegenInclude2">ทดสอบการทำงานแล้ว</span></div>
+                                <div><i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> <span data-i18n="codegenInclude3">setup.bat ติดตั้งคลิกเดียวผ่าน clasp</span></div>
+                                <div><i class="bi bi-check-circle-fill" style="color:#22c55e;"></i> <span data-i18n="codegenInclude4">คู่มือ deploy + README</span></div>
                             </div>
                             <!-- Price Estimate -->
                             <div class="codegen-estimate" id="codegenEstimate">
                                 <div class="codegen-estimate-details" id="codegenEstimateDetails"></div>
                                 <div class="codegen-estimate-price">
                                     <span class="codegen-price-label" data-i18n="codegenPriceLabel">ราคา</span>
-                                    <span class="codegen-price-value" id="codegenPrice">฿500</span>
+                                    <span class="codegen-price-value" id="codegenPrice">฿1,000</span>
                                 </div>
                             </div>
                             <div class="codegen-options">
                                 <label class="codegen-option">
                                     <input type="checkbox" id="codegenInstaller" checked>
-                                    <span data-i18n="codegenInstallerLabel">รวม Auto Installer (setup.bat/sh + GUI)</span>
+                                    <span data-i18n="codegenInstallerLabel">รวม Auto Installer (setup.bat คลิกเดียว + clasp deploy)</span>
                                 </label>
                             </div>
                             <div class="codegen-progress" id="codegenProgress" style="display:none;">
                                 <div class="codegen-progress-bar"><div class="codegen-progress-fill" id="codegenProgressFill"></div></div>
                                 <span class="codegen-progress-text" id="codegenProgressText"></span>
                             </div>
+                            <!-- Option A: System generates (paid) -->
                             <button class="btn btn-primary codegen-btn" id="codegenBtn">
-                                <i class="bi bi-magic"></i> <span data-i18n="codegenBtn">สร้างโค้ด + ดาวน์โหลด ZIP</span>
+                                <i class="bi bi-magic"></i> <span data-i18n="codegenBtn">ให้ระบบสร้างโค้ด + ดาวน์โหลด ZIP</span>
                             </button>
-                            <p class="codegen-free-hint" data-i18n="codegenFreeHint">หรือ Copy Prompt ด้านบนไปใช้กับ AI เอง (ฟรี)</p>
+                            <!-- Option B: Use own API key (free) -->
+                            <div style="position:relative;text-align:center;margin:12px 0 8px;">
+                                <hr style="border:none;border-top:1px solid var(--border);">
+                                <span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--card-bg);padding:0 12px;font-size:12px;color:var(--text-muted);" data-i18n="codegenOrDivider">หรือ</span>
+                            </div>
+                            <button class="btn btn-outline codegen-btn" id="codegenOwnApiBtn" style="width:100%;">
+                                <i class="bi bi-key"></i> <span data-i18n="codegenOwnApiBtn">สร้างโค้ดด้วย API ของฉัน (ฟรี)</span>
+                            </button>
+                            <div class="codegen-own-api-warning" style="margin-top:8px;padding:8px 12px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;font-size:12px;color:#92400e;line-height:1.6;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span data-i18n="codegenOwnApiWarning">ใช้ Gemini API ของคุณ — เว็บง่ายใช้ 1-2 requests (โควต้าฟรีเพียงพอ) / เว็บซับซ้อนอาจใช้ 5-15 requests (โควต้าฟรีอาจไม่พอ)</span>
+                            </div>
                         </div>
                     </div>
                 </div>

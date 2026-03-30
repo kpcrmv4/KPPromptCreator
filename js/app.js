@@ -2983,11 +2983,11 @@ function estimateCodegenPrice(promptText) {
     // Determine tier
     let tier, price, tierLabel, tierClass;
     if (score <= 10) {
-        tier = 'simple'; price = 500; tierLabel = t('codegenTierSimple'); tierClass = 'est-tag-simple';
+        tier = 'simple'; price = 1000; tierLabel = t('codegenTierSimple'); tierClass = 'est-tag-simple';
     } else if (score <= 20) {
-        tier = 'moderate'; price = 700; tierLabel = t('codegenTierModerate'); tierClass = 'est-tag-moderate';
+        tier = 'moderate'; price = 1500; tierLabel = t('codegenTierModerate'); tierClass = 'est-tag-moderate';
     } else {
-        tier = 'complex'; price = 900; tierLabel = t('codegenTierComplex'); tierClass = 'est-tag-complex';
+        tier = 'complex'; price = 2000; tierLabel = t('codegenTierComplex'); tierClass = 'est-tag-complex';
     }
 
     return { tier, price, tierLabel, tierClass, breakdown, score };
@@ -3001,7 +3001,7 @@ function renderCodegenEstimate(promptText) {
 
     const tags = est.breakdown.slice(0, 5).map(b => `<span class="est-tag">${b}</span>`).join(' ');
     detailsEl.innerHTML = `<span class="est-tag ${est.tierClass}">${est.tierLabel}</span> ${tags}`;
-    priceEl.textContent = `฿${est.price}`;
+    priceEl.textContent = `฿${est.price.toLocaleString()}`;
 
     // Store price for later use
     window._kpCodegenPrice = est.price;
@@ -3038,6 +3038,193 @@ function initCodegenButton() {
         });
     });
 }
+
+// ===== Own API Code Generation =====
+
+function initCodegenOwnApiButton() {
+    const btn = document.getElementById('codegenOwnApiBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        const promptContent = document.getElementById('resultText')?.value;
+        const projectName = document.getElementById('projectName')?.value || 'GAS Project';
+
+        if (!promptContent) {
+            showToast(t('codegenNoPrompt'), 'error');
+            return;
+        }
+
+        // Check login — show modal if not logged in
+        const token = localStorage.getItem('kp_token');
+        if (!token) {
+            const loggedIn = await showAuthModal();
+            if (!loggedIn) return;
+        }
+
+        // Check API key
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (!apiKey) {
+            showToast(t('codegenOwnApiNoKey'), 'error');
+            return;
+        }
+
+        // Confirm before generating
+        const est = estimateCodegenPrice(promptContent);
+        const estimatedRequests = est.tier === 'simple' ? '1-2' : est.tier === 'moderate' ? '3-5' : '8-15';
+        const confirmed = await kpConfirm(
+            `<div style="text-align:left;font-size:13px;line-height:1.8;">
+                <div style="font-weight:700;font-size:15px;margin-bottom:8px;text-align:center;">
+                    <i class="bi bi-key"></i> ${t('codegenOwnApiBtn')}
+                </div>
+                <div style="padding:10px;background:#fef3c7;border-radius:8px;margin-bottom:12px;">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>
+                    <strong>${t('codegenTierLabel') || est.tierLabel} (${est.tierLabel})</strong> —
+                    ประมาณ <strong>${estimatedRequests} requests</strong>
+                </div>
+                <div><i class="bi bi-info-circle"></i> ${t('codegenOwnApiWarning')}</div>
+                <div style="margin-top:8px;color:#64748b;font-size:12px;">
+                    <i class="bi bi-lightbulb"></i> ${t('codegenOwnApiQuotaHint')}
+                </div>
+            </div>`,
+            { icon: 'cpu', type: 'warning', confirmText: t('codegenOwnApiBtn') }
+        );
+        if (!confirmed) return;
+
+        // Start generating with own API
+        await generateCodeWithOwnApi(apiKey, promptContent, projectName);
+    });
+}
+
+async function generateCodeWithOwnApi(apiKey, promptContent, projectName) {
+    const progressEl = document.getElementById('codegenProgress');
+    const progressFill = document.getElementById('codegenProgressFill');
+    const progressText = document.getElementById('codegenProgressText');
+    const ownApiBtn = document.getElementById('codegenOwnApiBtn');
+
+    if (progressEl) progressEl.style.display = '';
+    if (ownApiBtn) ownApiBtn.disabled = true;
+
+    try {
+        // Step 1: Generate code
+        if (progressFill) progressFill.style.width = '20%';
+        if (progressText) progressText.textContent = t('codegenOwnApiGenerating');
+
+        const codeGenPrompt = buildOwnApiCodegenPrompt(promptContent, projectName);
+        const generatedCode = await callGeminiAPI(apiKey, codeGenPrompt);
+
+        // Step 2: Show result
+        if (progressFill) progressFill.style.width = '100%';
+        if (progressText) progressText.textContent = t('codegenOwnApiSuccess');
+
+        // Display generated code in a modal
+        showGeneratedCodeModal(generatedCode, projectName);
+
+        showToast(t('codegenOwnApiSuccess'));
+
+    } catch (error) {
+        console.error('Own API codegen error:', error);
+        showToast(t('codegenOwnApiError'), 'error');
+
+        // Show quota hint
+        if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+            showToast(t('codegenOwnApiQuotaHint'), 'warning');
+        }
+    } finally {
+        if (ownApiBtn) ownApiBtn.disabled = false;
+        setTimeout(() => {
+            if (progressEl) progressEl.style.display = 'none';
+            if (progressFill) progressFill.style.width = '0%';
+        }, 2000);
+    }
+}
+
+function buildOwnApiCodegenPrompt(promptContent, projectName) {
+    return `You are an expert Google Apps Script developer. Based on the following project prompt, generate complete, working GAS code.
+
+PROJECT NAME: ${projectName}
+
+PROJECT PROMPT:
+${promptContent}
+
+REQUIREMENTS:
+1. Generate complete, ready-to-use Google Apps Script code
+2. Include all necessary files (Code.gs, HTML files, appsscript.json)
+3. Add clear comments in the code
+4. Do NOT use import/export statements (GAS doesn't support them)
+5. Do NOT use npm packages
+6. Use Google Apps Script built-in services only
+7. Include error handling
+8. Format output as separate files clearly marked with filename headers like:
+   === filename.gs ===
+   (code here)
+   === filename.html ===
+   (code here)
+
+Generate the complete code now:`;
+}
+
+function showGeneratedCodeModal(code, projectName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'kp-modal-overlay';
+    overlay.innerHTML = `
+    <div class="kp-modal" style="max-width:700px;max-height:85vh;text-align:left;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+                <div style="font-size:16px;font-weight:700;"><i class="bi bi-code-slash"></i> ${projectName}</div>
+                <div style="font-size:12px;color:var(--text-muted);">Generated with your Gemini API</div>
+            </div>
+            <button class="kp-modal-close-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div style="position:relative;">
+            <textarea id="generatedCodeOutput" readonly style="width:100%;height:50vh;padding:12px;font-family:'Fira Code',monospace;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface);resize:vertical;line-height:1.6;white-space:pre;">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-primary" id="copyGeneratedCode" style="flex:1;">
+                <i class="bi bi-clipboard"></i> Copy Code
+            </button>
+            <button class="btn btn-outline" id="downloadGeneratedCode" style="flex:1;">
+                <i class="bi bi-download"></i> Download .txt
+            </button>
+            <button class="btn btn-outline kp-modal-cancel-btn" style="flex:0 0 auto;">
+                <i class="bi bi-x"></i> Close
+            </button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    function close() {
+        overlay.classList.remove('show');
+        overlay.classList.add('closing');
+        setTimeout(() => overlay.remove(), 200);
+    }
+
+    overlay.querySelector('.kp-modal-close-btn').addEventListener('click', close);
+    overlay.querySelector('.kp-modal-cancel-btn').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    // Copy
+    document.getElementById('copyGeneratedCode').addEventListener('click', () => {
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Copied!');
+        });
+    });
+
+    // Download
+    document.getElementById('downloadGeneratedCode').addEventListener('click', () => {
+        const blob = new Blob([code], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${projectName.replace(/\s+/g, '_')}_code.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
 
 // ===== Auth Modal (Login/Register without page change) =====
 
@@ -3164,7 +3351,7 @@ function showPaymentModal(orderData) {
         </div>
 
         <div style="text-align:center;padding:20px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
-            <div style="font-size:32px;font-weight:800;color:var(--primary);margin-bottom:8px;">฿${orderData.price}</div>
+            <div style="font-size:32px;font-weight:800;color:var(--primary);margin-bottom:8px;">฿${orderData.price.toLocaleString()}</div>
             <img id="paymentQR" src="https://promptpay.io/${promptpayNumber}/${orderData.price}.png" alt="QR PromptPay" style="width:200px;height:200px;margin:0 auto;border-radius:8px;border:1px solid #e2e8f0;">
             <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">${t('paymentScanQR')}</div>
         </div>
@@ -3550,5 +3737,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderFooterStatsGlobal();
     initVoteButton();
     initCodegenButton();
+    initCodegenOwnApiButton();
     loadPromptPayNumber();
 });
