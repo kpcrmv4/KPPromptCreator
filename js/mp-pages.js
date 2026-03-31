@@ -555,32 +555,47 @@ async function loadCodegenOrders() {
     }
 
     const statusConfig = {
-      pending_payment: { label: 'รอตรวจสอบยอดเงิน', color: 'amber', icon: '🟡' },
-      generating: { label: 'กำลังสร้างโค้ด...', color: 'blue', icon: '🔵' },
-      completed: { label: 'สำเร็จ', color: 'emerald', icon: '🟢' },
-      rejected: { label: 'ไม่สำเร็จ', color: 'red', icon: '🔴' }
+      pending_payment: { label: 'รอตรวจสอบยอดเงิน', color: 'amber', icon: '🟡', desc: 'กำลังตรวจสอบการชำระเงินของคุณ' },
+      generating: { label: 'กำลังสร้างโค้ด...', color: 'blue', icon: '🔵', desc: 'AI กำลังสร้างโค้ดให้คุณ' },
+      review: { label: 'กำลังทดสอบคุณภาพ', color: 'indigo', icon: '🔍', desc: 'ทีมงานกำลังทดสอบและตรวจสอบคุณภาพโค้ด' },
+      completed: { label: 'พร้อมดาวน์โหลด!', color: 'emerald', icon: '✅', desc: 'โค้ดของคุณพร้อมใช้งานแล้ว' },
+      rejected: { label: 'ไม่สำเร็จ', color: 'red', icon: '🔴', desc: '' }
     };
 
     container.innerHTML = orders.map(o => {
       const st = statusConfig[o.status] || statusConfig.pending_payment;
       const tierLabel = { simple: 'ง่าย', moderate: 'ปานกลาง', complex: 'ซับซ้อน' };
+      const isProcessing = ['pending_payment', 'generating', 'review'].includes(o.status);
 
       return `<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-slate-800 truncate">${escapeHtml(o.project_name)}</h3>
-            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${o.price} &bull; ${tierLabel[o.tier] || o.tier}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${(o.price || 0).toLocaleString()} &bull; ${tierLabel[o.tier] || o.tier}</p>
           </div>
           <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-${st.color}-50 text-${st.color}-600 flex-shrink-0">${st.icon} ${st.label}</span>
         </div>
+        ${st.desc ? `<p class="mt-2 text-xs text-${st.color}-600">${st.desc}</p>` : ''}
+        ${isProcessing ? `
+          <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div class="flex items-start gap-2">
+              <span class="text-amber-500 flex-shrink-0">⏱</span>
+              <div class="text-xs text-amber-800 leading-relaxed">
+                <div class="font-semibold">ใช้เวลาทำและทดสอบประมาณ 1-3 วัน</div>
+                <div class="mt-0.5 text-amber-600">โค้ดจะถูกสร้าง ทดสอบ และตรวจสอบคุณภาพก่อนส่งมอบ เมื่อเสร็จแล้วจะแจ้งเตือนให้ดาวน์โหลดได้ทันที</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-2"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-${st.color}-500 rounded-full animate-pulse" style="width:${o.status === 'pending_payment' ? '20' : o.status === 'generating' ? '50' : '80'}%"></div></div></div>
+        ` : ''}
         ${o.status === 'completed' ? `
           <div class="mt-3 flex gap-2">
-            <button onclick="downloadCodegenOrder('${o.download_token}')" class="flex-1 py-2 bg-indigo-600 text-white text-xs rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path></svg> ดาวน์โหลด ZIP (${o.file_count} ไฟล์)
+            <button onclick="downloadCodegenOrder('${o.download_token}')" class="flex-1 py-2.5 bg-emerald-600 text-white text-sm rounded-lg font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3"></path></svg>
+              ดาวน์โหลด ZIP${o.file_count ? ' (' + o.file_count + ' ไฟล์)' : ''}
             </button>
           </div>` : ''}
-        ${o.status === 'rejected' && o.admin_note ? `<p class="mt-2 text-xs text-red-500">${escapeHtml(o.admin_note)}</p>` : ''}
-        ${o.status === 'generating' ? `<div class="mt-2"><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-indigo-500 rounded-full animate-pulse" style="width:60%"></div></div></div>` : ''}
+        ${o.status === 'rejected' && o.admin_note ? `<p class="mt-2 text-xs text-red-500">เหตุผล: ${escapeHtml(o.admin_note)}</p>` : ''}
       </div>`;
     }).join('');
   } catch {

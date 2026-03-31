@@ -3444,7 +3444,11 @@ function showPaymentModal(orderData) {
                     <div style="font-size:48px;margin-bottom:8px;">✅</div>
                     <div style="font-size:15px;font-weight:600;margin-bottom:4px;">${t('paymentSuccess')}</div>
                     <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">${t('paymentSuccessDesc')}</div>
-                    <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:var(--text-muted);">
+                    <div style="margin-top:12px;padding:12px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;font-size:13px;color:#92400e;line-height:1.8;text-align:left;">
+                        <div style="font-weight:700;margin-bottom:4px;">⏱ ${t('paymentProcessTime')}</div>
+                        <div>${t('paymentProcessDesc')}</div>
+                    </div>
+                    <div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:12px;color:var(--text-muted);">
                         ${t('paymentOrderId')}: <strong>${data.order.id.substring(0, 8)}...</strong>
                     </div>
                 </div>`,
