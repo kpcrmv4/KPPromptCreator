@@ -299,6 +299,9 @@ function initApp() {
     // Initialize i18n
     updateLangToggle();
     applyTranslations();
+
+    // Show What's New announcement (once per user, saved in localStorage)
+    showGasOptimizationAnnouncement();
 }
 
 // ===== Tech Stack Validation =====
@@ -1800,6 +1803,95 @@ function kpConfirm(message, options = {}) {
 
 function kpAlert(message, options = {}) {
     return kpConfirm(message, { ...options, type: 'info', confirmText: options.confirmText || 'ตกลง' });
+}
+
+// ===== GAS Optimization What's New Announcement =====
+
+const GAS_OPT_ANNOUNCEMENT_KEY = 'kp_gas_opt_v1';
+
+function showGasOptimizationAnnouncement() {
+    if (localStorage.getItem(GAS_OPT_ANNOUNCEMENT_KEY)) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'kp-whats-new-overlay';
+    overlay.innerHTML = `
+        <div class="kp-whats-new">
+            <div class="kp-whats-new-header">
+                <div class="kp-whats-new-badge"><i class="bi bi-stars"></i>&nbsp;อัพเดทใหม่</div>
+                <span class="kp-whats-new-emoji">⚡</span>
+                <h2 class="kp-whats-new-title">GAS Mode อัพเกรดแล้ว!</h2>
+                <p class="kp-whats-new-subtitle">เพิ่ม 11 เทคนิค Optimize Google Apps Script<br>เข้าไปในทุก prompt อัตโนมัติ</p>
+            </div>
+            <div class="kp-whats-new-body">
+                <ul class="kp-whats-new-list">
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon green"><i class="bi bi-lightning-charge-fill"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Batch Read/Write</strong>
+                            <span>ห้าม loop getValue — ใช้ getValues() batch ครั้งเดียว ลด API call ได้มากที่สุด</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon blue"><i class="bi bi-database-fill"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>CacheService อัจฉริยะ</strong>
+                            <span>Pre-warm cache ป้องกัน cold start, invalidate อัตโนมัติเมื่อ write บ่อย, ถามผู้ใช้เมื่อข้อมูลเยอะ</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon purple"><i class="bi bi-lock-fill"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Lock Service + flush()</strong>
+                            <span>ป้องกัน race condition, flush() ก่อน releaseLock() เสมอ</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon orange"><i class="bi bi-sliders"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Properties Service</strong>
+                            <span>Persistent config ไม่มี TTL, batch set/get, เหมาะกับ feature flags และ API keys</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon teal"><i class="bi bi-tag-fill"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Named Ranges + Smart Sheet Access</strong>
+                            <span>ตรวจ context อัตโนมัติ — standalone ใช้ openById, container-bound ใช้ getActiveSpreadsheet (พร้อมอธิบายความต่างให้ผู้ใช้)</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon pink"><i class="bi bi-send-fill"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Payload & Indexed Object</strong>
+                            <span>filter/map ฝั่ง GAS ก่อนส่ง client, O(1) lookup แทน .find() เมื่อข้อมูลหลักพัน-หมื่นแถว</span>
+                        </div>
+                    </li>
+                    <li class="kp-whats-new-item">
+                        <div class="kp-whats-new-item-icon red"><i class="bi bi-speedometer2"></i></div>
+                        <div class="kp-whats-new-item-text">
+                            <strong>Lazy Load + GAS Execution Limits</strong>
+                            <span>โหลด shell ก่อน ดึงข้อมูลทีหลัง พร้อมตาราง limits 5 ข้อที่ต้องรู้</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="kp-whats-new-footer">
+                <button class="kp-whats-new-confirm">
+                    <i class="bi bi-check2-circle"></i> เข้าใจแล้ว ขอบคุณ!
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+
+    overlay.querySelector('.kp-whats-new-confirm').addEventListener('click', () => {
+        localStorage.setItem(GAS_OPT_ANNOUNCEMENT_KEY, '1');
+        overlay.classList.remove('show');
+        overlay.classList.add('closing');
+        setTimeout(() => overlay.remove(), 250);
+    });
 }
 
 function showToast(message) {
