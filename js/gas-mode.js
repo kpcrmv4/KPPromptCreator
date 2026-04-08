@@ -90,6 +90,7 @@ function buildGasPromptContext(formState) {
     sections.push(buildGasGuideSection(gasState.guideMode));
     sections.push(buildGasUiStyleSection(gasState.uiStyle));
     sections.push(buildGasDataSection(formState.database));
+    sections.push(buildGasPerformanceSection(formState));
     sections.push(buildGasNotificationSection(gasState.notifyChannel, projectDesc));
 
     if (formState.pageType === 'spa') {
@@ -210,6 +211,102 @@ function buildGasUiStyleSection(uiStyle) {
     return `## UI Style Preference
 - โทนที่ผู้ใช้ต้องการ: ${selected.label}
 - ${selected.details.join('\n- ')}`;
+}
+
+function buildGasPerformanceSection(formState) {
+    const projectDesc = formState.projectDesc || '';
+    const hasLargeData = /หลายพัน|หลักหมื่น|ข้อมูลเยอะ|ข้อมูลมาก|จำนวนมาก|large.?data|big.?data|หลาย.{0,5}แถว|แถวเยอะ/i.test(projectDesc);
+    const hasFrequentWrite = /อัพเดทบ่อย|เขียนบ่อย|บันทึกบ่อย|real.?time|realtime|live.?update|update.{0,5}บ่อย|บ่อยครั้ง/i.test(projectDesc);
+    const usesSheets = formState.database !== 'supabase';
+
+    const parts = [];
+
+    if (usesSheets) {
+        parts.push(`## GAS Performance: Batch Read/Write (สำคัญที่สุด)
+- ห้ามอ่านหรือเขียน cell ทีละตัวใน loop — นี่คือสาเหตุหลักของ GAS ที่ช้าที่สุด
+- อ่านแบบ batch: sheet.getRange(startRow, startCol, numRows, numCols).getValues() → 2D array ครั้งเดียว
+- เขียนแบบ batch: เตรียม 2D array ก่อน แล้ว setValues() ครั้งเดียว ไม่ใช่วน setValue() ทีละแถว
+- ❌ ช้า: for (let i=1; i<=100; i++) { sheet.getRange(i,1).getValue(); }
+- ✅ เร็ว: const data = sheet.getRange(1, 1, 100, 5).getValues();
+- ต้องระบุเทคนิคนี้ในทุกโปรเจกต์ที่ใช้ Sheets เพราะเป็นจุดที่มักลืมและมีผลมากที่สุด`);
+    }
+
+    let cacheSection = `## GAS Performance: CacheService`;
+    if (hasFrequentWrite) {
+        cacheSection += `
+- โปรเจกต์นี้มีการ write ข้อมูลบ่อย — ต้องระวัง stale cache เป็นพิเศษ
+- ลด TTL ให้สั้น (60-120 วินาที) หรือ cache เฉพาะข้อมูล semi-static เช่น config, dropdown list
+- เมื่อมีการ write ต้อง invalidate cache ทันที: cache.remove(key) หรือ cache.removeAll([key1, key2])
+- Pattern: write to sheet → SpreadsheetApp.flush() → cache.remove(key) เพื่อความถูกต้องของข้อมูล
+- ❌ ห้าม cache ข้อมูล transactional เช่น stock, balance, สถานะคำสั่ง เพราะ stale data มีผลร้ายแรง`;
+    } else if (hasLargeData) {
+        cacheSection += `
+- ข้อมูลจำนวนมากยิ่งต้องการ cache — แต่ต้องออกแบบ key strategy ให้เหมาะสม
+- CacheService รับ value ได้สูงสุด 100KB ต่อ key — ถ้าข้อมูลใหญ่กว่านั้นให้แบ่ง chunk หรือ cache แค่ subset ที่ใช้บ่อย
+- แนะนำ Pre-warm Cache: เรียก warmCache() ใน doGet() ก่อน render เพื่อหลีกเลี่ยง cold start
+- TTL แนะนำ: 300 วินาที สำหรับ dropdown/config, 60 วินาที สำหรับข้อมูลที่เปลี่ยนบ้าง`;
+    } else {
+        cacheSection += `
+- ถ้าผู้ใช้บอกว่ามีข้อมูลเยอะหรืออ่านชุดข้อมูลเดิมบ่อย ให้ถามผู้ใช้ว่า "ข้อมูลมีจำนวนมากไหม และอัพเดทบ่อยแค่ไหน?" ก่อนตัดสินใจ cache strategy
+- กรณีทั่วไป: ใช้สำหรับข้อมูลที่อ่านบ่อยแต่เปลี่ยนน้อย เช่น รายการ dropdown, config, ตารางอ้างอิง
+- TTL แนะนำ: 300 วินาที (5 นาที) สำหรับข้อมูล semi-static`;
+    }
+    cacheSection += `
+- Pattern มาตรฐาน: get cache → cache miss → read sheet → put cache (TTL) → return
+- Pre-warm Cache Pattern: เรียก warmCache() ใน doGet() ก่อน render เพื่อให้ผู้ใช้ไม่เจอ cold start ตอนเปิดหน้าแรก
+- ตัวอย่าง pre-warm: function warmCache() { const c = CacheService.getScriptCache(); if (!c.get('DATA')) { c.put('DATA', JSON.stringify(getSheetData()), 300); } }`;
+    parts.push(cacheSection);
+
+    parts.push(`## GAS Performance: Properties Service (Persistent Cache)
+- ใช้สำหรับ config และ state ที่ต้องคงอยู่ข้ามการ run และไม่ต้องการ TTL
+- เหมาะกับ: commission rate, phone number, last sync timestamp, feature flags, API keys
+- ใช้ getProperties() / setProperties({key1: 'val1', key2: 'val2'}) แบบ batch แทน get/set ทีละ key
+- ต่างจาก CacheService ตรงที่ข้อมูลอยู่จนกว่าจะลบ ไม่มี TTL
+- ห้ามเก็บ sensitive data เช่น password plain text — ให้ encrypt ก่อนหรือใช้ Secret Manager`);
+
+    parts.push(`## GAS Performance: Lock Service (Race Condition)
+- ถ้าระบบมี concurrent users หรือ trigger หลายตัวอาจ run พร้อมกัน ต้องใช้ LockService เสมอ
+- Pattern บังคับ: try { lock.waitLock(10000); /* critical section */ } finally { lock.releaseLock(); }
+- ใช้ ScriptLock สำหรับ script-wide lock (write ข้อมูลร่วม), UserLock สำหรับ per-user lock
+- ถ้า waitLock() timeout จะ throw exception — ต้อง catch และส่ง error กลับ client ให้ชัดเจน
+- ต้องเรียก SpreadsheetApp.flush() ก่อน releaseLock() เพื่อให้การเขียนสมบูรณ์ก่อน process อื่นเข้ามา`);
+
+    parts.push(`## GAS: SpreadsheetApp.flush()
+- บังคับให้ pending changes ถูก apply ทันทีก่อนดำเนินการต่อ
+- ใช้ก่อน CacheService.put() — เพื่อให้ cache มีข้อมูลล่าสุดจาก sheet จริงๆ
+- ใช้ก่อน lock.releaseLock() — เพื่อให้การเขียนสมบูรณ์ก่อน process อื่นเข้ามา
+- ใช้ก่อน return response ที่ต้องการสะท้อนข้อมูลล่าสุด`);
+
+    parts.push(`## GAS Best Practices: Named Ranges & Sheet Access
+- ใช้ SpreadsheetApp.openById(SPREADSHEET_ID) เสมอใน doGet/doPost — ไม่มี "active" spreadsheet ใน web app
+- ใช้ Named Range แทน hardcode string เพื่อความยืดหยุ่น: ตั้งชื่อใน Sheets ที่ Data → Named ranges
+- ❌ Hardcode: sheet.getRange('A2:F500') — พังทันทีถ้า insert row/column
+- ✅ Named Range: ss.getRangeByName('PRODUCTS_TABLE').getValues()
+- null-check เสมอ: const range = ss.getRangeByName('X'); if (!range) throw new Error('Named range not found');
+- ตั้งชื่อแบบ ALL_CAPS_UNDERSCORE ให้สื่อความหมาย เช่น PRODUCTS_TABLE, USER_LIST`);
+
+    parts.push(`## GAS Performance: Payload & Lookup Optimization
+- filter และ transform ข้อมูลฝั่ง GAS ก่อนส่งกลับ client — อย่าส่ง raw 2D array ทั้งหมด
+- map แถวเป็น object {id, name, status} ก่อน JSON.stringify เพื่อ payload เล็กลงและ client อ่านง่าย
+- ตัวอย่าง: const result = rows.filter(r => r[2] === 'active').map(r => ({id: r[0], name: r[1]}));
+- ถ้าต้อง lookup ข้อมูลซ้ำๆ ในชุดเดิม ให้แปลงเป็น indexed object เพื่อ O(1) lookup แทน O(n) ของ .find()
+- ตัวอย่าง indexed object: const idx = {}; rows.forEach(r => { idx[r[0]] = r; }); const found = idx['SKU-001'];
+- สำคัญมากเมื่อข้อมูลหลักพัน-หมื่นแถว`);
+
+    parts.push(`## GAS Performance: Frontend Loading Strategy
+- Lazy Loading: render HTML shell ก่อน แล้วค่อยเรียก google.script.run ดึงข้อมูลหลัง page load เพื่อให้หน้าเปิดไว
+- HtmlService Template Pre-render: ถ้าต้องการ inject ข้อมูลตอน render ให้ใช้ tmpl.data = getInitialData() ก่อน tmpl.evaluate()
+- ใช้ pagination แทนดึงข้อมูลทั้งหมดครั้งเดียว — กำหนด pageSize เช่น 50-100 แถว
+- แสดง skeleton loader หรือ spinner ระหว่าง google.script.run เพื่อ UX ที่ดี`);
+
+    parts.push(`## GAS Execution Limits (ข้อจำกัดที่ต้องรู้)
+- Execution time: 6 นาที/ครั้ง — ถ้า operation ยาวให้แบ่ง batch และใช้ time-based trigger
+- Simultaneous executions: 30 concurrent — ออกแบบ LockService และ error handling ให้รองรับ
+- Response size: 50MB — filter/compress ข้อมูลก่อนส่งเสมอ
+- UrlFetch/day: 20,000 ครั้ง — cache ผลลัพธ์ API call ที่เรียกซ้ำด้วย CacheService
+- Sheets ช้าตั้งแต่หลักหมื่นแถว — ถ้าข้อมูลเกิน ~10,000 แถว ให้แนะนำผู้ใช้พิจารณา Vercel + Supabase`);
+
+    return parts.join('\n\n');
 }
 
 function buildGasDataSection(database) {
