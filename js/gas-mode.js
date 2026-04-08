@@ -289,8 +289,13 @@ function buildGasPerformanceSection(formState) {
     } else {
         sheetAccessSection += `
 - ใช้ SpreadsheetApp.openById(SPREADSHEET_ID) ใน doGet/doPost — standalone web app ไม่มี "active" spreadsheet
-- ถ้าผู้ใช้ระบุว่า script แนบอยู่กับ Sheet ปัจจุบัน (container-bound) ให้ใช้ getActiveSpreadsheet() แทนได้
-- ถ้าไม่แน่ใจว่าเป็น standalone หรือ container-bound ให้ถามผู้ใช้ก่อน เพราะวิธี deploy และการเข้าถึง sheet ต่างกัน`;
+- ถ้าไม่แน่ใจว่าโปรเจกต์นี้เป็น standalone หรือ container-bound ให้ถามผู้ใช้ก่อนและอธิบายความแตกต่างให้เข้าใจ:
+
+  คำถามที่ต้องถาม: "โปรเจกต์นี้ต้องการสร้างเป็นแบบไหนครับ/ค่ะ?"
+
+  อธิบายให้ผู้ใช้เข้าใจก่อนตอบ:
+  • Standalone Web App — สร้าง script แยกออกมาต่างหาก มี URL เป็นของตัวเอง ผู้ใช้เปิดจาก link ได้โดยตรง เหมาะกับระบบที่แชร์ให้ทีมเปิดใช้ผ่านเบราว์เซอร์ ต้องระบุ SPREADSHEET_ID ในโค้ด
+  • Container-bound Script — script ผูกติดอยู่กับ Google Sheet ไฟล์นั้นๆ เปิดได้ผ่านเมนู Extensions → Apps Script ใช้ getActiveSpreadsheet() ได้เลย เหมาะกับ custom menu, sidebar, dialog หรือ automation ที่ทำงานภายใน sheet นั้น`;
     }
     sheetAccessSection += `
 - ใช้ Named Range แทน hardcode string เพื่อความยืดหยุ่น: ตั้งชื่อใน Sheets ที่ Data → Named ranges
