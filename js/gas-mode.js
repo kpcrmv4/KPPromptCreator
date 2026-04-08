@@ -277,13 +277,28 @@ function buildGasPerformanceSection(formState) {
 - ใช้ก่อน lock.releaseLock() — เพื่อให้การเขียนสมบูรณ์ก่อน process อื่นเข้ามา
 - ใช้ก่อน return response ที่ต้องการสะท้อนข้อมูลล่าสุด`);
 
-    parts.push(`## GAS Best Practices: Named Ranges & Sheet Access
-- ใช้ SpreadsheetApp.openById(SPREADSHEET_ID) เสมอใน doGet/doPost — ไม่มี "active" spreadsheet ใน web app
+    const isContainerBound = /sheet\s*ปัจจุบัน|spreadsheet\s*ปัจจุบัน|ไฟล์\s*ปัจจุบัน|แนบกับ|ติดกับ\s*sheet|container.?bound|bound\s*script|custom\s*menu|เมนูพิเศษ|sidebar|add.?on|dialog\s*box|onOpen|onEdit/i.test(projectDesc);
+
+    let sheetAccessSection = `## GAS Best Practices: Named Ranges & Sheet Access`;
+    if (isContainerBound) {
+        sheetAccessSection += `
+- โปรเจกต์นี้เป็น container-bound script (script แนบอยู่กับ Google Sheet ปัจจุบัน)
+- ✅ ใช้ SpreadsheetApp.getActiveSpreadsheet() ได้เลย เพราะ script ผูกกับ sheet นั้นอยู่แล้ว
+- ✅ ใช้ SpreadsheetApp.getActiveSheet() สำหรับ sheet ที่ user เปิดอยู่
+- ถ้าต้องอ้างอิง sheet อื่นที่ไม่ใช่ sheet ปัจจุบัน ให้ใช้ ss.getSheetByName('ชื่อ') หรือ openById()`;
+    } else {
+        sheetAccessSection += `
+- ใช้ SpreadsheetApp.openById(SPREADSHEET_ID) ใน doGet/doPost — standalone web app ไม่มี "active" spreadsheet
+- ถ้าผู้ใช้ระบุว่า script แนบอยู่กับ Sheet ปัจจุบัน (container-bound) ให้ใช้ getActiveSpreadsheet() แทนได้
+- ถ้าไม่แน่ใจว่าเป็น standalone หรือ container-bound ให้ถามผู้ใช้ก่อน เพราะวิธี deploy และการเข้าถึง sheet ต่างกัน`;
+    }
+    sheetAccessSection += `
 - ใช้ Named Range แทน hardcode string เพื่อความยืดหยุ่น: ตั้งชื่อใน Sheets ที่ Data → Named ranges
 - ❌ Hardcode: sheet.getRange('A2:F500') — พังทันทีถ้า insert row/column
 - ✅ Named Range: ss.getRangeByName('PRODUCTS_TABLE').getValues()
 - null-check เสมอ: const range = ss.getRangeByName('X'); if (!range) throw new Error('Named range not found');
-- ตั้งชื่อแบบ ALL_CAPS_UNDERSCORE ให้สื่อความหมาย เช่น PRODUCTS_TABLE, USER_LIST`);
+- ตั้งชื่อแบบ ALL_CAPS_UNDERSCORE ให้สื่อความหมาย เช่น PRODUCTS_TABLE, USER_LIST`;
+    parts.push(sheetAccessSection);
 
     parts.push(`## GAS Performance: Payload & Lookup Optimization
 - filter และ transform ข้อมูลฝั่ง GAS ก่อนส่งกลับ client — อย่าส่ง raw 2D array ทั้งหมด
