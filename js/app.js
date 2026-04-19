@@ -878,7 +878,8 @@ function getWizardLabels() {
         platform: t('wlPlatform'), database: t('wlDatabase'), cssFramework: t('wlCSSFramework'),
         language: t('wlLanguage'), pageType: t('wlPageType'), pwa: t('wlPWA'),
         responsive: t('wlResponsive'), authentication: t('wlAuthentication'), apiStyle: t('wlAPIStyle'),
-        packageManager: t('wlPackageManager'), testing: t('wlTesting'), hosting: t('wlHosting')
+        packageManager: t('wlPackageManager'), testing: t('wlTesting'), hosting: t('wlHosting'),
+        uiStyle: t('labelUIStyle'), darkMode: t('labelDarkMode')
     };
 }
 
@@ -2252,10 +2253,12 @@ async function processChatMessage(apiKey, userMessage) {
 - authentication: none | google-sheets-auth | supabase-auth | clerk
 - apiStyle: rest | graphql | trpc
 - packageManager: none | npm | pnpm | bun
-- testing: none | vitest | jest | playwright
-- hosting: gas-deploy | vercel | netlify | cloudflare-pages
+    - testing: none | vitest | jest | playwright
+    - hosting: gas-deploy | vercel | netlify | cloudflare-pages
+    - uiStyle: modern-clean | corporate-formal | vibrant-playful | minimalist
+    - darkMode: true | false
 
-ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
+    ตอบเป็น JSON เท่านั้น (ไม่ต้อง code block):
 {"adjusted": {เฉพาะ field ที่เปลี่ยน ใช้ค่าที่อนุญาตด้านบนเท่านั้น}, "message": "อธิบายสิ่งที่เปลี่ยนสั้นๆ ภาษาไทย"}`;
 
             const raw = await callGeminiAPI(apiKey, adjustPrompt);
@@ -2356,6 +2359,8 @@ async function generateFromChatData(apiKey) {
     ts.pageType = normalizeValue('pageType', ts.pageType);
     ts.authentication = normalizeValue('authentication', ts.authentication);
     ts.hosting = normalizeValue('hosting', ts.hosting);
+    ts.testing = normalizeValue('testing', ts.testing);
+    ts.uiStyle = normalizeValue('uiStyle', ts.uiStyle);
 
     // Set form values to match analysis (so generatePrompt works)
     setRadioIfExists('platform', ts.platform);
@@ -2370,6 +2375,8 @@ async function generateFromChatData(apiKey) {
     setRadioIfExists('packageManager', ts.packageManager);
     setRadioIfExists('testing', ts.testing);
     setRadioIfExists('hosting', ts.hosting);
+    setRadioIfExists('uiStyle', ts.uiStyle || 'modern-clean');
+    document.getElementById('darkModeCheckbox').checked = ts.darkMode === true || ts.darkMode === 'true';
     setRadioIfExists('targetAI', targetAI);
 
     // Set project info
@@ -2551,8 +2558,10 @@ async function startWizardTechRecommendation(apiKey) {
 - authentication: none, google-sheets-auth, supabase-auth, clerk
 - apiStyle: rest, graphql, trpc
 - packageManager: none, npm, pnpm, bun
-- testing: none, vitest, jest, playwright
-- hosting: gas-deploy, vercel, netlify, cloudflare-pages`;
+    - testing: none, vitest, jest, playwright
+    - hosting: gas-deploy, vercel, netlify, cloudflare-pages
+    - uiStyle: modern-clean, corporate-formal, vibrant-playful, minimalist
+    - darkMode: true, false`;
 
     try {
         const finalTechPrompt = gasRecommendationGuide ? `${techPrompt}\n\n${gasRecommendationGuide}` : techPrompt;
@@ -2617,8 +2626,10 @@ async function wizardGenerate() {
 
     // Set form values
     for (const [key, rec] of Object.entries(tech)) {
-        setRadioIfExists(key, rec.value);
+    setRadioIfExists(key, rec.value);
     }
+    setRadioIfExists('uiStyle', tech.uiStyle?.value || 'modern-clean');
+    document.getElementById('darkModeCheckbox').checked = tech.darkMode?.value === true || tech.darkMode?.value === 'true';
     setRadioIfExists('targetAI', wizardData.targetAI);
 
     // Set project info
