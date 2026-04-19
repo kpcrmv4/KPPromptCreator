@@ -1428,6 +1428,8 @@ async function generatePrompt() {
     const packageManager = getRadioValue('packageManager');
     const testing = getRadioValue('testing');
     const hosting = getRadioValue('hosting');
+    const uiStyle = getRadioValue('uiStyle');
+    const darkMode = document.getElementById('darkModeCheckbox').checked;
     const targetAI = getRadioValue('targetAI');
     const otherAiName = document.getElementById('otherAiName').value.trim();
 
@@ -1502,6 +1504,12 @@ async function generatePrompt() {
         'netlify': 'Netlify',
         'cloudflare-pages': 'Cloudflare Pages',
     };
+    const uiStyleNames = {
+        'modern-clean': 'Modern & Clean (เรียบง่าย, พื้นที่ว่างเยอะ, typography ชัดเจน, สีโทนเย็นหรือกลาง)',
+        'corporate-formal': 'Corporate & Formal (น่าเชื่อถือ, layout เป็นระเบียบ, grid system ชัดเจน)',
+        'vibrant-playful': 'Vibrant & Playful (สีสันสดใส, รูปทรงโค้งมน, animation เล็กน้อย, illustration)',
+        'minimalist': 'Minimalist (ลดทอนองค์ประกอบ, เน้นฟังก์ชัน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น)'
+    };
 
     // Build context-aware notes based on combo selections
     const comboNotes = [];
@@ -1561,6 +1569,8 @@ async function generatePrompt() {
 - **Package Manager**: ${pkgNames[packageManager]}
 - **Testing**: ${testNames[testing]}
 - **Hosting**: ${hostNames[hosting]}
+- **UI Design Style**: ${uiStyleNames[uiStyle]}
+${darkMode ? '- **Dark Mode**: ต้องการรองรับ Dark Mode' : ''}
 ${comboNotesText}
 ## Skills ที่เกี่ยวข้อง
 ${skillsText}
@@ -1574,8 +1584,8 @@ ${skillsText}
 6. ระบุ features หลักที่ต้องสร้างพร้อมรายละเอียด
 7. ให้คำแนะนำเกี่ยวกับ deployment
 8. ระบุ best practices สำหรับ tech stack ที่เลือก
-${pwa === 'yes' ? '9. รวมคำแนะนำ PWA: service worker, manifest.json, offline support\n' : ''}${responsive === 'responsive' ? '10. รวมแนวทาง responsive design: breakpoints, mobile-first approach\n' : ''}
-${targetAI === 'claude' ? '11. ใช้รูปแบบที่เหมาะกับ CLAUDE.md โดยเฉพาะ มี section สำหรับ project overview, development guidelines, และ key commands' : ''}
+${pwa === 'yes' ? '9. รวมคำแนะนำ PWA: service worker, manifest.json, offline support\n' : ''}${responsive === 'responsive' ? '10. รวมแนวทาง responsive design: breakpoints, mobile-first approach\n' : ''}${uiStyle === 'modern-clean' ? '11. ใช้ UI Design Style Modern & Clean: ใช้ whitespace อย่างมีประสิทธิภาพ, typography ชัดเจน, สีโทนเย็นหรือกลาง, minimal decorations\n' : ''}${uiStyle === 'corporate-formal' ? '11. ใช้ UI Design Style Corporate & Formal: เน้นความน่าเชื่อถือ, layout เป็นระเบียบ, ใช้ grid system, อาจมีกราฟ/ตารางข้อมูล\n' : ''}${uiStyle === 'vibrant-playful' ? '11. ใช้ UI Design Style Vibrant & Playful: ใช้สีสันสดใส, รูปทรงโค้งมน, animation เล็กน้อย, illustration\n' : ''}${uiStyle === 'minimalist' ? '11. ใช้ UI Design Style Minimalist: ลดทอนองค์ประกอบที่ไม่จำเป็น, เน้นฟังก์ชันการใช้งาน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น\n' : ''}${darkMode ? '12. รวมคำแนะนำ Dark Mode: CSS variables สำหรับสี, prefers-color-scheme media query, toggle button สำหรับเปลี่ยนโหมด\n' : ''}
+${targetAI === 'claude' ? '13. ใช้รูปแบบที่เหมาะกับ CLAUDE.md โดยเฉพาะ มี section สำหรับ project overview, development guidelines, และ key commands' : ''}
 ${targetAI === 'cursor' ? '11. ใช้รูปแบบ .cursorrules ที่เหมาะกับ Cursor AI' : ''}
 ${targetAI === 'github-copilot' ? '11. ใช้รูปแบบที่เหมาะกับ GitHub Copilot instructions' : ''}
 ${targetAI === 'codex' ? '11. ใช้รูปแบบ AGENTS.md ที่เหมาะกับ OpenAI Codex CLI' : ''}

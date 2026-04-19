@@ -73,6 +73,8 @@ Key ถูกส่งตรงไป Google Gemini API เท่านั้น
         labelPackageManager: 'Package Manager',
         labelTesting: 'Testing',
         labelHosting: 'Hosting / Deployment',
+        labelUIStyle: 'UI Design Style',
+        labelDarkMode: 'Dark Mode Support',
 
         // Option descriptions
         gasDesc: 'ใช้งานง่าย โฮสต์ฟรีบน Google',
@@ -118,6 +120,16 @@ Key ถูกส่งตรงไป Google Gemini API เท่านั้น
         vercelDesc: 'เร็ว, CI/CD อัตโนมัติ',
         netlifyDesc: 'ใช้งานง่าย, Functions',
         cloudflareDesc: 'Edge network, เร็วทั่วโลก',
+        uiStyleModernClean: 'Modern & Clean',
+        uiStyleModernCleanDesc: 'เรียบง่าย พื้นที่ว่างเยอะ typography ชัดเจน',
+        uiStyleCorporateFormal: 'Corporate & Formal',
+        uiStyleCorporateFormalDesc: 'น่าเชื่อถือ layout เป็นระเบียบ grid system',
+        uiStyleVibrantPlayful: 'Vibrant & Playful',
+        uiStyleVibrantPlayfulDesc: 'สีสันสดใส รูปทรงโค้งมน animation',
+        uiStyleMinimalist: 'Minimalist',
+        uiStyleMinimalistDesc: 'ลดทอนองค์ประกอบ เน้นฟังก์ชัน',
+        darkModeYes: 'ต้องการ Dark Mode',
+        darkModeDesc: 'รองรับโหมดมืดสำหรับผู้ใช้',
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
@@ -508,6 +520,8 @@ Don't reuse a Key that's linked to a billing account (if any).
         labelPackageManager: 'Package Manager',
         labelTesting: 'Testing',
         labelHosting: 'Hosting / Deployment',
+        labelUIStyle: 'UI Design Style',
+        labelDarkMode: 'Dark Mode Support',
 
         // Option descriptions
         gasDesc: 'Easy to use, free hosting on Google',
@@ -553,6 +567,16 @@ Don't reuse a Key that's linked to a billing account (if any).
         vercelDesc: 'Fast, automatic CI/CD',
         netlifyDesc: 'Easy to use, Functions',
         cloudflareDesc: 'Edge network, fast worldwide',
+        uiStyleModernClean: 'Modern & Clean',
+        uiStyleModernCleanDesc: 'Simple, spacious, clear typography',
+        uiStyleCorporateFormal: 'Corporate & Formal',
+        uiStyleCorporateFormalDesc: 'Trustworthy, organized layout, grid system',
+        uiStyleVibrantPlayful: 'Vibrant & Playful',
+        uiStyleVibrantPlayfulDesc: 'Colorful, rounded shapes, animations',
+        uiStyleMinimalist: 'Minimalist',
+        uiStyleMinimalistDesc: 'Reduced elements, function-focused',
+        darkModeYes: 'Want Dark Mode',
+        darkModeDesc: 'Support dark mode for users',
 
         // GAS Wizard
         gasWizardBtn: 'Google Web App Wizard',
