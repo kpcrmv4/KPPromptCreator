@@ -236,9 +236,9 @@ Key ถูกส่งตรงไป Google Gemini API เท่านั้น
         footerStatTopPlatform: 'แพลตฟอร์มที่ใช้บ่อยสุด',
         footerStatTopMode: 'โหมดที่ใช้บ่อยสุด',
         footerStatBreakdown: 'สัดส่วนแพลตฟอร์ม',
-        footerStatVotes: 'คนอยากให้มีระบบ AI สร้างเว็บ',
-        voteTitle: 'อยากให้ AI สร้างเว็บจาก Prompt นี้ให้เลยไหม?',
-        voteDesc: 'กดหัวใจโหวต! ถ้าคนสนใจเยอะพอ เราจะทำระบบนี้ให้',
+        footerStatVotes: 'คนอยากให้มีระบบ AI สร้างโค้ด',
+        voteTitle: 'อยากให้ระบบสร้างโค้ดให้โดยอัตโนมัติไหม?',
+        voteDesc: 'หากคุณสนใจระบบสร้างโค้ดอัตโนมัติ สามารถกดสั่งซื้อหรือใช้ API ของคุณสร้างได้ทันทีด้านบน',
         // Code Generation
         codegenTitle: 'AI สร้างโค้ด GAS ให้เลย!',
         codegenDesc: 'โค้ดพร้อมใช้ + ทดสอบแล้ว + ติดตั้งคลิกเดียวผ่าน clasp',
@@ -684,8 +684,8 @@ Don't reuse a Key that's linked to a billing account (if any).
         footerStatTopMode: 'Most Used Mode',
         footerStatBreakdown: 'Platform Breakdown',
         footerStatVotes: 'want AI Code Generation',
-        voteTitle: 'Want AI to build the web app from this Prompt?',
-        voteDesc: 'Tap the heart to vote! If enough people want it, we\'ll build it.',
+        voteTitle: 'Want the system to build the code for you?',
+        voteDesc: 'If you are interested in automatic code generation, you can order or use your own API to build it above.',
         // Code Generation
         codegenTitle: 'AI builds your GAS code!',
         codegenDesc: 'Ready-to-use code + tested + one-click install via clasp',
