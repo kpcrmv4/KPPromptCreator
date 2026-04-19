@@ -30,7 +30,7 @@ async function createOrder(req, res) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { projectName, promptContent, tier, price, includeInstaller, slipImageBase64, slipFilename } = req.body;
+  const { projectName, promptContent, tier, price, includeInstaller, slipImageBase64, slipFilename, uiStyle, darkMode } = req.body;
 
   if (!projectName || !promptContent || !tier || !price) {
     return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
@@ -79,6 +79,8 @@ async function createOrder(req, res) {
       prompt_content: promptContent,
       tier,
       price,
+      ui_style: uiStyle,
+      dark_mode: darkMode === true || darkMode === 'true',
       include_installer: includeInstaller !== false,
       slip_image_url: urlData.publicUrl,
       download_token: downloadToken,

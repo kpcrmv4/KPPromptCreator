@@ -565,13 +565,22 @@ async function loadCodegenOrders() {
     container.innerHTML = orders.map(o => {
       const st = statusConfig[o.status] || statusConfig.pending_payment;
       const tierLabel = { simple: 'ง่าย', moderate: 'ปานกลาง', complex: 'ซับซ้อน' };
+      const uiStyleLabel = { 
+        'modern-clean': 'Modern & Clean', 
+        'corporate-formal': 'Corporate & Formal', 
+        'vibrant-playful': 'Vibrant & Playful', 
+        'minimalist': 'Minimalist' 
+      };
       const isProcessing = ['pending_payment', 'generating', 'review'].includes(o.status);
 
       return `<div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-slate-800 truncate">${escapeHtml(o.project_name)}</h3>
-            <p class="text-xs text-slate-400 mt-0.5">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${(o.price || 0).toLocaleString()} &bull; ${tierLabel[o.tier] || o.tier}</p>
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+              <p class="text-xs text-slate-400">${new Date(o.created_at).toLocaleDateString('th-TH')} &bull; ฿${(o.price || 0).toLocaleString()} &bull; ${tierLabel[o.tier] || o.tier}</p>
+              ${o.ui_style ? `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-medium uppercase tracking-wider">${uiStyleLabel[o.ui_style] || o.ui_style}</span>` : ''}
+            </div>
           </div>
           <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-${st.color}-50 text-${st.color}-600 flex-shrink-0">${st.icon} ${st.label}</span>
         </div>

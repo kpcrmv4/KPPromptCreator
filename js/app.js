@@ -1513,7 +1513,10 @@ async function generatePrompt() {
         'modern-clean': 'Modern & Clean (เรียบง่าย, พื้นที่ว่างเยอะ, typography ชัดเจน, สีโทนเย็นหรือกลาง)',
         'corporate-formal': 'Corporate & Formal (น่าเชื่อถือ, layout เป็นระเบียบ, grid system ชัดเจน)',
         'vibrant-playful': 'Vibrant & Playful (สีสันสดใส, รูปทรงโค้งมน, animation เล็กน้อย, illustration)',
-        'minimalist': 'Minimalist (ลดทอนองค์ประกอบ, เน้นฟังก์ชัน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น)'
+        'minimalist': 'Minimalist (ลดทอนองค์ประกอบ, เน้นฟังก์ชัน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น)',
+        'glassmorphism': 'Glassmorphism (โปร่งแสง, ฟุ้งกระจาย, ทันสมัย, ใช้ backdrop-filter: blur)',
+        'neumorphism': 'Neumorphism (นูนต่ำ, มีมิติ, เสมือนจริง, ใช้ shadow ที่นุ่มนวล)',
+        'retro-vintage': 'Retro & Vintage (ย้อนยุค, 8-bit หรือสไตล์ 90s, ใช้สีและฟอนต์ที่เป็นเอกลักษณ์)'
     };
 
     // Build context-aware notes based on combo selections
@@ -1589,7 +1592,7 @@ ${skillsText}
 6. ระบุ features หลักที่ต้องสร้างพร้อมรายละเอียด
 7. ให้คำแนะนำเกี่ยวกับ deployment
 8. ระบุ best practices สำหรับ tech stack ที่เลือก
-${pwa === 'yes' ? '9. รวมคำแนะนำ PWA: service worker, manifest.json, offline support\n' : ''}${responsive === 'responsive' ? '10. รวมแนวทาง responsive design: breakpoints, mobile-first approach\n' : ''}${uiStyle === 'modern-clean' ? '11. ใช้ UI Design Style Modern & Clean: ใช้ whitespace อย่างมีประสิทธิภาพ, typography ชัดเจน, สีโทนเย็นหรือกลาง, minimal decorations\n' : ''}${uiStyle === 'corporate-formal' ? '11. ใช้ UI Design Style Corporate & Formal: เน้นความน่าเชื่อถือ, layout เป็นระเบียบ, ใช้ grid system, อาจมีกราฟ/ตารางข้อมูล\n' : ''}${uiStyle === 'vibrant-playful' ? '11. ใช้ UI Design Style Vibrant & Playful: ใช้สีสันสดใส, รูปทรงโค้งมน, animation เล็กน้อย, illustration\n' : ''}${uiStyle === 'minimalist' ? '11. ใช้ UI Design Style Minimalist: ลดทอนองค์ประกอบที่ไม่จำเป็น, เน้นฟังก์ชันการใช้งาน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น\n' : ''}${darkMode ? '12. รวมคำแนะนำ Dark Mode: CSS variables สำหรับสี, prefers-color-scheme media query, toggle button สำหรับเปลี่ยนโหมด\n' : ''}
+${pwa === 'yes' ? '9. รวมคำแนะนำ PWA: service worker, manifest.json, offline support\n' : ''}${responsive === 'responsive' ? '10. รวมแนวทาง responsive design: breakpoints, mobile-first approach\n' : ''}${uiStyle === 'modern-clean' ? '11. ใช้ UI Design Style Modern & Clean: ใช้ whitespace อย่างมีประสิทธิภาพ, typography ชัดเจน, สีโทนเย็นหรือกลาง, minimal decorations\n' : ''}${uiStyle === 'corporate-formal' ? '11. ใช้ UI Design Style Corporate & Formal: เน้นความน่าเชื่อถือ, layout เป็นระเบียบ, ใช้ grid system, อาจมีกราฟ/ตารางข้อมูล\n' : ''}${uiStyle === 'vibrant-playful' ? '11. ใช้ UI Design Style Vibrant & Playful: ใช้สีสันสดใส, รูปทรงโค้งมน, animation เล็กน้อย, illustration\n' : ''}${uiStyle === 'minimalist' ? '11. ใช้ UI Design Style Minimalist: ลดทอนองค์ประกอบที่ไม่จำเป็น, เน้นฟังก์ชันการใช้งาน, สีขาวดำหรือโทนสีเดียว, typography เป็นจุดเด่น\n' : ''}${uiStyle === 'glassmorphism' ? '11. ใช้ UI Design Style Glassmorphism: ใช้ความโปร่งแสงและเบลอพื้นหลัง (backdrop-filter: blur), ขอบสีขาวบางๆ, เลเยอร์ที่มีมิติ\n' : ''}${uiStyle === 'neumorphism' ? '11. ใช้ UI Design Style Neumorphism: ใช้เงา (box-shadow) ทั้งแบบนูนและยุบเพื่อสร้างมิติ, สีพื้นหลังและสีองค์ประกอบต้องใกล้เคียงกัน\n' : ''}${uiStyle === 'retro-vintage' ? '11. ใช้ UI Design Style Retro & Vintage: ใช้สีสันและฟอนต์ที่ให้ความรู้สึกย้อนยุค, อาจมีเส้นขอบหนาหรือสไตล์ pixel art\n' : ''}${darkMode ? '12. รวมคำแนะนำ Dark Mode: CSS variables สำหรับสี, prefers-color-scheme media query, toggle button สำหรับเปลี่ยนโหมด\n' : ''}
 ${targetAI === 'claude' ? '13. ใช้รูปแบบที่เหมาะกับ CLAUDE.md โดยเฉพาะ มี section สำหรับ project overview, development guidelines, และ key commands' : ''}
 ${targetAI === 'cursor' ? '11. ใช้รูปแบบ .cursorrules ที่เหมาะกับ Cursor AI' : ''}
 ${targetAI === 'github-copilot' ? '11. ใช้รูปแบบที่เหมาะกับ GitHub Copilot instructions' : ''}
@@ -3159,6 +3162,8 @@ function initCodegenButton() {
             promptContent,
             tier: est.tier,
             price: est.price,
+            uiStyle: document.querySelector('input[name="uiStyle"]:checked')?.value || 'modern-clean',
+            darkMode: document.getElementById('darkModeCheckbox')?.checked || false,
             includeInstaller: document.getElementById('codegenInstaller')?.checked !== false
         });
     });
@@ -3552,6 +3557,8 @@ function showPaymentModal(orderData) {
                     promptContent: orderData.promptContent,
                     tier: orderData.tier,
                     price: orderData.price,
+                    uiStyle: orderData.uiStyle,
+                    darkMode: orderData.darkMode,
                     includeInstaller: orderData.includeInstaller,
                     slipImageBase64: slipBase64,
                     slipFilename: slipFilename
