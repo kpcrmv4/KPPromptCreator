@@ -3148,6 +3148,8 @@ function initCodegenButton() {
         if (!token) {
             const loggedIn = await showAuthModal();
             if (!loggedIn) return;
+            // Small delay to ensure auth modal is fully removed before showing payment modal
+            await new Promise(r => setTimeout(r, 300));
         }
 
         // Show payment modal
@@ -3467,24 +3469,24 @@ function showPaymentModal(orderData) {
     const overlay = document.createElement('div');
     overlay.className = 'kp-modal-overlay';
     overlay.innerHTML = `
-    <div class="kp-modal" style="max-width:440px;text-align:left;">
+    <div class="kp-modal" style="max-width:440px;width:95%;text-align:left;max-height:90vh;overflow-y:auto;">
         <div style="text-align:center;margin-bottom:16px;">
             <div style="font-size:18px;font-weight:700;">${t('paymentTitle')}</div>
-            <div style="font-size:13px;color:var(--text-muted);">${orderData.projectName}</div>
+            <div style="font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orderData.projectName}</div>
         </div>
 
-        <div style="text-align:center;padding:20px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
-            <div style="font-size:32px;font-weight:800;color:var(--primary);margin-bottom:8px;">฿${orderData.price.toLocaleString()}</div>
-            <img id="paymentQR" src="https://promptpay.io/${promptpayNumber}/${orderData.price}.png" alt="QR PromptPay" style="width:200px;height:200px;margin:0 auto;border-radius:8px;border:1px solid #e2e8f0;">
+        <div style="text-align:center;padding:15px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
+            <div style="font-size:28px;font-weight:800;color:var(--primary);margin-bottom:8px;">฿${orderData.price.toLocaleString()}</div>
+            <img id="paymentQR" src="https://promptpay.io/${promptpayNumber}/${orderData.price}.png" alt="QR PromptPay" style="width:100%;max-width:180px;height:auto;aspect-ratio:1/1;margin:0 auto;border-radius:8px;border:1px solid #e2e8f0;">
             <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">${t('paymentScanQR')}</div>
         </div>
 
         <div style="margin-bottom:16px;">
             <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">${t('paymentUploadSlip')}</label>
-            <div id="paymentSlipArea" style="border:2px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('paymentSlipInput').click()">
-                <div style="font-size:24px;margin-bottom:4px;">📎</div>
-                <div style="font-size:13px;color:var(--text-muted);">${t('paymentClickUpload')}</div>
-                <img id="paymentSlipPreview" style="display:none;max-width:200px;max-height:200px;margin:8px auto 0;border-radius:6px;">
+            <div id="paymentSlipArea" style="border:2px dashed #cbd5e1;border-radius:10px;padding:15px;text-align:center;cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('paymentSlipInput').click()">
+                <div style="font-size:20px;margin-bottom:4px;">📎</div>
+                <div style="font-size:12px;color:var(--text-muted);">${t('paymentClickUpload')}</div>
+                <img id="paymentSlipPreview" style="display:none;max-width:100%;max-height:150px;margin:8px auto 0;border-radius:6px;object-fit:contain;">
             </div>
             <input type="file" id="paymentSlipInput" accept="image/*" style="display:none;">
         </div>

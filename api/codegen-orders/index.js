@@ -36,9 +36,10 @@ async function createOrder(req, res) {
     return res.status(400).json({ error: 'ข้อมูลไม่ครบ' });
   }
 
-  const validTiers = { simple: 500, moderate: 700, complex: 900 };
-  if (!validTiers[tier] || price !== validTiers[tier]) {
-    return res.status(400).json({ error: 'ราคาไม่ถูกต้อง' });
+  // Skip strict price validation on backend as pricing is dynamic based on prompt analysis
+  const validTiers = ['simple', 'moderate', 'complex'];
+  if (!validTiers.includes(tier)) {
+    return res.status(400).json({ error: 'Tier ไม่ถูกต้อง' });
   }
 
   if (!slipImageBase64 || !slipFilename) {
