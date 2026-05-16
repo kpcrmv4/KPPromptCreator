@@ -956,6 +956,29 @@ async function prefillFromSavedPrompt() {
       if (descInput) descInput.value = sp.project_name ? `Prompt สำหรับ ${sp.project_name}` : '';
       if (techInput && sp.tech_stack?.length) techInput.value = sp.tech_stack.join(', ');
 
+      // Auto-attach saved prompt content as a File on the file input
+      const fileInput = document.getElementById('prompt-file-input');
+      const fileInfo = document.getElementById('prompt-file-info');
+      if (fileInput && sp.content) {
+        try {
+          const fileName = sp.file_name || `${(sp.title || 'prompt').replace(/[^\w\-]+/g, '_')}.md`;
+          const blob = new Blob([sp.content], { type: 'text/markdown' });
+          const file = new File([blob], fileName, { type: 'text/markdown' });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          fileInput.files = dt.files;
+          fileInput.removeAttribute('required');
+          if (fileInfo) {
+            fileInfo.style.display = '';
+            fileInfo.textContent = `ใช้ไฟล์จาก Prompt ที่บันทึกไว้: ${fileName} (${(blob.size / 1024).toFixed(1)} KB)`;
+          }
+          showToast('ดึงไฟล์ Prompt จากที่บันทึกไว้แล้ว — เพิ่มรายละเอียดและรูปพรีวิวเพื่อลงขาย', 'success');
+          return;
+        } catch (err) {
+          console.warn('Auto-attach saved prompt failed:', err);
+        }
+      }
+
       showToast('กรุณาอัปโหลดไฟล์ Prompt (.md) และกรอกรายละเอียดเพิ่มเติม', 'info');
     }, 300);
   } catch {}
