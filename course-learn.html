@@ -39,6 +39,13 @@
     .prose-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; border: 1px solid #e2e8f0; }
     .prose-content hr { margin: 2rem 0; border-color: #e2e8f0; }
     .lesson-link.active { background: #eef2ff; color: #4338ca; font-weight: 600; }
+    /* Quiz toggle: hide default disclosure marker, swap label on open/closed */
+    details.quiz-details summary::-webkit-details-marker { display: none; }
+    details.quiz-details summary { list-style: none; }
+    details.quiz-details[open] .quiz-label-open { display: none; }
+    details.quiz-details:not([open]) .quiz-label-close { display: none; }
+    details.quiz-details[open] .quiz-chevron { transform: rotate(180deg); }
+    .quiz-chevron { transition: transform 0.2s; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-50">
@@ -304,6 +311,7 @@
 
       // Quiz
       renderQuiz(l.quiz || []);
+      lucide.createIcons();
 
       // Nav buttons
       const prev = document.getElementById('prev-lesson');
@@ -335,9 +343,25 @@
 
       el.innerHTML = `
         <div class="border-t border-slate-200 pt-8">
-          <h2 class="text-xl font-bold text-slate-900 mb-1">💡 ลองตอบดู</h2>
-          <p class="text-sm text-slate-500 mb-6">ตอบในใจก่อน แล้วคลิกคำตอบเพื่อดูเฉลย — ไม่บันทึกคะแนน</p>
-          <div class="space-y-6" id="quiz-list"></div>
+          <details class="quiz-details group">
+            <summary class="list-none cursor-pointer select-none">
+              <div class="flex items-center justify-between bg-gradient-to-r from-indigo-50 to-violet-50 hover:from-indigo-100 hover:to-violet-100 border border-indigo-200 rounded-xl px-5 py-4 transition">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">💡</span>
+                  <div>
+                    <div class="font-bold text-slate-900">ลองตอบดู</div>
+                    <div class="text-xs text-slate-500">${quiz.length} ข้อ · ไม่บันทึกคะแนน คลิกคำตอบเพื่อดูเฉลย</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-indigo-600">
+                  <span class="text-sm font-medium quiz-label-open">เปิด</span>
+                  <span class="text-sm font-medium quiz-label-close">ปิด</span>
+                  <i data-lucide="chevron-down" class="quiz-chevron h-5 w-5"></i>
+                </div>
+              </div>
+            </summary>
+            <div class="space-y-6 mt-4" id="quiz-list"></div>
+          </details>
         </div>
       `;
 
