@@ -38,37 +38,47 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ error: 'ไม่พบบทเรียน' });
   }
 
-  // gate check
+  // ตรวจ enrollment ก่อน — ใช้ทั้งกับ gate check และ navigation filter
   let enrolled = false;
-  if (!lesson.is_free_preview && !isAdmin) {
-    if (!user) return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
+  if (user && !isAdmin) {
     const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select('id')
       .eq('user_id', user.id)
       .eq('course_id', lesson.course_id)
       .maybeSingle();
-    if (!enrollment) return res.status(403).json({ error: 'กรุณาซื้อคอร์สก่อนเข้าเรียน' });
-    enrolled = true;
+    enrolled = !!enrollment;
 
-    // bump last_seen
-    await supabaseAdmin
-      .from('enrollments')
-      .update({ last_lesson_id: id, last_seen_at: new Date().toISOString() })
-      .eq('id', enrollment.id);
+    if (enrolled) {
+      // bump last_seen
+      await supabaseAdmin
+        .from('enrollments')
+        .update({ last_lesson_id: id, last_seen_at: new Date().toISOString() })
+        .eq('id', enrollment.id);
+    }
   }
 
-  // navigation — prev/next lesson ใน course เดียวกัน
+  // gate check
+  if (!lesson.is_free_preview && !isAdmin && !enrolled) {
+    if (!user) return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบ' });
+    return res.status(403).json({ error: 'กรุณาซื้อคอร์สก่อนเข้าเรียน' });
+  }
+
+  // navigation — prev/next ตามสิทธิ์ของ user (กัน bypass ผ่านปุ่ม next/prev)
   const { data: siblings } = await supabaseAdmin
     .from('lessons')
-    .select('id, sort_order, is_published')
+    .select('id, sort_order, is_published, is_free_preview')
     .eq('course_id', lesson.course_id)
     .order('sort_order', { ascending: true });
 
-  const visible = (siblings || []).filter((l) => l.is_published || isAdmin);
-  const idx = visible.findIndex((l) => l.id === id);
-  const prev_lesson_id = idx > 0 ? visible[idx - 1].id : null;
-  const next_lesson_id = idx >= 0 && idx < visible.length - 1 ? visible[idx + 1].id : null;
+  const accessible = (siblings || []).filter((l) => {
+    if (!l.is_published && !isAdmin) return false;
+    if (isAdmin || enrolled) return true;
+    return l.is_free_preview;   // guest/non-enrolled — เฉพาะ free preview
+  });
+  const idx = accessible.findIndex((l) => l.id === id);
+  const prev_lesson_id = idx > 0 ? accessible[idx - 1].id : null;
+  const next_lesson_id = idx >= 0 && idx < accessible.length - 1 ? accessible[idx + 1].id : null;
 
   // remove embedded course before returning
   const { course, ...rest } = lesson;
