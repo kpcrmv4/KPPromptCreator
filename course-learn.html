@@ -158,9 +158,9 @@
         (m.lessons || []).forEach((l) => allLessons.push({ ...l, module_title: m.title }));
       });
 
-      // Check enrollment
-      if (!courseData.enrolled) {
-        // allow if a free preview lesson is selected OR auto-select first free
+      // Check access — admin bypasses enrollment gate
+      const hasFullAccess = courseData.enrolled || courseData.is_admin;
+      if (!hasFullAccess) {
         const freeLesson = allLessons.find((l) => l.is_free_preview);
         if (lessonId) {
           const target = allLessons.find((l) => l.id === lessonId);
@@ -207,14 +207,16 @@
     function renderSidebar() {
       const el = document.getElementById('outline');
       el.innerHTML = '';
+      const hasFullAccess = courseData.enrolled || courseData.is_admin;
       courseData.modules.forEach((m) => {
         const lessonsHtml = (m.lessons || []).map((l) => {
           const free = l.is_free_preview ? ` <span class="text-emerald-500 text-xs">ฟรี</span>` : '';
-          const locked = (!courseData.enrolled && !l.is_free_preview);
+          const adminBadge = (courseData.is_admin && !l.is_published) ? ` <span class="text-amber-500 text-xs">draft</span>` : '';
+          const locked = (!hasFullAccess && !l.is_free_preview);
           return `
             <a href="?slug=${slug}&lesson=${l.id}" data-lesson-id="${l.id}"
                class="lesson-link block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50 cursor-not-allowed' : ''}">
-              <span>${escapeHtml(l.title)}</span>${free}
+              <span>${escapeHtml(l.title)}</span>${free}${adminBadge}
             </a>`;
         }).join('') || '<div class="px-3 py-2 text-xs text-slate-400 italic">ยังไม่มีบทเรียน</div>';
 

@@ -135,7 +135,8 @@
     }
 
     function render(data) {
-      const { course, modules, enrolled } = data;
+      const { course, modules, enrolled, is_admin } = data;
+      const hasFullAccess = enrolled || is_admin;
 
       document.title = course.title + ' — KP Prompt Creator';
       document.getElementById('title').textContent = course.title;
@@ -161,9 +162,12 @@
       };
       if (!token) {
         cta.login.classList.remove('hidden');
-      } else if (enrolled) {
+      } else if (hasFullAccess) {
         cta.learn.classList.remove('hidden');
         cta.learn.href = `/course-learn.html?slug=${course.slug}`;
+        if (is_admin && !enrolled) {
+          cta.learn.innerHTML = '👁 ดูในฐานะ Admin';
+        }
       } else {
         cta.buy.classList.remove('hidden');
         cta.buy.onclick = () => { location.href = `/course-buy.html?id=${course.id}`; };
@@ -175,13 +179,16 @@
       modules.forEach((m) => {
         const lessonItems = (m.lessons || []).map((l) => {
           const free = l.is_free_preview ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700">ฟรี</span>` : '';
+          const adminDraft = (is_admin && !l.is_published) ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">draft</span>` : '';
           const mins = l.estimated_minutes ? `<span class="text-slate-400 text-xs ml-auto">${l.estimated_minutes} นาที</span>` : '';
+          const canOpen = hasFullAccess || l.is_free_preview;
           return `
-            <a href="${enrolled || l.is_free_preview ? `/course-learn.html?slug=${course.slug}&lesson=${l.id}` : '#'}"
-               class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 ${(!enrolled && !l.is_free_preview) ? 'cursor-default opacity-60' : ''}">
-              <i data-lucide="${enrolled || l.is_free_preview ? 'play-circle' : 'lock'}" class="h-4 w-4 text-slate-400 flex-shrink-0"></i>
+            <a href="${canOpen ? `/course-learn.html?slug=${course.slug}&lesson=${l.id}` : '#'}"
+               class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 ${!canOpen ? 'cursor-default opacity-60' : ''}">
+              <i data-lucide="${canOpen ? 'play-circle' : 'lock'}" class="h-4 w-4 text-slate-400 flex-shrink-0"></i>
               <span class="text-sm text-slate-700">${escapeHtml(l.title)}</span>
               ${free}
+              ${adminDraft}
               ${mins}
             </a>`;
         }).join('') || `<div class="px-3 py-2 text-sm text-slate-400 italic">ยังไม่มีบทเรียน — กำลังเพิ่มเนื้อหา</div>`;

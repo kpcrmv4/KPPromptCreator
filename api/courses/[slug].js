@@ -75,6 +75,7 @@ module.exports = async function handler(req, res) {
     course,
     modules: modulesWithLessons,
     enrolled,
+    is_admin: isAdmin,
     last_lesson_id,
     progress_pct,
   });
