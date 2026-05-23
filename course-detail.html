@@ -178,6 +178,7 @@
       list.innerHTML = '';
       modules.forEach((m) => {
         const lessonItems = (m.lessons || []).map((l) => {
+          const num = `${m.sort_order}.${l.sort_order}`;
           const free = l.is_free_preview ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700">ฟรี</span>` : '';
           const adminDraft = (is_admin && !l.is_published) ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">draft</span>` : '';
           const mins = l.estimated_minutes ? `<span class="text-slate-400 text-xs ml-auto">${l.estimated_minutes} นาที</span>` : '';
@@ -186,6 +187,7 @@
             <a href="${canOpen ? `/course-learn.html?slug=${course.slug}&lesson=${l.id}` : '#'}"
                class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 ${!canOpen ? 'cursor-default opacity-60' : ''}">
               <i data-lucide="${canOpen ? 'play-circle' : 'lock'}" class="h-4 w-4 text-slate-400 flex-shrink-0"></i>
+              <span class="mono text-xs text-slate-400 font-semibold tabular-nums w-9 text-right">${num}</span>
               <span class="text-sm text-slate-700">${escapeHtml(l.title)}</span>
               ${free}
               ${adminDraft}

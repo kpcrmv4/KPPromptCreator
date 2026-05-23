@@ -217,13 +217,15 @@
       const hasFullAccess = courseData.enrolled || courseData.is_admin;
       courseData.modules.forEach((m) => {
         const lessonsHtml = (m.lessons || []).map((l) => {
+          const num = `${m.sort_order}.${l.sort_order}`;
           const free = l.is_free_preview ? ` <span class="text-emerald-500 text-xs">ฟรี</span>` : '';
           const adminBadge = (courseData.is_admin && !l.is_published) ? ` <span class="text-amber-500 text-xs">draft</span>` : '';
           const locked = (!hasFullAccess && !l.is_free_preview);
           return `
             <a href="?slug=${slug}&lesson=${l.id}" data-lesson-id="${l.id}"
-               class="lesson-link block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50 cursor-not-allowed' : ''}">
-              <span>${escapeHtml(l.title)}</span>${free}${adminBadge}
+               class="lesson-link flex items-baseline gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50 cursor-not-allowed' : ''}">
+              <span class="mono text-xs text-slate-400 font-semibold tabular-nums w-9 flex-shrink-0">${num}</span>
+              <span class="flex-1">${escapeHtml(l.title)}</span>${free}${adminBadge}
             </a>`;
         }).join('') || '<div class="px-3 py-2 text-xs text-slate-400 italic">ยังไม่มีบทเรียน</div>';
 
@@ -277,7 +279,8 @@
       document.getElementById('lesson-content').classList.remove('hidden');
 
       const m = courseData.modules.find((mm) => mm.id === l.module_id);
-      document.getElementById('lesson-module').textContent = m ? m.title : '';
+      const num = m ? `${m.sort_order}.${l.sort_order}` : '';
+      document.getElementById('lesson-module').textContent = m ? `${m.title} · บทที่ ${num}` : '';
       document.getElementById('lesson-title').textContent = l.title;
       document.getElementById('lesson-summary').textContent = l.summary || '';
       document.getElementById('lesson-time').textContent = l.estimated_minutes ? `${l.estimated_minutes} นาที` : '';
