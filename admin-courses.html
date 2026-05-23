@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการคอร์ส — Admin · KP Prompt Creator</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','Noto Sans Thai','sans-serif'], mono: ['JetBrains Mono','monospace'] },
+          colors: { brand: { indigo: '#6366f1', violet: '#8b5cf6' } },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter','Noto Sans Thai',sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .tab-btn.active { color: #4338ca; border-color: #6366f1; background: #eef2ff; }
+    .lesson-item.active { background: #eef2ff; border-left-color: #6366f1; }
+    .md-preview h1,h2,h3 { font-weight: 700; margin: 1rem 0 0.5rem; }
+    .md-preview h1 { font-size: 1.5rem; } .md-preview h2 { font-size: 1.25rem; } .md-preview h3 { font-size: 1.1rem; }
+    .md-preview p { margin: 0.5rem 0; }
+    .md-preview ul,ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+    .md-preview ul { list-style: disc; } .md-preview ol { list-style: decimal; }
+    .md-preview pre { background: #0f172a; color: #e2e8f0; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; }
+    .md-preview code:not(pre code) { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875em; color: #4338ca; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100">
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/admin.html" class="text-slate-500 hover:text-slate-900">←</a>
+        <h1 class="font-bold">จัดการคอร์ส</h1>
+        <select id="course-select" class="ml-2 px-3 py-1.5 border border-slate-300 rounded-lg text-sm"></select>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="tab-content" class="tab-btn active px-3 py-1.5 text-sm font-medium border border-transparent rounded-lg">เนื้อหา</button>
+        <button id="tab-orders" class="tab-btn px-3 py-1.5 text-sm font-medium border border-transparent rounded-lg">คำสั่งซื้อ <span id="pending-count" class="hidden ml-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full"></span></button>
+      </div>
+    </div>
+  </header>
+
+  <div id="auth-warning" class="hidden p-8 text-center text-red-700">⚠️ ต้องเป็น admin · <a href="/auth.html" class="underline">login</a></div>
+  <div id="loading" class="p-8 text-center text-slate-500">กำลังโหลด...</div>
+
+  <!-- ============ CONTENT TAB ============ -->
+  <main id="pane-content" class="hidden">
+    <!-- Course meta bar -->
+    <section class="bg-white border-b border-slate-200 px-4 py-3">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4 text-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500">สถานะ:</span>
+          <select id="course-status" class="px-2 py-1 border border-slate-300 rounded">
+            <option value="draft">draft</option>
+            <option value="published">published</option>
+            <option value="archived">archived</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500">ราคา:</span>
+          <input id="course-price" type="number" class="w-24 px-2 py-1 border border-slate-300 rounded">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500">Free preview:</span>
+          <input id="course-preview-count" type="number" min="0" class="w-16 px-2 py-1 border border-slate-300 rounded"> บท
+        </div>
+        <button id="save-course-meta" class="ml-auto px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded font-medium">บันทึก</button>
+        <a id="view-course-link" href="#" target="_blank" class="text-indigo-600 hover:underline">↗ ดูหน้าคอร์ส</a>
+      </div>
+    </section>
+
+    <!-- Editor 2-pane -->
+    <div class="flex" style="height: calc(100vh - 7rem);">
+      <!-- Sidebar: modules + lessons -->
+      <aside class="w-80 bg-white border-r border-slate-200 overflow-y-auto">
+        <div class="p-3 flex items-center justify-between border-b border-slate-100">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">โครงสร้าง</span>
+          <button id="new-module-btn" class="text-xs text-indigo-600 hover:underline">+ Module</button>
+        </div>
+        <div id="modules-tree" class="p-2"></div>
+      </aside>
+
+      <!-- Main: lesson editor -->
+      <section class="flex-1 overflow-y-auto bg-slate-50">
+        <div id="editor-empty" class="p-12 text-center text-slate-500">
+          ← เลือก lesson จากด้านซ้ายเพื่อเริ่มแก้
+        </div>
+
+        <div id="editor" class="hidden max-w-5xl mx-auto p-6">
+          <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+            <div class="grid md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อบทเรียน</label>
+                <input id="l-title" type="text" class="w-full px-3 py-2 border border-slate-300 rounded">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">เวลาอ่าน (นาที)</label>
+                <input id="l-minutes" type="number" min="0" class="w-full px-3 py-2 border border-slate-300 rounded">
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-xs font-medium text-slate-600 mb-1">Summary (1-2 ประโยค)</label>
+              <input id="l-summary" type="text" class="w-full px-3 py-2 border border-slate-300 rounded">
+            </div>
+            <div class="grid md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Sort order</label>
+                <input id="l-sort" type="number" min="0" class="w-full px-3 py-2 border border-slate-300 rounded">
+              </div>
+              <label class="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded cursor-pointer">
+                <input id="l-free" type="checkbox"> <span class="text-sm">Free preview</span>
+              </label>
+              <label class="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded cursor-pointer">
+                <input id="l-pub" type="checkbox"> <span class="text-sm">Published</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Markdown editor -->
+          <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Markdown content</label>
+              <div class="flex gap-1">
+                <button onclick="md.switchTab('edit')" id="md-tab-edit" class="px-2 py-1 text-xs rounded bg-indigo-50 text-indigo-700">เขียน</button>
+                <button onclick="md.switchTab('preview')" id="md-tab-preview" class="px-2 py-1 text-xs rounded text-slate-500 hover:bg-slate-100">พรีวิว</button>
+                <button onclick="md.switchTab('split')" id="md-tab-split" class="px-2 py-1 text-xs rounded text-slate-500 hover:bg-slate-100">แบ่ง</button>
+              </div>
+            </div>
+            <div id="md-container" class="grid grid-cols-1 gap-3">
+              <textarea id="l-content" rows="20" class="w-full px-3 py-2 border border-slate-300 rounded mono text-sm font-mono"></textarea>
+              <div id="md-preview" class="md-preview hidden p-4 border border-slate-200 rounded bg-slate-50 max-h-[40rem] overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <!-- Code snippets -->
+          <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Code snippets</label>
+              <button onclick="snippets.add()" class="text-xs text-indigo-600 hover:underline">+ เพิ่ม snippet</button>
+            </div>
+            <div id="snippets-list" class="space-y-2"></div>
+          </div>
+
+          <!-- Images -->
+          <div class="bg-white rounded-xl border border-slate-200 p-6 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <label class="text-xs font-semibold text-slate-700 uppercase tracking-wide">รูปภาพ</label>
+              <label class="text-xs text-indigo-600 hover:underline cursor-pointer">
+                + อัปโหลดรูป
+                <input id="image-file-input" type="file" accept="image/*" class="hidden">
+              </label>
+            </div>
+            <div id="images-list" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between gap-2 sticky bottom-0 bg-slate-50 py-3 -mx-6 px-6 border-t border-slate-200">
+            <button onclick="deleteLesson()" class="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded">🗑 ลบบทเรียน</button>
+            <div class="flex gap-2">
+              <button onclick="saveLesson()" id="save-btn" class="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg">บันทึก</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============ ORDERS TAB ============ -->
+  <main id="pane-orders" class="hidden p-6 max-w-5xl mx-auto">
+    <h2 class="text-lg font-semibold mb-4">คำสั่งซื้อรอตรวจสอบ (Slip2Go ไม่ผ่าน / ล่ม)</h2>
+    <div id="orders-list" class="space-y-3"></div>
+    <div id="orders-empty" class="hidden text-center py-12 text-slate-500">ไม่มีคำสั่งซื้อรอตรวจ ✨</div>
+  </main>
+
+  <script>
+    const token = () => localStorage.getItem('kp_token');
+    const api = async (path, opts = {}) => {
+      const res = await fetch(path, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token()}`,
+          ...(opts.headers || {}),
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    };
+
+    let courses = [];
+    let currentCourse = null;
+    let lessons = [];
+    let modules = [];
+    let currentLesson = null;
+
+    // ---- INIT ----
+    (async function init() {
+      if (!token()) return showAuthWarning();
+      try {
+        const me = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token()}` } });
+        if (!me.ok) return showAuthWarning();
+        const { user } = await me.json();
+        if (user.role !== 'admin') return showAuthWarning();
+
+        const { courses: list } = await api('/api/admin/courses');
+        courses = list || [];
+        const sel = document.getElementById('course-select');
+        sel.innerHTML = courses.map((c) => `<option value="${c.id}">${esc(c.title)} (${c.status})</option>`).join('');
+        sel.addEventListener('change', () => switchCourse(sel.value));
+        if (courses.length) await switchCourse(courses[0].id);
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('pane-content').classList.remove('hidden');
+        await loadPendingCount();
+        lucide.createIcons();
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Error: ' + err.message;
+      }
+    })();
+
+    function showAuthWarning() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('auth-warning').classList.remove('hidden');
+    }
+
+    async function switchCourse(courseId) {
+      currentCourse = courses.find((c) => c.id === courseId);
+      if (!currentCourse) return;
+
+      // populate meta
+      document.getElementById('course-status').value = currentCourse.status;
+      document.getElementById('course-price').value = currentCourse.price;
+      document.getElementById('course-preview-count').value = currentCourse.preview_lesson_count ?? 2;
+      document.getElementById('view-course-link').href = `/course-detail.html?slug=${currentCourse.slug}`;
+
+      // load full course incl modules + lessons
+      const detail = await fetch(`/api/courses/${currentCourse.slug}`, { headers: { Authorization: `Bearer ${token()}` } });
+      const dd = await detail.json();
+      modules = dd.modules || [];
+      const { lessons: ll } = await api(`/api/admin/lessons?course_id=${courseId}`);
+      lessons = ll || [];
+
+      renderTree();
+      hideEditor();
+    }
+
+    // ---- TABS ----
+    document.getElementById('tab-content').addEventListener('click', () => switchTab('content'));
+    document.getElementById('tab-orders').addEventListener('click', () => switchTab('orders'));
+    function switchTab(t) {
+      document.getElementById('tab-content').classList.toggle('active', t === 'content');
+      document.getElementById('tab-orders').classList.toggle('active', t === 'orders');
+      document.getElementById('pane-content').classList.toggle('hidden', t !== 'content');
+      document.getElementById('pane-orders').classList.toggle('hidden', t !== 'orders');
+      if (t === 'orders') loadOrders();
+    }
+
+    // ---- COURSE META ----
+    document.getElementById('save-course-meta').addEventListener('click', async () => {
+      try {
+        const patch = {
+          status: document.getElementById('course-status').value,
+          price: Number(document.getElementById('course-price').value),
+          preview_lesson_count: Number(document.getElementById('course-preview-count').value),
+        };
+        await api(`/api/admin/courses?id=${currentCourse.id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+        alert('บันทึก course meta แล้ว');
+        Object.assign(currentCourse, patch);
+      } catch (err) { alert('Error: ' + err.message); }
+    });
+
+    // ---- TREE ----
+    function renderTree() {
+      const root = document.getElementById('modules-tree');
+      root.innerHTML = '';
+      modules.forEach((m) => {
+        const ml = lessons.filter((l) => l.module_id === m.id).sort((a,b)=>a.sort_order-b.sort_order);
+        const lessonsHtml = ml.map((l) => `
+          <div data-lesson-id="${l.id}" onclick="loadLesson('${l.id}')"
+               class="lesson-item flex items-center gap-2 px-2 py-1.5 rounded-r-lg border-l-2 border-transparent cursor-pointer hover:bg-slate-50 text-sm">
+            <span class="text-xs text-slate-400 mono">${l.sort_order}</span>
+            <span class="flex-1 truncate">${esc(l.title)}</span>
+            ${l.is_free_preview ? '<span class="text-xs text-emerald-600">ฟรี</span>' : ''}
+            ${!l.is_published ? '<span class="text-xs text-amber-600">draft</span>' : ''}
+          </div>`).join('');
+
+        root.insertAdjacentHTML('beforeend', `
+          <details open class="mb-2">
+            <summary class="px-2 py-1.5 text-sm font-semibold text-slate-900 cursor-pointer hover:bg-slate-50 rounded list-none flex items-center gap-2">
+              <i data-lucide="chevron-right" class="h-4 w-4"></i>
+              <span class="flex-1 truncate">${esc(m.title)}</span>
+              <button onclick="event.stopPropagation();newLesson('${m.id}')" class="text-xs text-indigo-600">+</button>
+            </summary>
+            <div class="ml-2 mt-1">${lessonsHtml || '<div class="px-2 py-1 text-xs text-slate-400 italic">ยังไม่มี lesson</div>'}</div>
+          </details>
+        `);
+      });
+      lucide.createIcons();
+    }
+
+    document.getElementById('new-module-btn').addEventListener('click', async () => {
+      const title = prompt('ชื่อ module ใหม่:');
+      if (!title) return;
+      try {
+        await api('/api/admin/lessons?action=module', { method: 'POST', body: JSON.stringify({ course_id: currentCourse.id, title }) });
+        await switchCourse(currentCourse.id);
+      } catch (err) { alert('Error: ' + err.message); }
+    });
+
+    async function newLesson(moduleId) {
+      const title = prompt('ชื่อ lesson ใหม่:');
+      if (!title) return;
+      try {
+        const { lesson } = await api('/api/admin/lessons', { method: 'POST', body: JSON.stringify({ course_id: currentCourse.id, module_id: moduleId, title }) });
+        await switchCourse(currentCourse.id);
+        loadLesson(lesson.id);
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // ---- LESSON EDITOR ----
+    function hideEditor() {
+      document.getElementById('editor').classList.add('hidden');
+      document.getElementById('editor-empty').classList.remove('hidden');
+      currentLesson = null;
+    }
+
+    function loadLesson(id) {
+      const l = lessons.find((x) => x.id === id);
+      if (!l) return;
+      currentLesson = l;
+
+      document.querySelectorAll('.lesson-item').forEach((el) => {
+        el.classList.toggle('active', el.dataset.lessonId === id);
+      });
+
+      document.getElementById('editor-empty').classList.add('hidden');
+      document.getElementById('editor').classList.remove('hidden');
+
+      document.getElementById('l-title').value = l.title || '';
+      document.getElementById('l-summary').value = l.summary || '';
+      document.getElementById('l-minutes').value = l.estimated_minutes || '';
+      document.getElementById('l-sort').value = l.sort_order || 0;
+      document.getElementById('l-free').checked = !!l.is_free_preview;
+      document.getElementById('l-pub').checked = !!l.is_published;
+      document.getElementById('l-content').value = l.content_md || '';
+      renderSnippets(l.code_snippets || []);
+      renderImages(l.image_urls || []);
+      md.refresh();
+    }
+
+    async function saveLesson() {
+      if (!currentLesson) return;
+      const payload = {
+        title: document.getElementById('l-title').value.trim(),
+        summary: document.getElementById('l-summary').value,
+        estimated_minutes: Number(document.getElementById('l-minutes').value) || null,
+        sort_order: Number(document.getElementById('l-sort').value) || 0,
+        is_free_preview: document.getElementById('l-free').checked,
+        is_published: document.getElementById('l-pub').checked,
+        content_md: document.getElementById('l-content').value,
+        code_snippets: snippets.collect(),
+        image_urls: images.collect(),
+      };
+      try {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
+        const { lesson } = await api(`/api/admin/lessons?id=${currentLesson.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        Object.assign(currentLesson, lesson);
+        // refresh sidebar
+        await switchCourse(currentCourse.id);
+        loadLesson(lesson.id);
+        btn.disabled = false; btn.textContent = '✅ บันทึกแล้ว';
+        setTimeout(() => { btn.textContent = 'บันทึก'; }, 1500);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        document.getElementById('save-btn').textContent = 'บันทึก';
+        document.getElementById('save-btn').disabled = false;
+      }
+    }
+
+    async function deleteLesson() {
+      if (!currentLesson || !confirm(`ลบ "${currentLesson.title}"?`)) return;
+      try {
+        await api(`/api/admin/lessons?id=${currentLesson.id}`, { method: 'DELETE' });
+        await switchCourse(currentCourse.id);
+        hideEditor();
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // ---- SNIPPETS ----
+    const snippets = {
+      add() {
+        const list = document.getElementById('snippets-list');
+        const idx = list.children.length;
+        list.insertAdjacentHTML('beforeend', this.html({ title: '', language: 'javascript', code: '' }, idx));
+      },
+      html(s, idx) {
+        return `
+          <div class="border border-slate-200 rounded p-3 bg-slate-50">
+            <div class="grid grid-cols-3 gap-2 mb-2">
+              <input class="snip-title px-2 py-1 border border-slate-300 rounded text-sm" placeholder="หัวข้อ (เช่น Code 1.1)" value="${esc(s.title || '')}">
+              <input class="snip-lang px-2 py-1 border border-slate-300 rounded text-sm" placeholder="ภาษา (javascript, html, ...)" value="${esc(s.language || '')}">
+              <button onclick="this.closest('.border').remove()" class="text-xs text-red-600 hover:underline justify-self-end">🗑 ลบ</button>
+            </div>
+            <textarea class="snip-code w-full px-2 py-1 border border-slate-300 rounded mono text-xs" rows="6">${esc(s.code || '')}</textarea>
+          </div>`;
+      },
+      collect() {
+        return Array.from(document.querySelectorAll('#snippets-list > div')).map((el) => ({
+          title: el.querySelector('.snip-title').value,
+          language: el.querySelector('.snip-lang').value || 'plaintext',
+          code: el.querySelector('.snip-code').value,
+        })).filter((s) => s.code.trim());
+      },
+    };
+    function renderSnippets(arr) {
+      const list = document.getElementById('snippets-list');
+      list.innerHTML = '';
+      (arr || []).forEach((s, idx) => list.insertAdjacentHTML('beforeend', snippets.html(s, idx)));
+    }
+
+    // ---- IMAGES ----
+    const images = {
+      add(url) {
+        const list = document.getElementById('images-list');
+        list.insertAdjacentHTML('beforeend', `
+          <div class="relative group" data-url="${esc(url)}">
+            <img src="${esc(url)}" class="w-full h-32 object-cover rounded border border-slate-200">
+            <button onclick="this.parentElement.remove()" class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">×</button>
+          </div>
+        `);
+      },
+      collect() {
+        return Array.from(document.querySelectorAll('#images-list > div')).map((el) => el.dataset.url);
+      },
+    };
+    function renderImages(arr) {
+      document.getElementById('images-list').innerHTML = '';
+      (arr || []).forEach((u) => images.add(u));
+    }
+    document.getElementById('image-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const { url } = await api('/api/admin/course-images', {
+            method: 'POST',
+            body: JSON.stringify({ image_base64: ev.target.result, filename: file.name }),
+          });
+          images.add(url);
+        } catch (err) { alert('Upload error: ' + err.message); }
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    });
+
+    // ---- MARKDOWN ----
+    const md = {
+      mode: 'edit',
+      switchTab(m) {
+        this.mode = m;
+        const ta = document.getElementById('l-content');
+        const pv = document.getElementById('md-preview');
+        const container = document.getElementById('md-container');
+
+        ['edit','preview','split'].forEach((x) => {
+          document.getElementById(`md-tab-${x}`).classList.toggle('bg-indigo-50', x === m);
+          document.getElementById(`md-tab-${x}`).classList.toggle('text-indigo-700', x === m);
+        });
+
+        if (m === 'edit') {
+          ta.classList.remove('hidden'); pv.classList.add('hidden');
+          container.className = 'grid grid-cols-1 gap-3';
+        } else if (m === 'preview') {
+          ta.classList.add('hidden'); pv.classList.remove('hidden');
+          container.className = 'grid grid-cols-1 gap-3';
+          this.refresh();
+        } else {
+          ta.classList.remove('hidden'); pv.classList.remove('hidden');
+          container.className = 'grid grid-cols-2 gap-3';
+          this.refresh();
+        }
+      },
+      refresh() {
+        const src = document.getElementById('l-content').value || '_ว่างเปล่า_';
+        document.getElementById('md-preview').innerHTML = marked.parse(src);
+      },
+    };
+    document.getElementById('l-content').addEventListener('input', () => {
+      if (md.mode !== 'edit') md.refresh();
+    });
+
+    // ---- ORDERS QUEUE ----
+    async function loadPendingCount() {
+      try {
+        const { orders } = await api('/api/admin/course-orders?status=pending_review');
+        const c = (orders || []).length;
+        const badge = document.getElementById('pending-count');
+        if (c > 0) { badge.textContent = c; badge.classList.remove('hidden'); }
+        else badge.classList.add('hidden');
+      } catch {}
+    }
+    async function loadOrders() {
+      try {
+        const { orders } = await api('/api/admin/course-orders?status=pending_review');
+        const list = document.getElementById('orders-list');
+        list.innerHTML = '';
+        if (!(orders || []).length) {
+          document.getElementById('orders-empty').classList.remove('hidden');
+          return;
+        }
+        document.getElementById('orders-empty').classList.add('hidden');
+        orders.forEach((o) => {
+          list.insertAdjacentHTML('beforeend', `
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+              <div class="flex items-start justify-between mb-2">
+                <div>
+                  <div class="font-semibold">${esc(o.user.display_name || o.user.email)}</div>
+                  <div class="text-xs text-slate-500">${esc(o.course.title)} · ฿${o.amount}</div>
+                  <div class="text-xs text-amber-600 mt-1">⚠ ${esc(o.slip_verify_error || 'รอตรวจ')}</div>
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="orderAction('${o.id}','approve')" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm rounded">✓ อนุมัติ</button>
+                  <button onclick="orderAction('${o.id}','reject')" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded">✕ ปฏิเสธ</button>
+                </div>
+              </div>
+              ${o.slip_image_url ? `<a href="${esc(o.slip_image_url)}" target="_blank" class="text-xs text-indigo-600 hover:underline">ดูสลิป ↗</a>` : ''}
+              <div class="text-xs text-slate-400 mt-1 mono">${o.id}</div>
+            </div>`);
+        });
+      } catch (err) {
+        document.getElementById('orders-list').innerHTML = `<div class="text-red-600">Error: ${err.message}</div>`;
+      }
+    }
+    async function orderAction(id, action) {
+      const note = action === 'reject' ? (prompt('เหตุผล (optional):') || '') : '';
+      try {
+        await api(`/api/admin/course-orders?id=${id}&action=${action}`, { method: 'POST', body: JSON.stringify({ note }) });
+        loadOrders();
+        loadPendingCount();
+      } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    // Expose globals
+    window.loadLesson = loadLesson;
+    window.saveLesson = saveLesson;
+    window.deleteLesson = deleteLesson;
+    window.newLesson = newLesson;
+    window.orderAction = orderAction;
+    window.snippets = snippets;
+    window.images = images;
+    window.md = md;
+  </script>
+</body>
+</html>
