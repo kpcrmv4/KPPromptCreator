@@ -97,12 +97,28 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-2">
-                ชื่อผู้รับ (สำหรับ checkReceiver)
+                เบอร์ผู้รับ 4 ตัวท้าย (แม่นยำกว่าชื่อ)
+              </label>
+              <input
+                type="text"
+                id="receiverPhoneLast4"
+                value="8665"
+                maxlength="4"
+                placeholder="เว้นว่างเพื่อข้าม"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                ชื่อผู้รับ (optional — ใช้กับ checkReceiver ของ Slip2Go)
               </label>
               <input
                 type="text"
                 id="receiverName"
-                placeholder="เว้นว่างเพื่อข้าม"
+                placeholder="เว้นว่างเพื่อข้าม — แนะนำใช้ last 4 ด้านบนแทน"
                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
@@ -220,6 +236,7 @@
       const qrCode = document.getElementById('qrCode').value.trim();
       const expectedAmount = document.getElementById('expectedAmount').value;
       const receiverName = document.getElementById('receiverName').value.trim();
+      const receiverPhoneLast4 = document.getElementById('receiverPhoneLast4').value.trim();
       const checkDuplicate = document.getElementById('checkDuplicate').checked;
 
       if (!qrCode) {
@@ -241,6 +258,7 @@
           body: JSON.stringify({
             qrCode,
             expectedAmount: expectedAmount ? Number(expectedAmount) : null,
+            receiverPhoneLast4: receiverPhoneLast4 || null,
             receiverName: receiverName || null,
             checkDuplicate,
           }),

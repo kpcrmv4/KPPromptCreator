@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
   const user = await requireRole(req, res, ['admin']);
   if (!user) return;
 
-  const { qrCode, expectedAmount, receiverName, checkDuplicate } = req.body || {};
+  const { qrCode, expectedAmount, receiverName, receiverPhoneLast4, checkDuplicate } = req.body || {};
   if (!qrCode || typeof qrCode !== 'string') {
     return res.status(400).json({ error: 'กรุณาระบุ qrCode' });
   }
@@ -44,8 +44,10 @@ module.exports = async function handler(req, res) {
   // Local validation (optional — only if expectedAmount provided)
   let validation = null;
   if (expectedAmount != null) {
+    const last4 = receiverPhoneLast4 ? String(receiverPhoneLast4).replace(/\D/g, '').slice(-4) : undefined;
     const err = validateForPurchase(slipResult.data, {
       amount: Number(expectedAmount),
+      receiverPhoneLast4: last4 || undefined,
       receiverName: receiverName || undefined,
     });
     validation = err

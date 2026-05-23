@@ -189,11 +189,9 @@ async function handleSlipPayment(user, course, payload, res) {
   if (orderErr) return res.status(500).json({ error: 'สร้างคำสั่งซื้อไม่สำเร็จ' });
 
   // ---- call Slip2Go ----
+  // checkDuplicate กันสลิปถูกตรวจซ้ำใน Slip2Go เอง
+  // (receiver validation ทำฝั่งเราด้วย phone last 4 — แม่นยำกว่า name match)
   const checkCondition = { checkDuplicate: true };
-  if (process.env.PROMPTPAY_RECEIVER_NAME) {
-    checkCondition.checkReceiver = [{ accountNameTH: process.env.PROMPTPAY_RECEIVER_NAME }];
-  }
-
   const slipResult = await verifySlipByQR(qr_code, { checkCondition });
 
   if (!slipResult.ok) {
@@ -220,9 +218,11 @@ async function handleSlipPayment(user, course, payload, res) {
   }
 
   // ---- local validation ----
+  // derive last 4 digits of our PromptPay phone for receiver check (more reliable than name)
+  const ourPhoneLast4 = (process.env.PROMPTPAY_NUMBER || '').replace(/\D/g, '').slice(-4) || null;
   const validationErr = validateForPurchase(slipResult.data, {
     amount: Number(course.price),
-    receiverName: process.env.PROMPTPAY_RECEIVER_NAME || undefined,
+    receiverPhoneLast4: ourPhoneLast4,
   });
 
   if (validationErr) {
