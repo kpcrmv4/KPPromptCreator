@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ทดสอบ Slip2Go — KP Prompt Creator (Admin)</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Thai', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            primary: {
+              50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    pre { white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+  <div class="max-w-5xl mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-slate-900">🧪 ทดสอบ Slip2Go API</h1>
+      <p class="mt-2 text-slate-600">ตรวจสอบสลิป PromptPay ผ่าน Slip2Go — admin only</p>
+      <p class="mt-1 text-sm text-slate-500">
+        บัญชีรับเงิน: <span class="mono">099-558-8665</span> (PromptPay) ·
+        <span class="mono">027-1-81323-6</span> (กสิกร)
+      </p>
+    </header>
+
+    <!-- Auth check -->
+    <div id="auth-warning" class="hidden mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+      ⚠️ ต้องเข้าสู่ระบบในฐานะ admin ก่อนใช้งานหน้านี้
+      <a href="/auth.html" class="ml-2 underline font-medium">ไปที่หน้า login</a>
+    </div>
+
+    <div id="main-content" class="hidden">
+      <!-- Input form -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Input</h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              QR Code String
+              <span class="text-xs text-slate-500 font-normal">(วาง QR string หรืออัปโหลดภาพสลิปด้านล่าง)</span>
+            </label>
+            <textarea
+              id="qrCode"
+              rows="3"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="0041000600000101030040220014..."
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              อัปโหลดภาพสลิป (extract QR อัตโนมัติด้วย jsQR)
+            </label>
+            <input
+              type="file"
+              id="slipImage"
+              accept="image/*"
+              class="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+            />
+            <p id="extract-status" class="mt-2 text-sm text-slate-500"></p>
+            <canvas id="qr-canvas" class="hidden"></canvas>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                จำนวนเงินที่คาดหวัง (บาท)
+              </label>
+              <input
+                type="number"
+                id="expectedAmount"
+                value="999"
+                step="0.01"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-2">
+                ชื่อผู้รับ (สำหรับ checkReceiver)
+              </label>
+              <input
+                type="text"
+                id="receiverName"
+                placeholder="เว้นว่างเพื่อข้าม"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="checkDuplicate" class="rounded text-primary-600" checked>
+            <label for="checkDuplicate" class="text-sm text-slate-700">ส่ง <code class="mono text-xs">checkDuplicate:true</code> ให้ Slip2Go กันสลิปซ้ำ</label>
+          </div>
+
+          <button
+            id="submitBtn"
+            class="w-full md:w-auto px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            🔍 ตรวจสอบ
+          </button>
+        </div>
+      </section>
+
+      <!-- Result -->
+      <section id="result-section" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">ผลตรวจสอบ</h2>
+
+        <div id="summary" class="mb-4"></div>
+
+        <details open class="mb-4">
+          <summary class="cursor-pointer font-medium text-slate-700 mb-2">Validation (ฝั่งเรา)</summary>
+          <pre id="validation-json" class="mono text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2"></pre>
+        </details>
+
+        <details open class="mb-4">
+          <summary class="cursor-pointer font-medium text-slate-700 mb-2">Slip data (จาก Slip2Go)</summary>
+          <pre id="slip-data-json" class="mono text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2"></pre>
+        </details>
+
+        <details class="mb-4">
+          <summary class="cursor-pointer font-medium text-slate-700 mb-2">Raw response</summary>
+          <pre id="raw-json" class="mono text-xs bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2"></pre>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = location.origin;
+
+    function getToken() {
+      return localStorage.getItem('kp_token');
+    }
+
+    async function checkAdmin() {
+      const token = getToken();
+      if (!token) return false;
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data.user && data.user.role === 'admin';
+      } catch {
+        return false;
+      }
+    }
+
+    (async () => {
+      const isAdmin = await checkAdmin();
+      if (!isAdmin) {
+        document.getElementById('auth-warning').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('main-content').classList.remove('hidden');
+    })();
+
+    // QR extraction from uploaded image
+    document.getElementById('slipImage').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      const status = document.getElementById('extract-status');
+      if (!file) return;
+      status.textContent = 'กำลังอ่าน QR จากภาพ...';
+      status.className = 'mt-2 text-sm text-slate-500';
+
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+
+        const canvas = document.getElementById('qr-canvas');
+        const ctx = canvas.getContext('2d');
+        // limit size for performance
+        const maxDim = 1200;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+
+        if (code && code.data) {
+          document.getElementById('qrCode').value = code.data;
+          status.textContent = `✅ พบ QR: ${code.data.length} ตัวอักษร (แสดงในช่อง QR Code String ด้านบนแล้ว)`;
+          status.className = 'mt-2 text-sm text-emerald-600';
+        } else {
+          status.textContent = '❌ ไม่พบ QR ในภาพ — ลองภาพที่ชัดกว่าหรือวาง QR string เอง';
+          status.className = 'mt-2 text-sm text-red-600';
+        }
+      } catch (err) {
+        status.textContent = `❌ อ่านภาพไม่สำเร็จ: ${err.message}`;
+        status.className = 'mt-2 text-sm text-red-600';
+      }
+    });
+
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const qrCode = document.getElementById('qrCode').value.trim();
+      const expectedAmount = document.getElementById('expectedAmount').value;
+      const receiverName = document.getElementById('receiverName').value.trim();
+      const checkDuplicate = document.getElementById('checkDuplicate').checked;
+
+      if (!qrCode) {
+        alert('กรุณาวาง QR Code String หรืออัปโหลดภาพสลิป');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ กำลังตรวจสอบ...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/test-slip`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            qrCode,
+            expectedAmount: expectedAmount ? Number(expectedAmount) : null,
+            receiverName: receiverName || null,
+            checkDuplicate,
+          }),
+        });
+        const data = await res.json();
+        renderResult(data);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 ตรวจสอบ';
+      }
+    });
+
+    function renderResult(result) {
+      document.getElementById('result-section').classList.remove('hidden');
+
+      const summary = document.getElementById('summary');
+      let badge, message;
+
+      if (!result.ok) {
+        badge = `<span class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">❌ FAIL — ${result.stage || 'slip2go'}</span>`;
+        message = result.message || result.slip2go_message || result.error || 'ไม่สำเร็จ';
+      } else if (result.validation && !result.validation.ok) {
+        badge = `<span class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">⚠️ Slip2Go ผ่าน แต่ validation ของเราไม่ผ่าน</span>`;
+        message = result.validation.message;
+      } else {
+        badge = `<span class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">✅ PASS — ผ่านทุก check</span>`;
+        message = 'สลิปถูกต้อง พร้อม enroll ได้';
+      }
+
+      summary.innerHTML = `
+        ${badge}
+        <div class="mt-2 text-slate-700">${message}</div>
+        <div class="mt-1 text-xs text-slate-500">ใช้เวลา ${result.elapsedMs || 0} ms</div>
+      `;
+
+      document.getElementById('validation-json').textContent = JSON.stringify(result.validation || null, null, 2);
+      document.getElementById('slip-data-json').textContent = JSON.stringify(result.data || null, null, 2);
+      document.getElementById('raw-json').textContent = JSON.stringify(result.raw || result, null, 2);
+    }
+  </script>
+</body>
+</html>
