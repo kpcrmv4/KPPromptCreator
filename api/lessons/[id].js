@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
     .from('lessons')
     .select(`
       id, module_id, course_id, sort_order, title, summary,
-      content_md, code_snippets, image_urls, estimated_minutes,
+      content_md, code_snippets, image_urls, quiz, estimated_minutes,
       is_free_preview, is_published,
       course:courses!course_id ( id, slug, title, status )
     `)

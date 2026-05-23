@@ -115,6 +115,9 @@
         <!-- Image gallery -->
         <div id="lesson-images" class="mt-8 space-y-4"></div>
 
+        <!-- Quiz -->
+        <div id="lesson-quiz" class="mt-10"></div>
+
         <!-- Nav -->
         <div class="mt-12 flex items-center justify-between border-t border-slate-200 pt-6">
           <button id="prev-lesson" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed">← ก่อนหน้า</button>
@@ -297,6 +300,9 @@
         imagesEl.insertAdjacentHTML('beforeend', `<img src="${escapeHtml(url)}" class="w-full rounded-lg border border-slate-200">`);
       });
 
+      // Quiz
+      renderQuiz(l.quiz || []);
+
       // Nav buttons
       const prev = document.getElementById('prev-lesson');
       const next = document.getElementById('next-lesson');
@@ -319,6 +325,95 @@
         document.body.appendChild(t);
         setTimeout(() => t.remove(), 1500);
       });
+    }
+
+    function renderQuiz(quiz) {
+      const el = document.getElementById('lesson-quiz');
+      if (!quiz || quiz.length === 0) { el.innerHTML = ''; return; }
+
+      el.innerHTML = `
+        <div class="border-t border-slate-200 pt-8">
+          <h2 class="text-xl font-bold text-slate-900 mb-1">💡 ลองตอบดู</h2>
+          <p class="text-sm text-slate-500 mb-6">ตอบในใจก่อน แล้วคลิกคำตอบเพื่อดูเฉลย — ไม่บันทึกคะแนน</p>
+          <div class="space-y-6" id="quiz-list"></div>
+        </div>
+      `;
+
+      const list = document.getElementById('quiz-list');
+      quiz.forEach((q, qIdx) => {
+        const choicesHtml = (q.choices || []).map((choice, cIdx) => `
+          <button
+            type="button"
+            data-q="${qIdx}" data-c="${cIdx}"
+            onclick="selectAnswer(${qIdx}, ${cIdx})"
+            class="quiz-choice w-full text-left px-4 py-3 rounded-lg border border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50 transition mb-2 flex items-start gap-3"
+          >
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-semibold text-sm">${String.fromCharCode(65 + cIdx)}</span>
+            <span class="flex-1 text-slate-700">${escapeHtml(choice)}</span>
+            <span class="quiz-mark hidden flex-shrink-0"></span>
+          </button>
+        `).join('');
+
+        list.insertAdjacentHTML('beforeend', `
+          <div class="bg-slate-50 rounded-xl p-5" data-quiz-card="${qIdx}">
+            <div class="font-semibold text-slate-900 mb-4">
+              <span class="text-indigo-600">Q${qIdx + 1}.</span> ${escapeHtml(q.q)}
+            </div>
+            <div class="space-y-1">${choicesHtml}</div>
+            <div class="quiz-explanation hidden mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-900"></div>
+          </div>
+        `);
+      });
+
+      window.__quiz__ = quiz;
+    }
+
+    function selectAnswer(qIdx, cIdx) {
+      const quiz = (window.__quiz__ || [])[qIdx];
+      if (!quiz) return;
+
+      const card = document.querySelector(`[data-quiz-card="${qIdx}"]`);
+      const buttons = card.querySelectorAll('.quiz-choice');
+      const isCorrect = cIdx === quiz.correct;
+
+      // Reset all buttons in this question
+      buttons.forEach((btn) => {
+        btn.disabled = false;
+        btn.classList.remove('border-emerald-400', 'bg-emerald-50', 'border-red-400', 'bg-red-50', 'opacity-60');
+        const mark = btn.querySelector('.quiz-mark');
+        if (mark) { mark.classList.add('hidden'); mark.textContent = ''; }
+      });
+
+      // Mark all buttons disabled after answer + highlight correct + selected
+      buttons.forEach((btn) => {
+        const c = Number(btn.dataset.c);
+        btn.disabled = true;
+        if (c === quiz.correct) {
+          btn.classList.add('border-emerald-400', 'bg-emerald-50');
+          const mark = btn.querySelector('.quiz-mark');
+          mark.classList.remove('hidden');
+          mark.textContent = '✓';
+          mark.className = 'quiz-mark flex-shrink-0 text-emerald-600 font-bold';
+        } else if (c === cIdx) {
+          btn.classList.add('border-red-400', 'bg-red-50');
+          const mark = btn.querySelector('.quiz-mark');
+          mark.classList.remove('hidden');
+          mark.textContent = '✕';
+          mark.className = 'quiz-mark flex-shrink-0 text-red-600 font-bold';
+        } else {
+          btn.classList.add('opacity-60');
+        }
+      });
+
+      // Show explanation
+      const explanationEl = card.querySelector('.quiz-explanation');
+      if (quiz.explain) {
+        const prefix = isCorrect
+          ? '<b class="text-emerald-700">✓ ถูกต้อง</b> — '
+          : '<b class="text-red-700">✕ ลองอีกครั้งดูสิ</b> — ';
+        explanationEl.innerHTML = prefix + escapeHtml(quiz.explain);
+        explanationEl.classList.remove('hidden');
+      }
     }
 
     function escapeHtml(s) {

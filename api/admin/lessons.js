@@ -19,7 +19,7 @@ const { cors } = require('../../lib/helpers');
 
 const LESSON_FIELDS = [
   'module_id','course_id','sort_order','title','summary','content_md',
-  'code_snippets','image_urls','estimated_minutes','is_free_preview','is_published'
+  'code_snippets','image_urls','quiz','estimated_minutes','is_free_preview','is_published'
 ];
 const MODULE_FIELDS = ['course_id','sort_order','title','description'];
 
