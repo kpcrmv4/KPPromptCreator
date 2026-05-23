@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ชำระเงิน — KP Prompt Creator</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'Noto Sans Thai', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+          colors: { brand: { indigo: '#6366f1', violet: '#8b5cf6' } },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/index.html" class="flex items-center gap-2">
+        <img src="/images/logo.png" alt="KP" class="h-8 w-8">
+        <span class="font-bold text-lg">KP Prompt Creator</span>
+      </a>
+      <a href="javascript:history.back()" class="text-sm text-slate-600 hover:text-slate-900">← ย้อนกลับ</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <div id="loading" class="text-center py-20">
+      <div class="inline-block h-10 w-10 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
+    </div>
+
+    <div id="auth-required" class="hidden text-center py-20">
+      <i data-lucide="lock" class="mx-auto h-10 w-10 text-slate-400"></i>
+      <h2 class="mt-4 text-xl font-semibold text-slate-700">กรุณาเข้าสู่ระบบ</h2>
+      <a href="#" id="auth-link" class="mt-4 inline-block px-4 py-2 bg-indigo-500 text-white rounded-lg">ไปที่หน้า login</a>
+    </div>
+
+    <div id="content" class="hidden">
+      <!-- Course summary -->
+      <section class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">ชำระเงินสำหรับ</div>
+        <h1 class="text-xl font-bold text-slate-900" id="course-title">—</h1>
+        <p class="text-sm text-slate-500 mt-1" id="course-subtitle"></p>
+        <div class="mt-4 flex items-baseline gap-2">
+          <span class="text-3xl font-bold text-indigo-600">฿<span id="amount">—</span></span>
+          <span class="text-sm text-slate-500">เข้าถึงตลอดชีพ</span>
+        </div>
+      </section>
+
+      <!-- Payment method selector -->
+      <section class="grid md:grid-cols-2 gap-4 mb-6">
+        <button id="method-credit" class="bg-white rounded-xl border-2 border-slate-200 p-5 text-left hover:border-indigo-400 transition">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold text-slate-900">ใช้เครดิตในระบบ</div>
+            <i data-lucide="wallet" class="h-5 w-5 text-slate-400"></i>
+          </div>
+          <div class="text-sm text-slate-500">เครดิตคงเหลือ <span class="font-semibold text-slate-700">฿<span id="credit-balance">0</span></span></div>
+          <div id="credit-insufficient" class="hidden mt-2 text-xs text-amber-600">เครดิตไม่พอ — เลือกโอน PromptPay หรือเติมเครดิตก่อน</div>
+        </button>
+
+        <button id="method-slip" class="bg-white rounded-xl border-2 border-indigo-500 p-5 text-left hover:border-indigo-600 transition">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-semibold text-slate-900">โอนผ่าน PromptPay</div>
+            <i data-lucide="qr-code" class="h-5 w-5 text-indigo-500"></i>
+          </div>
+          <div class="text-sm text-slate-500">สแกน → upload สลิป → ระบบยืนยันอัตโนมัติใน 10 วินาที</div>
+        </button>
+      </section>
+
+      <!-- Slip flow (shown by default) -->
+      <section id="slip-flow" class="bg-white rounded-xl border border-slate-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">โอนผ่าน PromptPay</h2>
+
+        <!-- Step 1: QR -->
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <div class="text-center">
+            <div class="text-sm font-medium text-slate-700 mb-2">1. สแกน QR เพื่อจ่าย</div>
+            <div class="inline-block p-4 bg-white border-2 border-dashed border-slate-300 rounded-2xl">
+              <img id="qr-img" src="" alt="PromptPay QR" class="w-56 h-56" />
+            </div>
+            <p class="mt-3 text-xs text-slate-500">ผู้รับ <span id="receiver-display"></span></p>
+          </div>
+
+          <div>
+            <div class="text-sm font-medium text-slate-700 mb-2">2. แนบสลิปที่จ่ายแล้ว</div>
+            <label class="block w-full">
+              <div id="dropzone" class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition">
+                <i data-lucide="upload-cloud" class="mx-auto h-10 w-10 text-slate-400"></i>
+                <p class="mt-2 text-sm text-slate-600">คลิกหรือลากภาพสลิปมาวาง</p>
+                <p class="text-xs text-slate-400 mt-1">PNG / JPG / WEBP ขนาดไม่เกิน 5MB</p>
+              </div>
+              <input type="file" id="slip-file" accept="image/*" class="hidden">
+            </label>
+
+            <div id="preview-area" class="hidden mt-4">
+              <img id="preview-img" class="rounded-lg max-h-48 mx-auto border border-slate-200" />
+              <p id="qr-status" class="mt-2 text-sm text-center"></p>
+              <input type="hidden" id="qr-string" />
+            </div>
+
+            <button id="submit-slip" disabled class="mt-4 w-full px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition">
+              <span id="submit-text">ยืนยันการชำระ</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Result -->
+      <section id="result" class="hidden mt-6"></section>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const courseId = params.get('id');
+
+    function getToken() { return localStorage.getItem('kp_token'); }
+
+    let course = null;
+    let user = null;
+
+    async function init() {
+      const token = getToken();
+      if (!token) {
+        document.getElementById('loading').classList.add('hidden');
+        const authBlock = document.getElementById('auth-required');
+        authBlock.classList.remove('hidden');
+        document.getElementById('auth-link').href = `/auth.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+        lucide.createIcons();
+        return;
+      }
+
+      // Load user + course in parallel
+      const [meRes, courseRes] = await Promise.all([
+        fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+        fetchCourseById(courseId),
+      ]);
+
+      if (!meRes.ok || !courseRes) {
+        alert('โหลดข้อมูลไม่สำเร็จ');
+        return;
+      }
+      user = (await meRes.json()).user;
+      course = courseRes;
+
+      render();
+    }
+
+    async function fetchCourseById(id) {
+      // No direct GET by id — use slug fallback (we know there's only 'gas-mastery' for now)
+      const res = await fetch(`/api/courses`);
+      if (!res.ok) return null;
+      const { courses } = await res.json();
+      return courses.find((c) => c.id === id) || null;
+    }
+
+    function render() {
+      document.getElementById('course-title').textContent = course.title;
+      document.getElementById('course-subtitle').textContent = course.subtitle || '';
+      document.getElementById('amount').textContent = Number(course.price).toLocaleString();
+      document.getElementById('credit-balance').textContent = Number(user.credit_balance || 0).toLocaleString();
+
+      if (Number(user.credit_balance) < Number(course.price)) {
+        document.getElementById('credit-insufficient').classList.remove('hidden');
+        document.getElementById('method-credit').disabled = true;
+      }
+
+      // PromptPay QR (server tells client the number via window.__PROMPTPAY__ if needed; here we hardcode)
+      const phone = window.__PROMPTPAY__ || '0995588665';
+      const qrUrl = `https://promptpay.io/${phone}/${course.price}.png`;
+      document.getElementById('qr-img').src = qrUrl;
+      const masked = phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-xxx-$3');
+      document.getElementById('receiver-display').textContent = masked;
+
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('content').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // Method toggles
+    document.getElementById('method-credit').addEventListener('click', payWithCredit);
+    document.getElementById('method-slip').addEventListener('click', () => {
+      document.getElementById('slip-flow').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    async function payWithCredit() {
+      if (!confirm(`ยืนยันการชำระ ฿${Number(course.price).toLocaleString()} ด้วยเครดิต?`)) return;
+      const btn = document.getElementById('method-credit');
+      btn.disabled = true;
+
+      const res = await fetch('/api/course-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ course_id: course.id, payment_method: 'credit' }),
+      });
+      const data = await res.json();
+      handleResult(res.ok, data);
+    }
+
+    // File drop + QR extract
+    const fileInput = document.getElementById('slip-file');
+    document.getElementById('dropzone').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    document.getElementById('dropzone').addEventListener('dragover', (e) => { e.preventDefault(); e.currentTarget.classList.add('bg-indigo-50'); });
+    document.getElementById('dropzone').addEventListener('dragleave', (e) => { e.currentTarget.classList.remove('bg-indigo-50'); });
+    document.getElementById('dropzone').addEventListener('drop', (e) => {
+      e.preventDefault(); e.currentTarget.classList.remove('bg-indigo-50');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    let slipBase64 = null;
+    let slipFilename = null;
+
+    async function handleFile(file) {
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) { alert('ไฟล์ต้องไม่เกิน 5MB'); return; }
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        slipBase64 = ev.target.result;
+        slipFilename = file.name;
+        document.getElementById('preview-img').src = slipBase64;
+        document.getElementById('preview-area').classList.remove('hidden');
+
+        // Extract QR via jsQR
+        const statusEl = document.getElementById('qr-status');
+        statusEl.textContent = 'กำลังอ่าน QR จากสลิป...';
+        statusEl.className = 'mt-2 text-sm text-center text-slate-500';
+
+        try {
+          const img = new Image();
+          img.src = slipBase64;
+          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+
+          const canvas = document.createElement('canvas');
+          const scale = Math.min(1, 1200 / Math.max(img.width, img.height));
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+
+          if (code && code.data) {
+            document.getElementById('qr-string').value = code.data;
+            statusEl.textContent = '✅ พบ QR ในสลิป — กด "ยืนยันการชำระ" ได้เลย';
+            statusEl.className = 'mt-2 text-sm text-center text-emerald-600';
+            document.getElementById('submit-slip').disabled = false;
+          } else {
+            statusEl.textContent = '❌ อ่าน QR ไม่ได้ — ลองภาพที่ชัดกว่าหรือถ่ายให้เห็น QR ชัด ๆ';
+            statusEl.className = 'mt-2 text-sm text-center text-red-600';
+            document.getElementById('submit-slip').disabled = true;
+          }
+        } catch (err) {
+          statusEl.textContent = '❌ อ่านภาพไม่สำเร็จ';
+          statusEl.className = 'mt-2 text-sm text-center text-red-600';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('submit-slip').addEventListener('click', submitSlip);
+
+    async function submitSlip() {
+      const qr = document.getElementById('qr-string').value;
+      if (!qr) { alert('ไม่พบ QR ในสลิป'); return; }
+
+      const btn = document.getElementById('submit-slip');
+      const txt = document.getElementById('submit-text');
+      btn.disabled = true;
+      txt.textContent = '⏳ กำลังตรวจสอบสลิป...';
+
+      try {
+        const res = await fetch('/api/course-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify({
+            course_id: course.id,
+            payment_method: 'promptpay_slip',
+            slip_image_base64: slipBase64,
+            slip_filename: slipFilename,
+            qr_code: qr,
+          }),
+        });
+        const data = await res.json();
+        handleResult(res.ok || res.status === 202, data);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        txt.textContent = 'ยืนยันการชำระ';
+      }
+    }
+
+    function handleResult(success, data) {
+      const result = document.getElementById('result');
+      result.classList.remove('hidden');
+      result.scrollIntoView({ behavior: 'smooth' });
+
+      if (data.status === 'approved') {
+        result.innerHTML = `
+          <div class="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-6 text-center">
+            <i data-lucide="check-circle-2" class="mx-auto h-12 w-12 text-emerald-500"></i>
+            <h3 class="mt-3 text-xl font-bold text-emerald-900">ลงทะเบียนสำเร็จ!</h3>
+            <p class="mt-2 text-emerald-800">${data.course_title} — พร้อมเข้าเรียนได้เลย</p>
+            <a href="/course-learn.html?slug=${course.slug || 'gas-mastery'}" class="mt-4 inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg">เริ่มเรียนเลย →</a>
+          </div>
+        `;
+      } else if (data.status === 'pending_review') {
+        result.innerHTML = `
+          <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-6 text-center">
+            <i data-lucide="clock" class="mx-auto h-12 w-12 text-amber-500"></i>
+            <h3 class="mt-3 text-xl font-bold text-amber-900">รอการตรวจสอบ</h3>
+            <p class="mt-2 text-amber-800">${data.message || 'ระบบตรวจสลิปไม่ว่าง — admin จะอนุมัติให้ภายใน 6 ชม.'}</p>
+            <p class="mt-3 text-sm text-amber-700">หมายเลขคำสั่งซื้อ: <code class="mono">${data.order_id}</code></p>
+          </div>
+        `;
+      } else {
+        result.innerHTML = `
+          <div class="bg-red-50 border-2 border-red-300 rounded-xl p-6 text-center">
+            <i data-lucide="x-circle" class="mx-auto h-12 w-12 text-red-500"></i>
+            <h3 class="mt-3 text-xl font-bold text-red-900">ไม่สำเร็จ</h3>
+            <p class="mt-2 text-red-800">${data.message || data.error || 'กรุณาลองใหม่'}</p>
+          </div>
+        `;
+      }
+      lucide.createIcons();
+    }
+
+    init();
+  </script>
+</body>
+</html>

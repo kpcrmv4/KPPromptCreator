@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เรียนคอร์ส — KP Prompt Creator</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'Noto Sans Thai', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+          colors: { brand: { indigo: '#6366f1', violet: '#8b5cf6' } },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .prose-content h1, .prose-content h2, .prose-content h3 { font-weight: 700; color: #0f172a; margin: 1.5rem 0 0.75rem; }
+    .prose-content h1 { font-size: 1.875rem; }
+    .prose-content h2 { font-size: 1.5rem; }
+    .prose-content h3 { font-size: 1.25rem; }
+    .prose-content p { margin: 0.75rem 0; line-height: 1.75; color: #334155; }
+    .prose-content ul, .prose-content ol { margin: 0.75rem 0 0.75rem 1.5rem; }
+    .prose-content ul { list-style: disc; }
+    .prose-content ol { list-style: decimal; }
+    .prose-content li { margin: 0.25rem 0; line-height: 1.7; color: #334155; }
+    .prose-content code:not(pre code) { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875em; color: #4338ca; }
+    .prose-content pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+    .prose-content blockquote { border-left: 3px solid #6366f1; padding-left: 1rem; margin: 1rem 0; color: #64748b; font-style: italic; }
+    .prose-content a { color: #6366f1; text-decoration: underline; }
+    .prose-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; border: 1px solid #e2e8f0; }
+    .prose-content hr { margin: 2rem 0; border-color: #e2e8f0; }
+    .lesson-link.active { background: #eef2ff; color: #4338ca; font-weight: 600; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <header class="sticky top-0 z-30 bg-white border-b border-slate-200">
+    <div class="px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="toggle-sidebar" class="md:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100">
+          <i data-lucide="menu" class="h-5 w-5"></i>
+        </button>
+        <a href="/index.html" class="flex items-center gap-2">
+          <img src="/images/logo.png" alt="KP" class="h-7 w-7">
+          <span class="font-bold hidden sm:inline">KP Prompt Creator</span>
+        </a>
+        <span class="hidden sm:inline text-slate-300">/</span>
+        <span id="course-title-header" class="hidden sm:inline text-sm text-slate-600 max-w-md truncate"></span>
+      </div>
+      <a href="/account.html" class="text-sm text-slate-600 hover:text-slate-900">บัญชี</a>
+    </div>
+    <div class="h-1 bg-slate-100">
+      <div id="progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500" style="width: 0%"></div>
+    </div>
+  </header>
+
+  <div id="loading" class="text-center py-20">
+    <div class="inline-block h-10 w-10 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
+  </div>
+
+  <div id="auth-required" class="hidden text-center py-20">
+    <i data-lucide="lock" class="mx-auto h-10 w-10 text-slate-400"></i>
+    <h2 class="mt-4 text-xl font-semibold text-slate-700">กรุณาเข้าสู่ระบบ</h2>
+    <a href="/auth.html" class="mt-4 inline-block px-4 py-2 bg-indigo-500 text-white rounded-lg">ไปที่หน้า login</a>
+  </div>
+
+  <div id="not-enrolled" class="hidden text-center py-20 px-4">
+    <i data-lucide="lock" class="mx-auto h-12 w-12 text-slate-400"></i>
+    <h2 class="mt-4 text-xl font-semibold text-slate-700">คุณยังไม่ได้ลงทะเบียนคอร์สนี้</h2>
+    <a id="buy-link" href="#" class="mt-4 inline-block px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg">ซื้อคอร์สเพื่อเริ่มเรียน</a>
+  </div>
+
+  <main id="layout" class="hidden flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="hidden md:block w-80 bg-white border-r border-slate-200 sticky top-[3.5rem] h-[calc(100vh-3.5rem-4px)] overflow-y-auto">
+      <div class="p-4 border-b border-slate-100">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">หลักสูตร</div>
+        <h2 id="course-title" class="font-bold text-slate-900 mt-1">—</h2>
+      </div>
+      <nav id="outline" class="p-2"></nav>
+    </aside>
+
+    <!-- Content -->
+    <article class="flex-1 min-w-0 px-4 md:px-10 py-8 max-w-4xl mx-auto">
+      <div id="lesson-empty" class="hidden text-center py-20">
+        <i data-lucide="book-open" class="mx-auto h-12 w-12 text-slate-300"></i>
+        <h3 class="mt-4 text-lg font-semibold text-slate-700">เลือกบทเรียนจากด้านซ้าย</h3>
+        <p class="mt-2 text-sm text-slate-500">หรือเริ่มจากบทแรก</p>
+      </div>
+
+      <div id="lesson-content" class="hidden">
+        <div class="mb-2 text-xs font-semibold text-indigo-600 uppercase tracking-wide" id="lesson-module">—</div>
+        <h1 id="lesson-title" class="text-3xl font-bold text-slate-900">—</h1>
+        <p id="lesson-summary" class="mt-2 text-slate-600"></p>
+        <div class="mt-4 flex items-center gap-2 text-xs text-slate-500">
+          <i data-lucide="clock" class="h-3.5 w-3.5"></i>
+          <span id="lesson-time">—</span>
+        </div>
+
+        <hr class="my-6 border-slate-200">
+
+        <div id="lesson-md" class="prose-content"></div>
+
+        <!-- Code snippets -->
+        <div id="lesson-snippets" class="mt-8 space-y-4"></div>
+
+        <!-- Image gallery -->
+        <div id="lesson-images" class="mt-8 space-y-4"></div>
+
+        <!-- Nav -->
+        <div class="mt-12 flex items-center justify-between border-t border-slate-200 pt-6">
+          <button id="prev-lesson" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed">← ก่อนหน้า</button>
+          <button id="mark-complete" class="hidden px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium">
+            ✓ เรียนจบบทนี้
+          </button>
+          <button id="next-lesson" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white font-medium disabled:opacity-30 disabled:cursor-not-allowed">ต่อไป →</button>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('slug') || 'gas-mastery';
+    let lessonId = params.get('lesson');
+
+    function getToken() { return localStorage.getItem('kp_token'); }
+
+    let courseData = null;
+    let allLessons = [];
+
+    async function init() {
+      const token = getToken();
+
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/courses/${slug}`, { headers });
+      if (!res.ok) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('auth-required').classList.remove('hidden');
+        lucide.createIcons();
+        return;
+      }
+      courseData = await res.json();
+
+      // Build flat lesson array
+      courseData.modules.forEach((m) => {
+        (m.lessons || []).forEach((l) => allLessons.push({ ...l, module_title: m.title }));
+      });
+
+      // Check enrollment
+      if (!courseData.enrolled) {
+        // allow if a free preview lesson is selected OR auto-select first free
+        const freeLesson = allLessons.find((l) => l.is_free_preview);
+        if (lessonId) {
+          const target = allLessons.find((l) => l.id === lessonId);
+          if (!target || !target.is_free_preview) return showNotEnrolled();
+        } else if (!freeLesson) {
+          return showNotEnrolled();
+        }
+      }
+
+      document.getElementById('course-title').textContent = courseData.course.title;
+      document.getElementById('course-title-header').textContent = courseData.course.title;
+
+      renderSidebar();
+      renderProgress();
+
+      // Default lesson
+      if (!lessonId) {
+        lessonId = courseData.last_lesson_id || allLessons[0]?.id;
+      }
+      if (lessonId) {
+        loadLesson(lessonId);
+      } else {
+        showEmpty();
+      }
+
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('layout').classList.remove('hidden');
+      document.getElementById('layout').classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function showNotEnrolled() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('not-enrolled').classList.remove('hidden');
+      document.getElementById('buy-link').href = `/course-detail.html?slug=${slug}`;
+      lucide.createIcons();
+    }
+
+    function showEmpty() {
+      document.getElementById('lesson-content').classList.add('hidden');
+      document.getElementById('lesson-empty').classList.remove('hidden');
+    }
+
+    function renderSidebar() {
+      const el = document.getElementById('outline');
+      el.innerHTML = '';
+      courseData.modules.forEach((m) => {
+        const lessonsHtml = (m.lessons || []).map((l) => {
+          const free = l.is_free_preview ? ` <span class="text-emerald-500 text-xs">ฟรี</span>` : '';
+          const locked = (!courseData.enrolled && !l.is_free_preview);
+          return `
+            <a href="?slug=${slug}&lesson=${l.id}" data-lesson-id="${l.id}"
+               class="lesson-link block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50 cursor-not-allowed' : ''}">
+              <span>${escapeHtml(l.title)}</span>${free}
+            </a>`;
+        }).join('') || '<div class="px-3 py-2 text-xs text-slate-400 italic">ยังไม่มีบทเรียน</div>';
+
+        el.insertAdjacentHTML('beforeend', `
+          <details ${m.sort_order === 1 ? 'open' : ''} class="mb-2">
+            <summary class="px-3 py-2 text-sm font-semibold text-slate-900 cursor-pointer hover:bg-slate-50 rounded-lg list-none flex items-center gap-2">
+              <i data-lucide="chevron-right" class="h-4 w-4 transition-transform"></i>
+              <span class="flex-1">${escapeHtml(m.title)}</span>
+            </summary>
+            <div class="ml-4 mt-1">${lessonsHtml}</div>
+          </details>
+        `);
+      });
+      lucide.createIcons();
+    }
+
+    function renderProgress() {
+      const pct = courseData.progress_pct || 0;
+      document.getElementById('progress-bar').style.width = pct + '%';
+    }
+
+    async function loadLesson(id) {
+      lessonId = id;
+      // update URL without reload
+      const u = new URL(location.href);
+      u.searchParams.set('lesson', id);
+      history.replaceState(null, '', u.toString());
+
+      // highlight in sidebar
+      document.querySelectorAll('.lesson-link').forEach((a) => {
+        a.classList.toggle('active', a.dataset.lessonId === id);
+      });
+
+      const token = getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/lessons/${id}`, { headers });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 403) return showNotEnrolled();
+        alert('โหลดบทเรียนไม่สำเร็จ: ' + (err.error || res.status));
+        return;
+      }
+      const data = await res.json();
+      renderLesson(data);
+    }
+
+    function renderLesson(data) {
+      const l = data.lesson;
+      document.getElementById('lesson-empty').classList.add('hidden');
+      document.getElementById('lesson-content').classList.remove('hidden');
+
+      const m = courseData.modules.find((mm) => mm.id === l.module_id);
+      document.getElementById('lesson-module').textContent = m ? m.title : '';
+      document.getElementById('lesson-title').textContent = l.title;
+      document.getElementById('lesson-summary').textContent = l.summary || '';
+      document.getElementById('lesson-time').textContent = l.estimated_minutes ? `${l.estimated_minutes} นาที` : '';
+
+      // Markdown
+      const md = l.content_md || '_เนื้อหากำลังเตรียม_';
+      document.getElementById('lesson-md').innerHTML = marked.parse(md);
+
+      // Code snippets
+      const snippetsEl = document.getElementById('lesson-snippets');
+      snippetsEl.innerHTML = '';
+      (l.code_snippets || []).forEach((s, idx) => {
+        snippetsEl.insertAdjacentHTML('beforeend', `
+          <div class="bg-slate-900 rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-800 text-slate-300 text-xs">
+              <span class="font-semibold">${escapeHtml(s.title || s.language || 'Snippet')}</span>
+              <button onclick="copySnippet(${idx})" class="hover:text-white">📋 คัดลอก</button>
+            </div>
+            <pre class="p-4 text-sm text-slate-100 overflow-x-auto mono"><code id="snippet-${idx}">${escapeHtml(s.code || '')}</code></pre>
+          </div>
+        `);
+      });
+      window.__snippets__ = l.code_snippets || [];
+
+      // Images
+      const imagesEl = document.getElementById('lesson-images');
+      imagesEl.innerHTML = '';
+      (l.image_urls || []).forEach((url) => {
+        imagesEl.insertAdjacentHTML('beforeend', `<img src="${escapeHtml(url)}" class="w-full rounded-lg border border-slate-200">`);
+      });
+
+      // Nav buttons
+      const prev = document.getElementById('prev-lesson');
+      const next = document.getElementById('next-lesson');
+      prev.disabled = !data.navigation.prev_lesson_id;
+      next.disabled = !data.navigation.next_lesson_id;
+      prev.onclick = () => loadLesson(data.navigation.prev_lesson_id);
+      next.onclick = () => loadLesson(data.navigation.next_lesson_id);
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function copySnippet(idx) {
+      const s = (window.__snippets__ || [])[idx];
+      if (!s?.code) return;
+      navigator.clipboard.writeText(s.code).then(() => {
+        // Brief toast
+        const t = document.createElement('div');
+        t.className = 'fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        t.textContent = '✅ คัดลอกแล้ว';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1500);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Sidebar toggle (mobile)
+    document.getElementById('toggle-sidebar').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('hidden');
+    });
+
+    init();
+  </script>
+</body>
+</html>
