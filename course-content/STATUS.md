@@ -16,11 +16,11 @@
 | 6 | บทที่ 6 — Authentication | 4 | 52 |
 | 7 | บทที่ 7 — Google services integration | 5 | 60 |
 | 8 | บทที่ 8 — PDF + QR Code | 4 | 44 |
-| 9 | บทที่ 9 — AI prompt engineering สำหรับ GAS | 4 | 42 |
+| 9 | บทที่ 9 — AI prompt engineering สำหรับ GAS | 5 | 62 |
 | 10 | บทที่ 10 — clasp + CI/CD | 4 | 40 |
 | 11 | บทที่ 11 — Messaging APIs | 4 | 46 |
 | 12 | บทที่ 12 — Capstone project | 4 | 63 |
-| **รวม** | | **56** | **~657 นาที (11 ชม.)** |
+| **รวม** | | **57** | **~677 นาที (~11.3 ชม.)** |
 
 **Code snippets:** 172
 **Image placeholders:** 21
