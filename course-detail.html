@@ -95,14 +95,35 @@
 
       <!-- Outline -->
       <section class="mt-10">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h2 class="text-2xl font-bold text-slate-900">เนื้อหาในคอร์ส</h2>
           <div class="text-sm text-slate-500">
             <span id="lesson-count">0</span> บทเรียน · <span id="module-count">0</span> หมวด
           </div>
         </div>
+
+        <!-- Track filter — เลือกว่าจะเรียนแบบไหน -->
+        <div class="mb-6 bg-white border border-slate-200 rounded-xl p-1.5 inline-flex flex-wrap gap-1 text-sm" role="tablist" aria-label="เลือกเส้นทางเรียน">
+          <button class="track-pill px-4 py-2 rounded-lg font-medium transition" data-track="quick" role="tab">
+            🚀 Quick Path <span class="opacity-70 text-xs ml-1" id="count-quick">0</span>
+          </button>
+          <button class="track-pill px-4 py-2 rounded-lg font-medium transition" data-track="core" role="tab">
+            ✓ แนะนำ <span class="opacity-70 text-xs ml-1" id="count-core">0</span>
+          </button>
+          <button class="track-pill px-4 py-2 rounded-lg font-medium transition" data-track="all" role="tab">
+            📚 ทั้งหมด <span class="opacity-70 text-xs ml-1" id="count-all">0</span>
+          </button>
+        </div>
+        <p id="track-desc" class="text-sm text-slate-500 -mt-3 mb-5"></p>
+
         <div id="modules-list" class="space-y-3"></div>
       </section>
+
+      <style>
+        .track-pill { color: #475569; }
+        .track-pill:hover { background: #f8fafc; }
+        .track-pill.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+      </style>
 
       <!-- Tags -->
       <section class="mt-10">
@@ -134,8 +155,32 @@
       render(data);
     }
 
+    let _courseData = null;   // เก็บไว้ render ซ้ำเมื่อเปลี่ยน track
+
+    const TRACK_DESC = {
+      quick: '🚀 เร็วสุด — พื้นฐาน + ใช้ AI + Deploy Web App ได้ในไม่กี่ชั่วโมง',
+      core: '✓ แนะนำสำหรับเข้าใจ pattern เต็ม — ครอบคลุมสิ่งที่ใช้ทุกวัน',
+      all: '📚 ทั้งหมด — รวมหัวข้อลึก/เฉพาะทาง (Auth, PDF, LINE, clasp, ฯลฯ)',
+    };
+
+    function getTrack() {
+      const saved = localStorage.getItem('kp_course_track');
+      return ['quick', 'core', 'all'].includes(saved) ? saved : 'core';
+    }
+    function setTrack(t) {
+      localStorage.setItem('kp_course_track', t);
+    }
+
+    function lessonInTrack(l, track) {
+      if (track === 'all') return true;
+      if (track === 'core') return !!l.is_core;
+      if (track === 'quick') return !!l.is_quick_path;
+      return true;
+    }
+
     function render(data) {
-      const { course, modules, enrolled, is_admin } = data;
+      _courseData = data;
+      const { course, enrolled, is_admin } = data;
       const hasFullAccess = enrolled || is_admin;
 
       document.title = course.title + ' — KP Prompt Creator';
@@ -146,12 +191,6 @@
       document.getElementById('badge-level').textContent = labelLevel(course.level);
       document.getElementById('badge-hours').textContent = course.estimated_hours ? `อ่านประมาณ ${course.estimated_hours} ชม.` : '';
       document.getElementById('badge-modules').textContent = `${course.total_modules} modules`;
-
-      // Count lessons
-      let totalLessons = 0;
-      modules.forEach((m) => { totalLessons += (m.lessons || []).length; });
-      document.getElementById('lesson-count').textContent = totalLessons;
-      document.getElementById('module-count').textContent = modules.length;
 
       // CTA
       const token = getToken();
@@ -173,46 +212,6 @@
         cta.buy.onclick = () => { location.href = `/course-buy.html?id=${course.id}`; };
       }
 
-      // Modules
-      const list = document.getElementById('modules-list');
-      list.innerHTML = '';
-      modules.forEach((m) => {
-        const lessonItems = (m.lessons || []).map((l) => {
-          const num = `${m.sort_order}.${l.sort_order}`;
-          const free = l.is_free_preview ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700">ฟรี</span>` : '';
-          const adminDraft = (is_admin && !l.is_published) ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">draft</span>` : '';
-          const mins = l.estimated_minutes ? `<span class="text-slate-400 text-xs ml-auto">${l.estimated_minutes} นาที</span>` : '';
-          const canOpen = hasFullAccess || l.is_free_preview;
-          return `
-            <a href="${canOpen ? `/course-learn.html?slug=${course.slug}&lesson=${l.id}` : '#'}"
-               class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 ${!canOpen ? 'cursor-default opacity-60' : ''}">
-              <i data-lucide="${canOpen ? 'play-circle' : 'lock'}" class="h-4 w-4 text-slate-400 flex-shrink-0"></i>
-              <span class="mono text-xs text-slate-400 font-semibold tabular-nums w-9 text-right">${num}</span>
-              <span class="text-sm text-slate-700">${escapeHtml(l.title)}</span>
-              ${free}
-              ${adminDraft}
-              ${mins}
-            </a>`;
-        }).join('') || `<div class="px-3 py-2 text-sm text-slate-400 italic">ยังไม่มีบทเรียน — กำลังเพิ่มเนื้อหา</div>`;
-
-        const detailsId = `m-${m.id}`;
-        list.insertAdjacentHTML('beforeend', `
-          <details class="bg-white rounded-xl border border-slate-200 group" ${m.sort_order === 1 ? 'open' : ''}>
-            <summary class="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50">
-              <i data-lucide="chevron-right" class="h-5 w-5 text-slate-400 group-open:rotate-90 transition-transform"></i>
-              <div class="flex-1">
-                <div class="font-semibold text-slate-900">${escapeHtml(m.title)}</div>
-                ${m.description ? `<div class="text-sm text-slate-500 mt-0.5">${escapeHtml(m.description)}</div>` : ''}
-              </div>
-              <span class="text-xs text-slate-400">${(m.lessons || []).length} บทเรียน</span>
-            </summary>
-            <div class="border-t border-slate-100 p-2">
-              ${lessonItems}
-            </div>
-          </details>
-        `);
-      });
-
       // Tags
       const tagsEl = document.getElementById('tags-list');
       (course.tags || []).forEach((t) => {
@@ -221,8 +220,95 @@
         );
       });
 
+      // Counts per track (รวมทุกบทใน modules)
+      const allLessons = data.modules.flatMap((m) => m.lessons || []);
+      document.getElementById('count-quick').textContent = allLessons.filter((l) => l.is_quick_path).length;
+      document.getElementById('count-core').textContent = allLessons.filter((l) => l.is_core).length;
+      document.getElementById('count-all').textContent = allLessons.length;
+
+      // Wire pills
+      const track = getTrack();
+      document.querySelectorAll('.track-pill').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.track === track);
+        btn.onclick = () => {
+          setTrack(btn.dataset.track);
+          document.querySelectorAll('.track-pill').forEach((b) =>
+            b.classList.toggle('active', b.dataset.track === btn.dataset.track)
+          );
+          renderModules();
+        };
+      });
+
+      renderModules();
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('content').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function renderModules() {
+      if (!_courseData) return;
+      const { course, modules, enrolled, is_admin } = _courseData;
+      const hasFullAccess = enrolled || is_admin;
+      const track = getTrack();
+
+      document.getElementById('track-desc').textContent = TRACK_DESC[track] || '';
+
+      // Filter modules + lessons ตาม track
+      const filteredModules = modules
+        .map((m) => ({ ...m, lessons: (m.lessons || []).filter((l) => lessonInTrack(l, track)) }))
+        .filter((m) => m.lessons.length > 0);
+
+      const totalLessons = filteredModules.reduce((sum, m) => sum + m.lessons.length, 0);
+      document.getElementById('lesson-count').textContent = totalLessons;
+      document.getElementById('module-count').textContent = filteredModules.length;
+
+      const list = document.getElementById('modules-list');
+      list.innerHTML = '';
+      filteredModules.forEach((m) => {
+        const lessonItems = m.lessons.map((l) => {
+          const num = `${m.sort_order}.${l.sort_order}`;
+          const free = l.is_free_preview ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700">ฟรี</span>` : '';
+          const quick = l.is_quick_path ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">🚀</span>` : '';
+          const adminDraft = (is_admin && !l.is_published) ? `<span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-700">draft</span>` : '';
+          const mins = l.estimated_minutes ? `<span class="text-slate-400 text-xs ml-auto">${l.estimated_minutes} นาที</span>` : '';
+          const canOpen = hasFullAccess || l.is_free_preview;
+          const href = canOpen ? `/course-learn.html?slug=${course.slug}&lesson=${l.id}` : '#';
+          return `
+            <a href="${href}"
+               class="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-slate-50 ${!canOpen ? 'cursor-default opacity-60' : ''}">
+              <i data-lucide="${canOpen ? 'play-circle' : 'lock'}" class="h-4 w-4 text-slate-400 flex-shrink-0"></i>
+              <span class="mono text-xs text-slate-400 font-semibold tabular-nums w-9 text-right">${num}</span>
+              <span class="text-sm text-slate-700">${escapeHtml(l.title)}</span>
+              ${quick}
+              ${free}
+              ${adminDraft}
+              ${mins}
+            </a>`;
+        }).join('');
+
+        list.insertAdjacentHTML('beforeend', `
+          <details class="bg-white rounded-xl border border-slate-200 group" ${m.sort_order === 1 ? 'open' : ''}>
+            <summary class="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50">
+              <i data-lucide="chevron-right" class="h-5 w-5 text-slate-400 group-open:rotate-90 transition-transform"></i>
+              <div class="flex-1">
+                <div class="font-semibold text-slate-900">${escapeHtml(m.title)}</div>
+                ${m.description ? `<div class="text-sm text-slate-500 mt-0.5">${escapeHtml(m.description)}</div>` : ''}
+              </div>
+              <span class="text-xs text-slate-400">${m.lessons.length} บทเรียน</span>
+            </summary>
+            <div class="border-t border-slate-100 p-2">
+              ${lessonItems}
+            </div>
+          </details>
+        `);
+      });
+
+      if (filteredModules.length === 0) {
+        list.insertAdjacentHTML('beforeend',
+          `<div class="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">ไม่มีบทเรียนใน track นี้</div>`
+        );
+      }
+
       lucide.createIcons();
     }
 

@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
     .select(`
       id, module_id, course_id, sort_order, title, summary,
       content_md, code_snippets, image_urls, quiz, estimated_minutes,
-      is_free_preview, is_published,
+      is_free_preview, is_published, is_core, is_quick_path,
       course:courses!course_id ( id, slug, title, status )
     `)
     .eq('id', id)
@@ -64,17 +64,30 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'กรุณาซื้อคอร์สก่อนเข้าเรียน' });
   }
 
-  // navigation — prev/next ตามสิทธิ์ของ user (กัน bypass ผ่านปุ่ม next/prev)
+  // navigation — prev/next ตามสิทธิ์ของ user + filter track
+  // ต้อง sort ตาม module.sort_order ก่อน แล้วค่อย lesson.sort_order
+  // (ไม่งั้นทุก lesson ที่ sort_order=1 จะปนกันเพราะ Postgres ไม่มี tie-break)
+  const track = (req.query.track || 'all').toLowerCase();
   const { data: siblings } = await supabaseAdmin
     .from('lessons')
-    .select('id, sort_order, is_published, is_free_preview')
-    .eq('course_id', lesson.course_id)
-    .order('sort_order', { ascending: true });
+    .select('id, sort_order, is_published, is_free_preview, is_core, is_quick_path, module:course_modules!module_id(sort_order)')
+    .eq('course_id', lesson.course_id);
 
-  const accessible = (siblings || []).filter((l) => {
+  const ordered = (siblings || []).slice().sort((a, b) => {
+    const mA = a.module?.sort_order ?? 0;
+    const mB = b.module?.sort_order ?? 0;
+    if (mA !== mB) return mA - mB;
+    return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  });
+
+  const accessible = ordered.filter((l) => {
     if (!l.is_published && !isAdmin) return false;
+    // track filter — กัน prev/next กระโดดข้ามไป lesson นอก track
+    if (track === 'quick' && !l.is_quick_path && l.id !== id) return false;
+    if (track === 'core' && !l.is_core && l.id !== id) return false;
+    // access gate
     if (isAdmin || enrolled) return true;
-    return l.is_free_preview;   // guest/non-enrolled — เฉพาะ free preview
+    return l.is_free_preview;
   });
   const idx = accessible.findIndex((l) => l.id === id);
   const prev_lesson_id = idx > 0 ? accessible[idx - 1].id : null;

@@ -38,7 +38,7 @@ module.exports = async function handler(req, res) {
   // Lessons (outline only — no content_md / code / images)
   const { data: lessons } = await supabaseAdmin
     .from('lessons')
-    .select('id, module_id, sort_order, title, summary, estimated_minutes, is_free_preview, is_published')
+    .select('id, module_id, sort_order, title, summary, estimated_minutes, is_free_preview, is_published, is_core, is_quick_path')
     .eq('course_id', course.id)
     .order('sort_order', { ascending: true });
 

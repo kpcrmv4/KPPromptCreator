@@ -1,8 +1,24 @@
 # GAS Mastery Course — Content Status
 
 **Last bulk insert:** 2026-05-23 (via Supabase MCP)
+**Last content revision:** 2026-05-24 — LINE Notify removed (LINE ปิดบริการ 2025) → 7.5 ใช้ Telegram Bot, 11.1 reframe; AI seed-data pattern เพิ่มใน 3.3, 9.5, 12.1
+**Last structure revision:** 2026-05-24 — เพิ่ม track system: `is_core` + `is_quick_path` (filter UI 3 view: Quick 12 บท · Core 22 บท · All 57 บท)
 **Course slug:** `gas-mastery`
 **Supabase project:** `hgjrxixbdmklwzcfyrxm`
+
+## Track system
+
+3 filter views ใน `course-detail.html` + `course-learn.html` sidebar (persist ใน localStorage `kp_course_track`):
+
+| Track | Filter | บท | นาที | สำหรับ |
+|---|---|---|---|---|
+| 🚀 Quick Path | `is_quick_path = true` | 12 | ~151 (~2.5 ชม.) | พื้นฐาน + ใช้ AI สร้าง Web App + Deploy |
+| ✓ แนะนำ (Core) | `is_core = true` | 22 | ~265 (~4.4 ชม.) | เข้าใจ pattern เต็ม |
+| 📚 ทั้งหมด | (no filter) | 57 | ~677 (~11.3 ชม.) | reference ลึก/เฉพาะทาง |
+
+DB constraint: `lessons_quick_implies_core` — quick=true → core ต้อง=true (subset relationship)
+
+API `/api/lessons/[id]?track=quick|core|all` — navigation prev/next respect ตาม track
 
 ## Lesson Inventory — 56 lessons total
 
