@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สั่งสร้างระบบ Google Apps Script — KP GAS Builder</title>
+  <meta name="description" content="สั่งสร้างระบบ Google Apps Script + Sheet ครบวงจร เริ่มต้น ฿499 ไม่ต้อง deploy เอง">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/images/logo.png" type="image/png">
+  <link rel="canonical" href="https://kppromptcreator.tech/gas-builder.html">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'Noto Sans Thai', 'sans-serif'] },
+          colors: {
+            brand: {
+              50:  '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="css/gas-builder.css">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- Top bar -->
+<header class="bg-white border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <img src="/images/logo.png" alt="" class="w-8 h-8">
+      <span class="font-semibold text-slate-800">KP GAS Builder</span>
+    </a>
+    <nav class="flex items-center gap-4 text-sm">
+      <a href="/orders.html" class="text-slate-600 hover:text-brand-600">คำสั่งซื้อของฉัน</a>
+      <a href="/account.html" class="text-slate-600 hover:text-brand-600">บัญชี</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Stepper -->
+<div class="bg-white border-b border-slate-200 sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-4 py-3">
+    <ol id="stepper" class="flex items-center justify-between text-xs sm:text-sm">
+      <li data-step="1" class="step active flex-1 flex items-center gap-2"><span class="dot">1</span><span class="hidden sm:inline">เลือก template</span></li>
+      <li data-step="2" class="step flex-1 flex items-center gap-2"><span class="dot">2</span><span class="hidden sm:inline">สไตล์</span></li>
+      <li data-step="3" class="step flex-1 flex items-center gap-2"><span class="dot">3</span><span class="hidden sm:inline">Feature + AI</span></li>
+      <li data-step="4" class="step flex-1 flex items-center gap-2"><span class="dot">4</span><span class="hidden sm:inline">ตรวจสอบ</span></li>
+      <li data-step="5" class="step flex-1 flex items-center gap-2"><span class="dot">5</span><span class="hidden sm:inline">วิธีส่งมอบ</span></li>
+      <li data-step="6" class="step flex-1 flex items-center gap-2"><span class="dot">6</span><span class="hidden sm:inline">ยืนยัน</span></li>
+    </ol>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-4 py-6 sm:py-10 pb-32">
+
+  <!-- ──────────── STEP 1: Template Picker ──────────── -->
+  <section data-step-content="1" class="step-content">
+    <div class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">เลือก Template เริ่มต้น</h1>
+      <p class="text-slate-600 mt-1">ทุก template ราคาเริ่มต้น ฿499 · ปรับ feature เพิ่มได้ใน step ถัดไป</p>
+    </div>
+
+    <div class="mb-4 flex flex-wrap gap-2 items-center">
+      <input id="templateSearch" type="text" placeholder="ค้นหา..." class="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 max-w-xs">
+      <select id="templateCategory" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+        <option value="">ทุกหมวด</option>
+        <option value="sales">Sales/CRM</option>
+        <option value="inventory">สต็อก</option>
+        <option value="service">บริการ/จองคิว</option>
+        <option value="hr">HR</option>
+        <option value="data">ข้อมูล/รายงาน</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+
+    <div id="templateGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Templates populated via JS -->
+      <div class="text-center text-slate-500 col-span-full py-12">
+        <i data-lucide="loader" class="w-6 h-6 inline animate-spin"></i>
+        <p class="mt-2 text-sm">กำลังโหลด template...</p>
+      </div>
+    </div>
+
+    <div class="mt-6 p-4 bg-brand-50 rounded-lg flex gap-3 items-start">
+      <i data-lucide="info" class="w-5 h-5 text-brand-600 shrink-0"></i>
+      <div class="text-sm text-slate-700">
+        <strong>Mode A vs Mode B?</strong> ทุก template ราคา build เท่ากัน
+        <ul class="mt-1 list-disc list-inside text-slate-600">
+          <li>Mode A = อยู่ใน Google ของคุณ · ฟรีตลอดชีพ · UI พื้นฐาน</li>
+          <li>Mode B = หน้าเว็บอยู่บน Vercel ของเรา · ฿300/ปี · UI สวยขึ้น + ฟีเจอร์ครบ</li>
+        </ul>
+        ระบบจะ auto-detect ให้ตาม feature ที่เลือก
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────── STEP 2: Style ──────────── -->
+  <section data-step-content="2" class="step-content hidden">
+    <div class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">ปรับแต่งสไตล์</h1>
+      <p class="text-slate-600 mt-1">เลือกธีม + font + อัปโลโก้ (option)</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อระบบ</label>
+        <input id="projectName" type="text" placeholder="เช่น ระบบจองคิวคลินิกแสงเดือน"
+          class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">ธีมสี</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <label class="theme-card cursor-pointer">
+            <input type="radio" name="theme" value="minimal-blue" class="sr-only" checked>
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500 peer-checked:border-brand-600">
+              <div class="h-12 rounded-md mb-2" style="background:linear-gradient(135deg,#3b82f6,#1e40af)"></div>
+              <span class="text-xs">Minimal Blue</span>
+            </div>
+          </label>
+          <label class="theme-card cursor-pointer">
+            <input type="radio" name="theme" value="vibrant-coral" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500">
+              <div class="h-12 rounded-md mb-2" style="background:linear-gradient(135deg,#fb7185,#f97316)"></div>
+              <span class="text-xs">Vibrant Coral</span>
+            </div>
+          </label>
+          <label class="theme-card cursor-pointer">
+            <input type="radio" name="theme" value="forest-green" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500">
+              <div class="h-12 rounded-md mb-2" style="background:linear-gradient(135deg,#10b981,#854d0e)"></div>
+              <span class="text-xs">Forest Green</span>
+            </div>
+          </label>
+          <label class="theme-card cursor-pointer">
+            <input type="radio" name="theme" value="classic-indigo" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500">
+              <div class="h-12 rounded-md mb-2" style="background:linear-gradient(135deg,#6366f1,#3730a3)"></div>
+              <span class="text-xs">Classic Indigo</span>
+            </div>
+          </label>
+          <label class="theme-card cursor-pointer">
+            <input type="radio" name="theme" value="dark-pro" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500">
+              <div class="h-12 rounded-md mb-2" style="background:linear-gradient(135deg,#0f172a,#475569)"></div>
+              <span class="text-xs">Dark Pro</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Font</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="cursor-pointer">
+            <input type="radio" name="font" value="thai-modern" class="sr-only" checked>
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500 text-center">
+              <div class="text-lg font-medium" style="font-family:Sarabun,sans-serif">สวัสดี Hello</div>
+              <span class="text-xs text-slate-500">Thai Modern</span>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="font" value="thai-classic" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500 text-center">
+              <div class="text-lg font-medium" style="font-family:Kanit,sans-serif">สวัสดี Hello</div>
+              <span class="text-xs text-slate-500">Thai Classic</span>
+            </div>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="font" value="friendly-round" class="sr-only">
+            <div class="border-2 border-slate-200 rounded-xl p-3 hover:border-brand-500 text-center">
+              <div class="text-lg font-medium" style="font-family:Mali,sans-serif">สวัสดี Hello</div>
+              <span class="text-xs text-slate-500">Friendly Round</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" id="darkModeToggle" class="mt-1">
+          <div>
+            <span class="text-sm font-medium text-slate-700">เปิด Dark Mode ให้ลูกค้า toggle เองได้</span>
+            <span class="text-brand-600 text-sm font-medium ml-2">+฿200</span>
+            <p class="text-xs text-slate-500 mt-0.5">ลูกค้ากดเปลี่ยน light/dark ในตัวระบบเองได้</p>
+          </div>
+        </label>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Logo (option)</label>
+        <p class="text-xs text-slate-500 mb-2">PNG / SVG · max 1MB</p>
+        <input type="file" id="logoUpload" accept="image/png,image/svg+xml"
+          class="text-sm">
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────── STEP 3: Add-ons + AI Chat ──────────── -->
+  <section data-step-content="3" class="step-content hidden">
+    <div class="mb-6 flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">เลือก Feature</h1>
+        <p class="text-slate-600 mt-1">เลือกตามที่ใช้จริง — ราคาอัปเดต real-time</p>
+      </div>
+      <div id="modeIndicator" class="text-sm bg-brand-50 text-brand-700 px-3 py-1.5 rounded-full">
+        📦 Mode A · Pure GAS · ฟรีตลอดชีพ
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-4" id="addonsContainer">
+        <!-- Addon groups populated via JS -->
+      </div>
+
+      <aside class="bg-white rounded-2xl border border-slate-200 p-5 lg:sticky lg:top-24 lg:self-start">
+        <h3 class="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-brand-600"></i>
+          AI Assistant
+        </h3>
+        <p class="text-xs text-slate-500 mb-3">บอกเราเรื่อง requirement เพิ่ม → AI ช่วยสรุป spec</p>
+        <div id="chatMessages" class="space-y-2 max-h-64 overflow-y-auto mb-3 text-sm">
+          <div class="bg-slate-100 rounded-lg p-2 text-slate-700">
+            <strong>AI:</strong> สวัสดีครับ พิมพ์บอกผมเรื่องระบบที่อยากได้ — ช่วยออกแบบ spec ให้
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input id="chatInput" type="text" placeholder="พิมพ์..." class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm">
+          <button id="chatSendBtn" class="px-3 py-2 bg-brand-600 text-white rounded-lg text-sm hover:bg-brand-700">
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">⚠️ AI chat: Phase 2 — ตอนนี้ skeleton — ลูกค้าคุยใน LINE ก็ได้</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ──────────── STEP 4: Preview + Quote ──────────── -->
+  <section data-step-content="4" class="step-content hidden">
+    <div class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">ตรวจสอบ + ประเมินราคา</h1>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 class="font-semibold text-slate-900 mb-3">Preview</h3>
+        <div id="previewFrame" class="aspect-video bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-sm">
+          (Preview placeholder — Phase 2 จะใส่ iframe template)
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 class="font-semibold text-slate-900 mb-3">ใบเสนอราคา</h3>
+        <div id="quoteBreakdown" class="space-y-2 text-sm">
+          <!-- Populated via JS -->
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-200 flex justify-between items-baseline">
+          <span class="text-slate-600">รวม</span>
+          <span id="quoteTotal" class="text-3xl font-bold text-brand-700">฿0</span>
+        </div>
+        <div id="quoteTier" class="text-xs text-slate-500 mt-1 text-right"></div>
+
+        <div class="mt-4 p-3 bg-emerald-50 rounded-lg text-xs text-slate-700">
+          <div class="font-medium text-emerald-900 mb-1">✓ รวมในแพ็ค:</div>
+          <ul class="list-disc list-inside space-y-0.5">
+            <li>ส่งมอบ <span id="etaText">3</span> วันทำการ</li>
+            <li>Bug fix code เรา ภายใน 7 วันแรก</li>
+            <li>Email/LINE support</li>
+            <li id="recurringFeeText">Mode A: ไม่มีค่ารายปี ตลอดชีพ</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────── STEP 5: Delivery Method ──────────── -->
+  <section data-step-content="5" class="step-content hidden">
+    <div class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">วิธีการส่งมอบ</h1>
+      <p class="text-slate-600 mt-1" id="deliveryHint">ระบบของคุณจะถูกติดตั้งใน Google Drive ของคุณเอง</p>
+    </div>
+
+    <div id="deliveryChoices" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Populated via JS based on mode -->
+    </div>
+
+    <div class="mt-6 bg-white rounded-2xl border border-slate-200 p-5">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" id="trainingAddon" class="mt-1">
+        <div>
+          <div class="font-medium text-slate-900">Screen share training 30 นาที <span class="text-brand-600">+฿300</span></div>
+          <p class="text-sm text-slate-500 mt-1">สอนวิธีดู/แก้ code + deploy + เพิ่ม feature เอง</p>
+          <p class="text-xs text-slate-400 mt-1">เหมาะกับ dev/IT ที่อยากเข้าใจระบบลึก</p>
+        </div>
+      </label>
+    </div>
+
+    <details class="mt-4 bg-white rounded-2xl border border-slate-200 p-5">
+      <summary class="font-medium text-slate-900 cursor-pointer">❓ คำถามที่พบบ่อย</summary>
+      <div class="mt-4 space-y-3 text-sm text-slate-700">
+        <div>
+          <strong>OAuth ปลอดภัยไหม?</strong>
+          <p>เราขอสิทธิ์เฉพาะ drive.file (เห็นเฉพาะไฟล์ที่เราสร้าง) + script.projects (จัดการ script) — ลบ token ทิ้งทันทีหลัง deploy</p>
+        </div>
+        <div>
+          <strong>ถ้าเลิกบริการ KP?</strong>
+          <p>Mode A: ระบบของคุณอยู่ใน Drive คุณ ใช้ต่อได้ตลอด · Mode B: เราโอน source code ให้ได้ (฿1,000)</p>
+        </div>
+        <div>
+          <strong>ค่ารายปี ฿0 จริงเหรอ?</strong>
+          <p>จริง สำหรับ Mode A — Google host ฟรีตลอดชีพ · Mode B มี ฿300/ปี เพราะเรา host Vercel</p>
+        </div>
+        <a href="/docs/FAQ-CUSTOMER.md" class="text-brand-600 hover:underline">ดู FAQ เต็ม →</a>
+      </div>
+    </details>
+  </section>
+
+  <!-- ──────────── STEP 6: Submit + Contact ──────────── -->
+  <section data-step-content="6" class="step-content hidden">
+    <div class="mb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">ยืนยันคำสั่งซื้อ</h1>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 class="font-semibold text-slate-900 mb-3">📋 สรุปคำสั่งซื้อ</h3>
+        <dl id="finalSummary" class="space-y-2 text-sm">
+          <!-- Populated via JS -->
+        </dl>
+        <div class="mt-4 pt-4 border-t border-slate-200 flex justify-between items-baseline">
+          <span class="text-slate-600">รวม</span>
+          <span id="finalTotal" class="text-2xl font-bold text-brand-700">฿0</span>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 class="font-semibold text-slate-900 mb-3">ติดต่อ</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">ชื่อ <span class="text-rose-500">*</span></label>
+            <input id="customerName" type="text" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
+            <input id="customerEmail" type="email" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">LINE ID (option)</label>
+            <input id="customerLineId" type="text" placeholder="@yourid" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            <p class="text-xs text-slate-400 mt-1">บอกล่วงหน้าก็ได้ — ไม่บอกก็จะ Add ตอน success page</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-amber-50 rounded-2xl border border-amber-200 p-5">
+      <h4 class="font-semibold text-amber-900 mb-2">ℹ️ ขั้นตอนถัดไปหลังกดยืนยัน</h4>
+      <ol class="list-decimal list-inside space-y-1 text-sm text-slate-700">
+        <li>คุณจะได้รหัสคำสั่งซื้อ (<code>ORDER-XXXXXX</code>)</li>
+        <li>Add LINE OA เรา → ส่งข้อความ (เรากรอกให้แล้ว)</li>
+        <li>ทีมเราตอบกลับใน 30 นาที + ส่ง PromptPay QR</li>
+        <li>โอนเงิน + ส่งสลิปใน LINE → เริ่มผลิตทันที</li>
+      </ol>
+    </div>
+
+    <div class="mt-4 space-y-2">
+      <label class="flex items-start gap-2 text-sm cursor-pointer">
+        <input type="checkbox" id="agreeRefund" class="mt-0.5">
+        <span>ฉันได้อ่านและยอมรับ <a href="/docs/FAQ-CUSTOMER.md#refund" target="_blank" class="text-brand-600 hover:underline">นโยบายการคืนเงิน</a></span>
+      </label>
+      <label class="flex items-start gap-2 text-sm cursor-pointer">
+        <input type="checkbox" id="agreeLine" class="mt-0.5">
+        <span>ฉันเข้าใจว่าจะคุยรายละเอียดและชำระเงินทาง LINE</span>
+      </label>
+    </div>
+  </section>
+
+</main>
+
+<!-- Sticky bottom bar -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-20">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div class="text-sm">
+      <div class="text-slate-500">รวม</div>
+      <div class="font-bold text-lg text-brand-700">
+        ฿<span id="stickyTotal">0</span>
+        <span id="stickyMode" class="text-xs text-slate-500 ml-2"></span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="btnPrev" class="px-4 py-2 border border-slate-300 rounded-lg text-sm hover:bg-slate-50 hidden">
+        ← ย้อนกลับ
+      </button>
+      <button id="btnNext" class="px-5 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        ถัดไป →
+      </button>
+      <button id="btnSubmit" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 hidden">
+        ✓ ยืนยันคำสั่งซื้อ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Force Mode B modal -->
+<div id="forceModeBModal" class="hidden fixed inset-0 bg-black/50 z-30 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-md p-6">
+    <h3 class="text-lg font-bold text-amber-900 mb-3">⚠️ Feature นี้ต้องใช้ Mode Hybrid</h3>
+    <p id="forceModeBReason" class="text-sm text-slate-700 mb-4"></p>
+    <ul class="text-sm text-slate-600 space-y-1 mb-4">
+      <li>─ ราคา build เท่าเดิม</li>
+      <li>─ + ค่ารายปี ฿300 ตั้งแต่ปีที่ 2</li>
+      <li>─ ต้องตั้งค่า Google Cloud Console เพิ่ม</li>
+    </ul>
+    <div class="flex gap-2 justify-end">
+      <button id="modeBCancel" class="px-4 py-2 border border-slate-300 rounded-lg text-sm">ยกเลิก feature</button>
+      <button id="modeBAccept" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm">ยอมรับ → Mode B</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/gas-builder.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
