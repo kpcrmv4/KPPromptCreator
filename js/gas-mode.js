@@ -32,6 +32,8 @@ function initGasModeControls() {
         const isGas = getRadioValue('platform') === 'google-apps-script';
         const wizBtn = document.getElementById('gasWizardBtn');
         if (wizBtn) wizBtn.style.display = isGas ? 'inline-flex' : 'none';
+        const hireCta = document.getElementById('gasHireBuildCta');
+        if (hireCta) hireCta.style.display = isGas ? 'flex' : 'none';
         refreshGasModeCopy(isGas);
     };
 

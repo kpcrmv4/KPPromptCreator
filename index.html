@@ -63,8 +63,8 @@
                 <span class="kp-topbar-brand">KP Prompt Creator</span>
             </a>
             <div class="kp-topbar-actions">
-                <a href="/marketplace.html" class="kp-topbar-btn kp-btn-marketplace">
-                    <i class="bi bi-shop"></i><span class="kp-hide-xs"> Marketplace</span>
+                <a href="/gas-builder.html" class="kp-topbar-btn kp-btn-marketplace" title="สั่งสร้างระบบ GAS — เริ่ม ฿499">
+                    <i class="bi bi-magic"></i><span class="kp-hide-xs"> สั่งสร้างระบบ</span>
                 </a>
                 <button class="kp-topbar-btn kp-btn-lang" id="langToggle" onclick="toggleLanguage()" title="EN">EN</button>
                 <!-- Profile / Auth -->
@@ -158,6 +158,20 @@
                             </div>
                         </button>
                     </div>
+                    <!-- Hire-to-build CTA — shown when platform = google-apps-script -->
+                    <a href="/gas-builder.html?from=prompt" id="gasHireBuildCta" class="gas-hire-cta" style="display:none;">
+                        <div class="gas-hire-cta-icon"><i class="bi bi-magic"></i></div>
+                        <div class="gas-hire-cta-body">
+                            <div class="gas-hire-cta-title">
+                                ไม่อยากเขียนเอง?
+                                <span class="gas-hire-cta-badge">เริ่ม ฿499</span>
+                            </div>
+                            <div class="gas-hire-cta-desc">
+                                จ้างเราสร้างระบบให้เลย · Mode A อยู่ใน Google คุณ · ไม่มีค่ารายปี · ไม่ต้อง deploy เอง
+                            </div>
+                        </div>
+                        <div class="gas-hire-cta-arrow"><i class="bi bi-arrow-right-circle-fill"></i></div>
+                    </a>
                 </div>
             </section>
 
