@@ -33,13 +33,15 @@ const ADDON_PRICES = {
   'ai-chat': 1500, 'ai-search': 1000, 'ai-summary': 800, 'ai-ocr': 1200,
 };
 
+// Keep in sync with js/gas-builder.js ADDONS where forceMode='B'
+// Reason: features ที่ทำงานใน HtmlService ของ GAS ไม่ได้จริง
+// (spa/multi-lang/google-oauth/google-calendar/ai-summary/ai-ocr/permission-row ทำได้ → ลบออก)
 const FORCE_MODE_B_ADDONS = new Set([
-  'spa', 'pwa', 'multi-lang',
-  'google-oauth', 'line-login', 'email-password', 'phone-otp',
-  'permission-row',
-  'google-calendar', 'google-maps',
-  'view-map', 'camera-capture', 'barcode-scan',
-  'ai-chat', 'ai-search', 'ai-summary', 'ai-ocr',
+  'pwa',                                       // Service Worker
+  'line-login', 'email-password', 'phone-otp', // auth flow ที่ HtmlService ทำได้ลำบาก
+  'google-maps', 'view-map',                   // Maps SDK + billing friction
+  'camera-capture', 'barcode-scan',            // camera blocked in HtmlService
+  'ai-chat', 'ai-search',                      // streaming + 6min execution limit
 ]);
 
 module.exports = async function handler(req, res) {

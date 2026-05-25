@@ -16,24 +16,29 @@ const FLOOR_PRICE = 499;
  * Each add-on: { code, label, price, group, forceMode, dependsOn }
  * forceMode: 'B' = บังคับใช้ Mode B ถ้าเลือก
  */
+// forceMode='B' means: ฟีเจอร์นี้ใช้ใน HTMLService ของ GAS ไม่ได้ ต้องมี Vercel frontend
+// bReason: คำอธิบาย (แสดงใน warning modal)
+//
+// หมายเหตุ: SPA / Alpine.js / multi-lang / Google APIs (Calendar/Drive/Sheet) / AI server call
+// ทั้งหมดทำได้ใน HTMLService — ไม่ต้อง force B
 const ADDONS = [
   // Architecture
-  { code: 'spa', label: 'SPA (single-page, fast)', price: 300, group: 'arch', forceMode: 'B' },
-  { code: 'pwa', label: 'PWA + offline', price: 500, group: 'arch', forceMode: 'B', dependsOn: 'spa' },
+  { code: 'spa', label: 'SPA (single-page, fast)', price: 300, group: 'arch' },
+  { code: 'pwa', label: 'PWA + offline', price: 500, group: 'arch', forceMode: 'B', bReason: 'Service Worker ต้องการ domain จริง — HtmlService iframe sandbox ไม่รองรับ', dependsOn: 'spa' },
   { code: 'dark-mode', label: 'Dark mode (user toggle)', price: 200, group: 'arch' },
-  { code: 'multi-lang', label: 'Multi-language TH/EN', price: 400, group: 'arch', forceMode: 'B' },
+  { code: 'multi-lang', label: 'Multi-language TH/EN', price: 400, group: 'arch' },
 
   // Auth (radio — เลือกได้ 1)
   { code: 'no-auth', label: 'ไม่ต้อง login', price: 0, group: 'auth', radio: true, default: true },
-  { code: 'google-oauth', label: 'Google OAuth', price: 300, group: 'auth', radio: true, forceMode: 'B' },
-  { code: 'line-login', label: 'LINE Login', price: 500, group: 'auth', radio: true, forceMode: 'B' },
-  { code: 'email-password', label: 'Email/Password', price: 700, group: 'auth', radio: true, forceMode: 'B' },
-  { code: 'phone-otp', label: 'Phone OTP', price: 900, group: 'auth', radio: true, forceMode: 'B' },
+  { code: 'google-oauth', label: 'Google OAuth (built-in ใน Mode A)', price: 300, group: 'auth', radio: true },
+  { code: 'line-login', label: 'LINE Login', price: 500, group: 'auth', radio: true, forceMode: 'B', bReason: 'LINE Console ไม่รับ script.google.com เป็น callback URL ที่ stable' },
+  { code: 'email-password', label: 'Email/Password', price: 700, group: 'auth', radio: true, forceMode: 'B', bReason: 'auth flow ต้องการ session management ที่ HtmlService ไม่ครอบคลุม' },
+  { code: 'phone-otp', label: 'Phone OTP', price: 900, group: 'auth', radio: true, forceMode: 'B', bReason: 'SMS provider verification ต้องการ domain ของจริง' },
 
   // Role
   { code: 'role-2tier', label: '2 roles (admin + user)', price: 300, group: 'role' },
   { code: 'role-custom', label: 'Custom roles 3+', price: 700, group: 'role' },
-  { code: 'permission-row', label: 'Permission per column/row', price: 1000, group: 'role', forceMode: 'B' },
+  { code: 'permission-row', label: 'Permission per column/row', price: 1000, group: 'role' },
 
   // Integration
   { code: 'line-push', label: 'LINE Push (Messaging API one-way)', price: 500, group: 'integration' },
@@ -42,9 +47,9 @@ const ADDONS = [
   { code: 'email-send', label: 'Email (SendGrid/Resend)', price: 400, group: 'integration' },
   { code: 'promptpay', label: 'PromptPay QR (รับเงิน)', price: 500, group: 'integration' },
   { code: 'slip-verify', label: 'Slip verify (Slip2Go)', price: 700, group: 'integration' },
-  { code: 'google-calendar', label: 'Google Calendar sync', price: 500, group: 'integration', forceMode: 'B' },
+  { code: 'google-calendar', label: 'Google Calendar sync', price: 500, group: 'integration' },
   { code: 'google-drive-upload', label: 'Google Drive upload', price: 300, group: 'integration' },
-  { code: 'google-maps', label: 'Google Maps', price: 500, group: 'integration', forceMode: 'B' },
+  { code: 'google-maps', label: 'Google Maps', price: 500, group: 'integration', forceMode: 'B', bReason: 'Google Maps SDK ใน iframe ของ HtmlService มี restriction หลายอย่าง + ต้องผูกบัตรเครดิต' },
   { code: 'webhook-out', label: 'Webhook out (Zapier/Make)', price: 200, group: 'integration' },
   { code: 'sms-thai', label: 'SMS (Thai SMS)', price: 600, group: 'integration' },
 
@@ -52,11 +57,11 @@ const ADDONS = [
   { code: 'charts', label: 'Charts / dashboard', price: 500, group: 'feature' },
   { code: 'view-calendar', label: 'Calendar view', price: 400, group: 'feature' },
   { code: 'view-kanban', label: 'Kanban view', price: 400, group: 'feature' },
-  { code: 'view-map', label: 'Map view', price: 600, group: 'feature', forceMode: 'B' },
+  { code: 'view-map', label: 'Map view', price: 600, group: 'feature', forceMode: 'B', bReason: 'ใช้ Google Maps SDK เหมือนกัน — มี iframe restriction' },
   { code: 'file-upload', label: 'File upload (Drive)', price: 400, group: 'feature' },
   { code: 'image-gallery', label: 'Image gallery', price: 300, group: 'feature' },
-  { code: 'camera-capture', label: 'Camera capture ⭐', price: 500, group: 'feature', forceMode: 'B' },
-  { code: 'barcode-scan', label: 'Barcode/QR scan ⭐', price: 700, group: 'feature', forceMode: 'B' },
+  { code: 'camera-capture', label: 'Camera capture ⭐', price: 500, group: 'feature', forceMode: 'B', bReason: 'Google บล็อกการใช้กล้องใน HtmlService' },
+  { code: 'barcode-scan', label: 'Barcode/QR scan ⭐', price: 700, group: 'feature', forceMode: 'B', bReason: 'ใช้กล้องเหมือนกัน — Google บล็อก' },
   { code: 'signature-pad', label: 'Signature pad', price: 500, group: 'feature' },
   { code: 'pdf-export', label: 'PDF export/print', price: 500, group: 'feature' },
   { code: 'excel-export', label: 'Excel/CSV export', price: 300, group: 'feature' },
@@ -67,10 +72,10 @@ const ADDONS = [
   { code: 'gps-checkin', label: 'GPS check-in', price: 500, group: 'feature' },
 
   // AI
-  { code: 'ai-chat', label: 'AI chat assistant', price: 1500, group: 'ai', forceMode: 'B' },
-  { code: 'ai-search', label: 'AI semantic search', price: 1000, group: 'ai', forceMode: 'B' },
-  { code: 'ai-summary', label: 'AI summary เอกสาร', price: 800, group: 'ai', forceMode: 'B' },
-  { code: 'ai-ocr', label: 'OCR (อ่านบิล/สลิป)', price: 1200, group: 'ai', forceMode: 'B' },
+  { code: 'ai-chat', label: 'AI chat assistant', price: 1500, group: 'ai', forceMode: 'B', bReason: 'AI streaming response + GAS execution limit 6 นาทีต่อ request — UX จะแย่ใน HtmlService' },
+  { code: 'ai-search', label: 'AI semantic search', price: 1000, group: 'ai', forceMode: 'B', bReason: 'Embedding lookup ต้องการ persistent connection ที่ HtmlService ไม่รองรับ' },
+  { code: 'ai-summary', label: 'AI summary เอกสาร', price: 800, group: 'ai' },
+  { code: 'ai-ocr', label: 'OCR (อ่านบิล/สลิป)', price: 1200, group: 'ai' },
 ];
 
 const ADDON_GROUPS = [
@@ -376,8 +381,9 @@ function updateDeliveryMethodForMode() {
 
 function showForceModeBModal(addon, onAccept, onCancel) {
   const modal = document.getElementById('forceModeBModal');
-  document.getElementById('forceModeBReason').textContent =
-    `ฟีเจอร์ "${addon.label}" ต้องใช้ Mode Hybrid (Vercel + GAS) เพราะไม่ทำงานใน HTMLService ของ Google`;
+  const reason = addon.bReason || 'ฟีเจอร์นี้ใช้ใน HTMLService ของ GAS ไม่ได้';
+  document.getElementById('forceModeBReason').innerHTML =
+    `ฟีเจอร์ <strong>"${escapeHtml(addon.label)}"</strong> ต้องใช้ Mode Hybrid (Vercel + GAS)<br><br><span class="text-xs text-slate-500">เหตุผล: ${escapeHtml(reason)}</span>`;
   modal.classList.remove('hidden');
 
   const accept = document.getElementById('modeBAccept');
