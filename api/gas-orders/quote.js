@@ -15,15 +15,15 @@ const SETUP_SERVICE_PRICE = 1200;
 // Mirror of js/gas-builder.js ADDONS (keep in sync)
 const ADDON_PRICES = {
   // arch
-  'spa': 300, 'pwa': 500, 'dark-mode': 200, 'multi-lang': 400,
-  // auth
-  'no-auth': 0, 'google-oauth': 300, 'line-login': 500, 'email-password': 700, 'phone-otp': 900,
-  // role
-  'role-2tier': 300, 'role-custom': 700, 'permission-row': 1000,
-  // integration
+  'spa': 100, 'pwa': 200, 'dark-mode': 100, 'multi-lang': 200,
+  // auth (uniform +300, no-auth = 0, phone-otp removed)
+  'no-auth': 0, 'google-oauth': 300, 'line-login': 300, 'email-password': 300,
+  // role (consolidated to single option)
+  'role-permission': 300,
+  // integration (sms-thai + webhook-out removed)
   'line-push': 500, 'line-bot': 1000, 'telegram-bot': 400, 'email-send': 400,
   'promptpay': 500, 'slip-verify': 700, 'google-calendar': 500, 'google-drive-upload': 300,
-  'google-maps': 500, 'webhook-out': 200, 'sms-thai': 600,
+  'google-maps': 500,
   // feature
   'charts': 500, 'view-calendar': 400, 'view-kanban': 400, 'view-map': 600,
   'file-upload': 400, 'image-gallery': 300, 'camera-capture': 500, 'barcode-scan': 700,
@@ -35,13 +35,12 @@ const ADDON_PRICES = {
 
 // Keep in sync with js/gas-builder.js ADDONS where forceMode='B'
 // Reason: features ที่ทำงานใน HtmlService ของ GAS ไม่ได้จริง
-// (spa/multi-lang/google-oauth/google-calendar/ai-summary/ai-ocr/permission-row ทำได้ → ลบออก)
 const FORCE_MODE_B_ADDONS = new Set([
-  'pwa',                                       // Service Worker
-  'line-login', 'email-password', 'phone-otp', // auth flow ที่ HtmlService ทำได้ลำบาก
-  'google-maps', 'view-map',                   // Maps SDK + billing friction
-  'camera-capture', 'barcode-scan',            // camera blocked in HtmlService
-  'ai-chat', 'ai-search',                      // streaming + 6min execution limit
+  'pwa',                              // Service Worker
+  'line-login', 'email-password',     // auth flow ที่ HtmlService ทำได้ลำบาก
+  'google-maps', 'view-map',          // Maps SDK + billing friction
+  'camera-capture', 'barcode-scan',   // camera blocked in HtmlService
+  'ai-chat', 'ai-search',             // streaming + 6min execution limit
 ]);
 
 module.exports = async function handler(req, res) {

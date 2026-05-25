@@ -23,22 +23,19 @@ const FLOOR_PRICE = 499;
 // ทั้งหมดทำได้ใน HTMLService — ไม่ต้อง force B
 const ADDONS = [
   // Architecture
-  { code: 'spa', label: 'SPA (single-page, fast)', price: 300, group: 'arch' },
-  { code: 'pwa', label: 'PWA + offline', price: 500, group: 'arch', forceMode: 'B', bReason: 'Service Worker ต้องการ domain จริง — HtmlService iframe sandbox ไม่รองรับ', dependsOn: 'spa' },
-  { code: 'dark-mode', label: 'Dark mode (user toggle)', price: 200, group: 'arch' },
-  { code: 'multi-lang', label: 'Multi-language TH/EN', price: 400, group: 'arch' },
+  { code: 'spa', label: 'SPA (single-page, fast)', price: 100, group: 'arch' },
+  { code: 'pwa', label: 'PWA + offline', price: 200, group: 'arch', forceMode: 'B', bReason: 'Service Worker ต้องการ domain จริง — HtmlService iframe sandbox ไม่รองรับ', dependsOn: 'spa' },
+  { code: 'dark-mode', label: 'Dark mode (user toggle)', price: 100, group: 'arch' },
+  { code: 'multi-lang', label: 'Multi-language TH/EN', price: 200, group: 'arch' },
 
-  // Auth (radio — เลือกได้ 1)
+  // Auth (radio — เลือกได้ 1, ราคา +฿300 เท่ากันทุกตัว ยกเว้น no-auth = ฟรี)
   { code: 'no-auth', label: 'ไม่ต้อง login', price: 0, group: 'auth', radio: true, default: true },
   { code: 'google-oauth', label: 'Google OAuth (built-in ใน Mode A)', price: 300, group: 'auth', radio: true },
-  { code: 'line-login', label: 'LINE Login', price: 500, group: 'auth', radio: true, forceMode: 'B', bReason: 'LINE Console ไม่รับ script.google.com เป็น callback URL ที่ stable' },
-  { code: 'email-password', label: 'Email/Password', price: 700, group: 'auth', radio: true, forceMode: 'B', bReason: 'auth flow ต้องการ session management ที่ HtmlService ไม่ครอบคลุม' },
-  { code: 'phone-otp', label: 'Phone OTP', price: 900, group: 'auth', radio: true, forceMode: 'B', bReason: 'SMS provider verification ต้องการ domain ของจริง' },
+  { code: 'line-login', label: 'LINE Login', price: 300, group: 'auth', radio: true, forceMode: 'B', bReason: 'LINE Console ไม่รับ script.google.com เป็น callback URL ที่ stable' },
+  { code: 'email-password', label: 'Email/Password', price: 300, group: 'auth', radio: true, forceMode: 'B', bReason: 'auth flow ต้องการ session management ที่ HtmlService ไม่ครอบคลุม' },
 
-  // Role
-  { code: 'role-2tier', label: '2 roles (admin + user)', price: 300, group: 'role' },
-  { code: 'role-custom', label: 'Custom roles 3+', price: 700, group: 'role' },
-  { code: 'permission-row', label: 'Permission per column/row', price: 1000, group: 'role' },
+  // Role/Permission (single option)
+  { code: 'role-permission', label: 'Role-based access (admin/user/custom roles, row-level)', price: 300, group: 'role' },
 
   // Integration
   { code: 'line-push', label: 'LINE Push (Messaging API one-way)', price: 500, group: 'integration' },
@@ -50,8 +47,6 @@ const ADDONS = [
   { code: 'google-calendar', label: 'Google Calendar sync', price: 500, group: 'integration' },
   { code: 'google-drive-upload', label: 'Google Drive upload', price: 300, group: 'integration' },
   { code: 'google-maps', label: 'Google Maps', price: 500, group: 'integration', forceMode: 'B', bReason: 'Google Maps SDK ใน iframe ของ HtmlService มี restriction หลายอย่าง + ต้องผูกบัตรเครดิต' },
-  { code: 'webhook-out', label: 'Webhook out (Zapier/Make)', price: 200, group: 'integration' },
-  { code: 'sms-thai', label: 'SMS (Thai SMS)', price: 600, group: 'integration' },
 
   // Features
   { code: 'charts', label: 'Charts / dashboard', price: 500, group: 'feature' },
