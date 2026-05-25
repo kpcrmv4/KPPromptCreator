@@ -261,9 +261,15 @@ function renderTemplates() {
       state.template = state.templates.find(t => t.code === code);
       renderTemplates();
       updateTotalsDisplay();
+      updateNavButtons();
       saveDraft();
     });
   });
+}
+
+function updateNavButtons() {
+  const btnNext = document.getElementById('btnNext');
+  if (btnNext) btnNext.disabled = !canAdvance(state.step);
 }
 
 function renderAddons() {
