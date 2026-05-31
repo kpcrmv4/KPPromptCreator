@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel — KP Marketplace</title>
-  <meta name="description" content="จัดการระบบ Marketplace อนุมัติ Prompt และจัดการสมาชิก">
+  <title>Admin Panel — KP Prompt Creator</title>
+  <meta name="description" content="จัดการสมาชิก ตั้งค่าระบบ และการแจ้งเตือนของ KP Prompt Creator">
   <meta name="robots" content="noindex">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/images/logo.png" type="image/png">
@@ -68,12 +68,6 @@
       color: #4f46e5;
       border-bottom: 2px solid #4f46e5;
     }
-    /* Status sub-tabs */
-    .admin-status-tab { transition: all 0.15s; }
-    .admin-status-tab.active {
-      background-color: #4f46e5;
-      color: #ffffff;
-    }
   </style>
 </head>
 <body class="bg-slate-50 font-sans antialiased pb-16 md:pb-0">
@@ -88,7 +82,7 @@
           <img src="images/logo.png" alt="KP" class="w-8 h-8 rounded-lg">
           <div class="flex flex-col leading-tight">
             <span class="gradient-text font-bold text-base leading-none">KP</span>
-            <span class="text-slate-500 text-xs leading-none">Marketplace</span>
+            <span class="text-slate-500 text-xs leading-none">Prompt Creator</span>
           </div>
         </a>
 
@@ -98,9 +92,9 @@
             <i data-lucide="home" class="w-4 h-4"></i>
             หน้าแรก
           </a>
-          <a href="/marketplace.html" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
-            <i data-lucide="store" class="w-4 h-4"></i>
-            Marketplace
+          <a href="/admin-courses.html" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+            <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+            คอร์ส
           </a>
           <a href="/admin.html" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 bg-indigo-50 transition-colors">
             <i data-lucide="shield-check" class="w-4 h-4"></i>
@@ -122,20 +116,9 @@
 
           <!-- User Menu (logged in) -->
           <span class="user-menu hidden items-center gap-2">
-            <!-- Wallet balance -->
-            <a href="/topup.html" class="hidden sm:flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors">
-              <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
-              <span class="user-balance">฿0.00</span>
-            </a>
-
-            <!-- Orders -->
-            <a href="/orders.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="คำสั่งซื้อ">
-              <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-            </a>
-
-            <!-- Dashboard -->
-            <a href="/dashboard.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="Dashboard">
-              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <!-- สั่งสร้างระบบ -->
+            <a href="/gas-builder.html" class="hidden sm:flex items-center gap-1 text-sm text-slate-600 hover:text-indigo-600 px-2 py-2 rounded-lg hover:bg-slate-100 transition-colors" title="สั่งสร้างระบบ">
+              <i data-lucide="boxes" class="w-4 h-4"></i>
             </a>
 
             <!-- Admin only -->
@@ -158,17 +141,9 @@
                   <i data-lucide="user-circle" class="w-4 h-4 text-slate-400"></i>
                   บัญชีของฉัน
                 </a>
-                <a href="/orders.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
-                  <i data-lucide="shopping-bag" class="w-4 h-4 text-slate-400"></i>
-                  คำสั่งซื้อ
-                </a>
-                <a href="/topup.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
-                  <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
-                  เติมเครดิต
-                </a>
-                <a href="/dashboard.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-                  <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i>
-                  Dashboard
+                <a href="/gas-builder.html" class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors sm:hidden">
+                  <i data-lucide="boxes" class="w-4 h-4 text-slate-400"></i>
+                  สั่งสร้างระบบ
                 </a>
                 <a href="/admin.html" class="admin-only flex items-center gap-2 px-4 py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 transition-colors">
                   <i data-lucide="shield" class="w-4 h-4"></i>
@@ -195,8 +170,8 @@
         <a href="/" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
           <i data-lucide="home" class="w-4 h-4"></i> หน้าแรก
         </a>
-        <a href="/marketplace.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
-          <i data-lucide="store" class="w-4 h-4"></i> Marketplace
+        <a href="/admin-courses.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+          <i data-lucide="graduation-cap" class="w-4 h-4"></i> คอร์ส
         </a>
         <a href="/admin.html" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-indigo-600 bg-indigo-50">
           <i data-lucide="shield-check" class="w-4 h-4"></i> Admin Panel
@@ -221,7 +196,7 @@
             Admin Panel
           </h1>
           <p class="text-indigo-300 text-sm sm:text-base mt-1">
-            จัดการระบบ Marketplace — Prompts, สมาชิก, แจ้งเตือน และตั้งค่า
+            จัดการสมาชิก, การแจ้งเตือน และตั้งค่าระบบ
           </p>
         </div>
       </div>
@@ -245,37 +220,11 @@
       <div class="flex overflow-x-auto border-b border-slate-200 scrollbar-hide">
         <button
           class="admin-tab active flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
-          data-tab="admin-tab-prompts"
-          onclick="switchAdminTab('admin-tab-prompts', this)"
-        >
-          <i data-lucide="layers" class="w-4 h-4"></i>
-          จัดการ Prompt
-        </button>
-        <button
-          class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
           data-tab="admin-tab-users"
           onclick="switchAdminTab('admin-tab-users', this)"
         >
           <i data-lucide="users" class="w-4 h-4"></i>
           สมาชิก
-        </button>
-        <button
-          class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
-          data-tab="admin-tab-topups"
-          onclick="switchAdminTab('admin-tab-topups', this)"
-        >
-          <i data-lucide="wallet" class="w-4 h-4"></i>
-          เติมเครดิต
-          <span id="admin-topup-badge" class="hidden bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[1.1rem] text-center"></span>
-        </button>
-        <button
-          class="admin-tab flex items-center gap-2 px-5 py-4 text-sm font-medium text-slate-500 hover:text-indigo-600 whitespace-nowrap shrink-0 border-b-2 border-transparent"
-          data-tab="admin-tab-codegen"
-          onclick="switchAdminTab('admin-tab-codegen', this)"
-        >
-          <i data-lucide="code-2" class="w-4 h-4"></i>
-          Code Gen
-          <span id="admin-codegen-badge" class="hidden bg-violet-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[1.1rem] text-center"></span>
         </button>
         <a
           href="/admin-courses.html"
@@ -304,88 +253,10 @@
         </button>
       </div>
 
-      <!-- ── Tab: จัดการ Prompt ── -->
-      <div class="admin-tab-content active" id="admin-tab-prompts">
-        <div class="p-4 sm:p-6">
-          <!-- Status sub-tabs -->
-          <div class="flex flex-wrap gap-2 mb-6">
-            <button
-              class="admin-status-tab active flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors"
-              onclick="handleStatusTab(this, 'pending')"
-            >
-              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-              รออนุมัติ
-            </button>
-            <button
-              class="admin-status-tab flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors"
-              onclick="handleStatusTab(this, 'approved')"
-            >
-              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-              อนุมัติแล้ว
-            </button>
-            <button
-              class="admin-status-tab flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors"
-              onclick="handleStatusTab(this, 'rejected')"
-            >
-              <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
-              ปฏิเสธ
-            </button>
-          </div>
-
-          <!-- Prompts list (populated by JS) -->
-          <div id="admin-prompts">
-            <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <div class="spinner"></div>
-              <p class="text-sm">กำลังโหลด...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ── Tab: สมาชิก ── -->
-      <div class="admin-tab-content hidden" id="admin-tab-users">
+      <div class="admin-tab-content active" id="admin-tab-users">
         <div class="p-4 sm:p-6">
           <div id="admin-users">
-            <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <div class="spinner"></div>
-              <p class="text-sm">กำลังโหลด...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Tab: เติมเครดิต ── -->
-      <div class="admin-tab-content hidden" id="admin-tab-topups">
-        <div class="p-4 sm:p-6">
-          <div id="admin-topups">
-            <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
-              <div class="spinner"></div>
-              <p class="text-sm">กำลังโหลด...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Tab: Code Gen ── -->
-      <div class="admin-tab-content hidden" id="admin-tab-codegen">
-        <div class="p-4 sm:p-6">
-          <h3 class="text-lg font-bold text-slate-800 mb-2">Code Generation Orders</h3>
-          <!-- Status filter tabs -->
-          <div class="flex gap-1 mb-4 overflow-x-auto pb-1">
-            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border-2 border-amber-400" data-status="pending_payment" onclick="switchCodegenStatusTab('pending_payment', this)">
-              รอดำเนินการ <span id="codegen-count-pending" class="ml-1 opacity-70"></span>
-            </button>
-            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="review" onclick="switchCodegenStatusTab('review', this)">
-              รอตรวจสอบ <span id="codegen-count-review" class="ml-1 opacity-70"></span>
-            </button>
-            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="completed" onclick="switchCodegenStatusTab('completed', this)">
-              เสร็จแล้ว <span id="codegen-count-completed" class="ml-1 opacity-70"></span>
-            </button>
-            <button class="codegen-status-tab px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-500" data-status="rejected" onclick="switchCodegenStatusTab('rejected', this)">
-              ปฏิเสธ <span id="codegen-count-rejected" class="ml-1 opacity-70"></span>
-            </button>
-          </div>
-          <div id="admin-codegen-orders">
             <div class="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
               <div class="spinner"></div>
               <p class="text-sm">กำลังโหลด...</p>
@@ -423,23 +294,17 @@
 
   <!-- ===== BOTTOM NAVIGATION (mobile only) ===== -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 flex md:hidden">
-    <a href="/marketplace.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-      <i data-lucide="store" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
-      <span class="bottom-nav-label text-xs text-slate-400">Explore</span>
+    <a href="/" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="sparkles" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">สร้าง Prompt</span>
     </a>
-    <a href="/orders.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-      <i data-lucide="shopping-bag" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
-      <span class="bottom-nav-label text-xs text-slate-400">คำสั่งซื้อ</span>
+    <a href="/admin-courses.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="graduation-cap" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">คอร์ส</span>
     </a>
-    <a href="/dashboard.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-      <div class="w-9 h-9 hero-gradient rounded-full flex items-center justify-center -mt-4 shadow-lg">
-        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
-      </div>
-      <span class="bottom-nav-label text-xs text-slate-400 mt-0.5">สร้าง</span>
-    </a>
-    <a href="/topup.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-      <i data-lucide="wallet" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
-      <span class="bottom-nav-label text-xs text-slate-400">เติมเงิน</span>
+    <a href="/account.html" class="bottom-nav-item flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+      <i data-lucide="user-circle" class="bottom-nav-icon w-5 h-5 text-slate-400"></i>
+      <span class="bottom-nav-label text-xs text-slate-400">บัญชี</span>
     </a>
     <a href="/admin.html" class="bottom-nav-item active flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
       <i data-lucide="shield-check" class="bottom-nav-icon w-5 h-5 text-indigo-600"></i>
@@ -476,20 +341,11 @@
       if (btn) btn.classList.add('active');
     }
 
-    // Handle prompt status sub-tab
-    function handleStatusTab(btn, status) {
-      document.querySelectorAll('.admin-status-tab').forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      if (typeof loadAdminPromptsByStatus === 'function') {
-        loadAdminPromptsByStatus(status);
-      }
-    }
-
     // Init Lucide icons
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
-      // Activate first tab explicitly so marketplace.js sees it
-      const firstTab = document.querySelector('.admin-tab[data-tab="admin-tab-prompts"]');
+      // Activate first tab explicitly so mp-dashboard.js sees it
+      const firstTab = document.querySelector('.admin-tab[data-tab="admin-tab-users"]');
       if (firstTab) firstTab.classList.add('active');
     });
   </script>

@@ -59,27 +59,7 @@
         </div>
       </section>
 
-      <!-- Payment method selector -->
-      <section class="grid md:grid-cols-2 gap-4 mb-6">
-        <button id="method-credit" class="bg-white rounded-xl border-2 border-slate-200 p-5 text-left hover:border-indigo-400 transition">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold text-slate-900">ใช้เครดิตในระบบ</div>
-            <i data-lucide="wallet" class="h-5 w-5 text-slate-400"></i>
-          </div>
-          <div class="text-sm text-slate-500">เครดิตคงเหลือ <span class="font-semibold text-slate-700">฿<span id="credit-balance">0</span></span></div>
-          <div id="credit-insufficient" class="hidden mt-2 text-xs text-amber-600">เครดิตไม่พอ — เลือกโอน PromptPay หรือเติมเครดิตก่อน</div>
-        </button>
-
-        <button id="method-slip" class="bg-white rounded-xl border-2 border-indigo-500 p-5 text-left hover:border-indigo-600 transition">
-          <div class="flex items-center justify-between mb-2">
-            <div class="font-semibold text-slate-900">โอนผ่าน PromptPay</div>
-            <i data-lucide="qr-code" class="h-5 w-5 text-indigo-500"></i>
-          </div>
-          <div class="text-sm text-slate-500">สแกน → upload สลิป → ระบบยืนยันอัตโนมัติใน 10 วินาที</div>
-        </button>
-      </section>
-
-      <!-- Slip flow (shown by default) -->
+      <!-- Slip flow (only payment method) -->
       <section id="slip-flow" class="bg-white rounded-xl border border-slate-200 p-6">
         <h2 class="text-lg font-semibold mb-4">โอนผ่าน PromptPay</h2>
 
@@ -170,12 +150,6 @@
       document.getElementById('course-title').textContent = course.title;
       document.getElementById('course-subtitle').textContent = course.subtitle || '';
       document.getElementById('amount').textContent = Number(course.price).toLocaleString();
-      document.getElementById('credit-balance').textContent = Number(user.credit_balance || 0).toLocaleString();
-
-      if (Number(user.credit_balance) < Number(course.price)) {
-        document.getElementById('credit-insufficient').classList.remove('hidden');
-        document.getElementById('method-credit').disabled = true;
-      }
 
       // PromptPay QR (server tells client the number via window.__PROMPTPAY__ if needed; here we hardcode)
       const phone = window.__PROMPTPAY__ || '0995588665';
@@ -187,26 +161,6 @@
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('content').classList.remove('hidden');
       lucide.createIcons();
-    }
-
-    // Method toggles
-    document.getElementById('method-credit').addEventListener('click', payWithCredit);
-    document.getElementById('method-slip').addEventListener('click', () => {
-      document.getElementById('slip-flow').scrollIntoView({ behavior: 'smooth' });
-    });
-
-    async function payWithCredit() {
-      if (!confirm(`ยืนยันการชำระ ฿${Number(course.price).toLocaleString()} ด้วยเครดิต?`)) return;
-      const btn = document.getElementById('method-credit');
-      btn.disabled = true;
-
-      const res = await fetch('/api/course-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ course_id: course.id, payment_method: 'credit' }),
-      });
-      const data = await res.json();
-      handleResult(res.ok, data);
     }
 
     // File drop + QR extract

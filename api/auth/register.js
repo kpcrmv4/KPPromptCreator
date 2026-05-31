@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
         display_name,
         role: userRole
       })
-      .select('id, email, display_name, role, credit_balance')
+      .select('id, email, display_name, role')
       .single();
 
     if (profileError) {
