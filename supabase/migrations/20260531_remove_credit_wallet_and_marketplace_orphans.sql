@@ -89,7 +89,7 @@ ALTER TABLE users
   DROP COLUMN IF EXISTS promptpay_number,
   DROP COLUMN IF EXISTS promptpay_name;
 
--- 5) Drop orphaned storage policies + empty buckets (all verified 0 objects on 2026-05-31).
+-- 5) Drop orphaned storage policies for the now-dead buckets.
 --    Kept: 'codegen' (course slips + GAS zips) and 'course-images'.
 DROP POLICY IF EXISTS "Authenticated users can upload topup slips" ON storage.objects;
 DROP POLICY IF EXISTS "Owner can delete topup slips" ON storage.objects;
@@ -100,9 +100,10 @@ DROP POLICY IF EXISTS "avatars_user_upload" ON storage.objects;
 DROP POLICY IF EXISTS "payout_proofs_admin_upload" ON storage.objects;
 DROP POLICY IF EXISTS "payout_proofs_public_read" ON storage.objects;
 
-DELETE FROM storage.objects
-  WHERE bucket_id IN ('prompt-files', 'prompt-images', 'payout-proofs', 'avatars', 'topup-slips');
-DELETE FROM storage.buckets
-  WHERE id IN ('prompt-files', 'prompt-images', 'payout-proofs', 'avatars', 'topup-slips');
+-- NOTE: the empty buckets prompt-files, prompt-images, payout-proofs, avatars, topup-slips
+-- could NOT be dropped here — Postgres blocks `DELETE FROM storage.buckets/objects`
+-- (storage.protect_delete()). They are now policy-less and inert (verified 0 objects on
+-- 2026-05-31). Delete them via the Supabase Dashboard → Storage, or the Storage API
+-- (DELETE /storage/v1/bucket/{id} with the service-role key).
 
 COMMIT;
