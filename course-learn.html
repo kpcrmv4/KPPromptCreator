@@ -33,7 +33,11 @@
     .prose-content ol { list-style: decimal; }
     .prose-content li { margin: 0.25rem 0; line-height: 1.7; color: #334155; }
     .prose-content code:not(pre code) { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875em; color: #4338ca; }
-    .prose-content pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+    .prose-content pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; position: relative; }
+    .code-copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 0.7rem; line-height: 1; background: rgba(148,163,184,0.18); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.25); padding: 0.3rem 0.55rem; border-radius: 0.375rem; cursor: pointer; opacity: 0; transition: opacity 0.15s, background 0.15s; }
+    .prose-content pre:hover .code-copy-btn, .code-copy-btn:focus { opacity: 1; }
+    .code-copy-btn:hover { background: rgba(148,163,184,0.32); color: #fff; }
+    @media (hover: none) { .code-copy-btn { opacity: 1; } }
     .prose-content blockquote { border-left: 3px solid #6366f1; padding-left: 1rem; margin: 1rem 0; color: #64748b; font-style: italic; }
     .prose-content a { color: #6366f1; text-decoration: underline; }
     .prose-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; border: 1px solid #e2e8f0; }
@@ -360,11 +364,23 @@
       // Markdown
       const md = l.content_md || '_เนื้อหากำลังเตรียม_';
       document.getElementById('lesson-md').innerHTML = marked.parse(md);
+      addInlineCopyButtons();
 
-      // Code snippets
+      // Code snippets — โชว์เฉพาะที่ "ไม่ซ้ำ" กับโค้ดในเนื้อหา
+      // (เนื้อหามีปุ่มคัดลอก inline แล้ว; capstone "ไฟล์เต็ม" ที่ไม่ได้อยู่ในเนื้อหาจะยังโชว์ที่นี่)
       const snippetsEl = document.getElementById('lesson-snippets');
       snippetsEl.innerHTML = '';
-      (l.code_snippets || []).forEach((s, idx) => {
+      const mdNorm = (md || '').replace(/\s+/g, '');
+      const snippets = (l.code_snippets || []).filter((s) => {
+        const codeNorm = (s.code || '').replace(/\s+/g, '');
+        return codeNorm.length > 0 && !mdNorm.includes(codeNorm);
+      });
+      window.__snippets__ = snippets;
+      if (snippets.length) {
+        snippetsEl.insertAdjacentHTML('beforeend',
+          '<h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">📦 ไฟล์เต็ม (กดคัดลอกได้)</h3>');
+      }
+      snippets.forEach((s, idx) => {
         snippetsEl.insertAdjacentHTML('beforeend', `
           <div class="bg-slate-900 rounded-lg overflow-hidden">
             <div class="flex items-center justify-between px-4 py-2 bg-slate-800 text-slate-300 text-xs">
@@ -375,7 +391,6 @@
           </div>
         `);
       });
-      window.__snippets__ = l.code_snippets || [];
 
       // Images
       const imagesEl = document.getElementById('lesson-images');
@@ -409,6 +424,27 @@
         t.textContent = '✅ คัดลอกแล้ว';
         document.body.appendChild(t);
         setTimeout(() => t.remove(), 1500);
+      });
+    }
+
+    // เติมปุ่มคัดลอกให้ทุก code block ที่อยู่ "ในเนื้อหา" (markdown ```...```)
+    function addInlineCopyButtons() {
+      document.querySelectorAll('#lesson-md pre').forEach((pre) => {
+        if (pre.querySelector('.code-copy-btn')) return;
+        const codeEl = pre.querySelector('code');
+        const code = (codeEl ? codeEl.textContent : pre.textContent) || '';
+        if (!code.trim()) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'code-copy-btn';
+        btn.textContent = '📋 คัดลอก';
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = '✅ คัดลอกแล้ว';
+            setTimeout(() => { btn.textContent = '📋 คัดลอก'; }, 1500);
+          });
+        });
+        pre.appendChild(btn);
       });
     }
 
