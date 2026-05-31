@@ -27,14 +27,12 @@ function updateAuthUI() {
   const authLinks = document.querySelectorAll('.auth-links');
   const userMenu = document.querySelectorAll('.user-menu');
   const userNameEls = document.querySelectorAll('.user-display-name');
-  const balanceEls = document.querySelectorAll('.user-balance');
   const adminOnly = document.querySelectorAll('.admin-only');
 
   if (currentUser) {
     authLinks.forEach(el => el.style.display = 'none');
     userMenu.forEach(el => el.style.display = 'flex');
     userNameEls.forEach(el => el.textContent = currentUser.display_name);
-    balanceEls.forEach(el => el.textContent = `฿${parseFloat(currentUser.credit_balance).toFixed(2)}`);
     adminOnly.forEach(el => el.style.display = currentUser.role === 'admin' ? '' : 'none');
   } else {
     authLinks.forEach(el => el.style.display = '');
@@ -111,7 +109,7 @@ async function handleRegister(e) {
     });
     setAuth(data.user, data.token);
     showToast('สมัครสมาชิกสำเร็จ!', 'success');
-    setTimeout(() => window.location.href = '/marketplace.html', 500);
+    setTimeout(() => window.location.href = '/', 500);
   } catch (err) {
     showToast(err.error || 'สมัครไม่สำเร็จ', 'error');
   } finally {
@@ -135,7 +133,7 @@ async function handleLogin(e) {
     });
     setAuth(data.user, data.token);
     showToast('เข้าสู่ระบบสำเร็จ!', 'success');
-    setTimeout(() => window.location.href = '/marketplace.html', 500);
+    setTimeout(() => window.location.href = '/', 500);
   } catch (err) {
     showToast(err.error || 'เข้าสู่ระบบไม่สำเร็จ', 'error');
   } finally {
@@ -153,78 +151,6 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-const PROMPT_CATEGORY_LABELS = {
-  free: 'ฟรี',
-  'web-app': 'Web Application',
-  'mobile-app': 'Mobile App',
-  api: 'API / Backend',
-  ecommerce: 'E-Commerce',
-  dashboard: 'Dashboard',
-  'landing-page': 'Landing Page',
-  automation: 'Automation',
-  other: 'อื่นๆ'
-};
-
-function normalizePromptPrice(value) {
-  const amount = Number(value);
-  return Number.isFinite(amount) ? amount : 0;
-}
-
-function isFreePrompt(value) {
-  return normalizePromptPrice(value) === 0;
-}
-
-function formatPromptPrice(value, options = {}) {
-  const amount = normalizePromptPrice(value);
-  const decimals = Number.isInteger(options.decimals) ? options.decimals : 0;
-
-  if (amount === 0) return options.freeLabel || 'ฟรี';
-  return `฿${amount.toFixed(decimals)}`;
-}
-
-function getPromptCategoryLabel(category) {
-  return PROMPT_CATEGORY_LABELS[category] || category || PROMPT_CATEGORY_LABELS.other;
-}
-
-function renderPromptCategoryBadges(category, price, options = {}) {
-  const badges = [];
-  const baseClass = options.baseClass || 'text-xs font-medium px-2 py-0.5 rounded-full';
-  const freeClass = options.freeClass || 'bg-emerald-50 text-emerald-600';
-  const categoryClass = options.categoryClass || 'bg-indigo-50 text-indigo-600';
-
-  if (isFreePrompt(price)) {
-    badges.push(`<span class="${baseClass} ${freeClass}">ฟรี</span>`);
-  }
-
-  if (category) {
-    badges.push(`<span class="${baseClass} ${categoryClass}">${escapeHtml(getPromptCategoryLabel(category))}</span>`);
-  }
-
-  return badges.join('');
-}
-
-function getPromptPricingNote(value) {
-  return isFreePrompt(value)
-    ? 'ตั้งราคา 0 บาท ระบบจะขึ้นในหมวดฟรีอัตโนมัติ และจะไม่คิดค่าธรรมเนียม'
-    : 'รายการแบบเสียเงินจะคิดค่าคอมตามค่าที่ผู้ดูแลระบบตั้งไว้';
-}
-
-function bindPromptPricingHelper(priceInput, helperEl) {
-  if (!priceInput || !helperEl) return;
-
-  const sync = () => {
-    const freePrompt = isFreePrompt(priceInput.value);
-    helperEl.textContent = getPromptPricingNote(priceInput.value);
-    helperEl.className = freePrompt
-      ? 'mt-1.5 text-xs font-medium text-emerald-600'
-      : 'mt-1.5 text-xs text-slate-400';
-  };
-
-  priceInput.oninput = sync;
-  priceInput.onchange = sync;
-  sync();
-}
-
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -237,16 +163,6 @@ function readFileAsBase64(file) {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.remove();
-}
-
-function copyShopLink() {
-  if (!currentUser) { showToast('กรุณาเข้าสู่ระบบก่อน', 'error'); return; }
-  const url = `${window.location.origin}/marketplace.html?seller=${currentUser.id}`;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('คัดลอกลิงก์ร้านค้าแล้ว!', 'success');
-  }).catch(() => {
-    showToast(url, 'info');
-  });
 }
 
 // =============================================
@@ -316,40 +232,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const page = window.location.pathname;
 
-  if (page.includes('marketplace')) {
-    loadPrompts();
-    // Check seller filter from URL
-    const sellerId = new URLSearchParams(window.location.search).get('seller');
-    if (sellerId) loadSellerHeader(sellerId);
-  } else if (page.includes('prompt-detail')) {
-    loadPromptDetail();
-  } else if (page.includes('topup')) {
-    if (!currentUser) { window.location.href = '/auth.html'; return; }
-    setupFilePreview('slip-image-input', 'slip-preview', { type: 'image' });
-    loadCreditHistory();
-    loadPendingTopups();
-  } else if (page.includes('orders') && !page.includes('admin')) {
-    if (!currentUser) { window.location.href = '/auth.html'; return; }
-    loadOrders();
-    if (typeof loadCodegenOrders === 'function') loadCodegenOrders();
-  } else if (page.includes('account')) {
+  if (page.includes('account')) {
     if (!currentUser) { window.location.href = '/auth.html'; return; }
     loadAccountForm();
     loadMyPrompts();
-    loadPurchasedPrompts();
     loadCollections();
-  } else if (page.includes('dashboard')) {
-    if (!currentUser) { window.location.href = '/auth.html'; return; }
-    initDashboardTabs();
-    setupFilePreview('prompt-file-input', 'prompt-file-info', { type: 'file' });
-    setupFilePreview('preview-image-input', 'preview-image-preview', { type: 'image' });
-    setupFilePreview('detail-images-input', 'detail-images-preview', { type: 'images' });
-    if (typeof setupPromptPricingHelpers === 'function') setupPromptPricingHelpers();
-    initPayoutPromptPay();
-    loadSellerDashboard();
-    loadSellerIncomeHistory();
-    loadSellerPayoutHistory();
-    loadSellerNotifications();
   } else if (page.includes('admin')) {
     if (!currentUser || currentUser.role !== 'admin') {
       window.location.href = '/auth.html'; return;
@@ -357,12 +244,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAdminTabs();
     loadAdminOverview();
     loadAdminNotifications();
-    loadAdminTopups();
-    loadAdminPendingPrompts();
-    loadAdminPayouts();
     loadAdminUsers();
     loadAdminSettings();
-    if (typeof loadAdminCodegenOrders === 'function') loadAdminCodegenOrders();
   }
 
   // Re-init Lucide icons

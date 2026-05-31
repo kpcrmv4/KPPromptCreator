@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     // 2. Fetch profile from public.users (by auth ID)
     let { data: user } = await supabaseAdmin
       .from('users')
-      .select('id, email, display_name, role, credit_balance, status')
+      .select('id, email, display_name, role, status')
       .eq('id', authUser.id)
       .single();
 
@@ -34,7 +34,7 @@ module.exports = async function handler(req, res) {
     if (!user) {
       const { data: legacyUser } = await supabaseAdmin
         .from('users')
-        .select('id, email, display_name, role, credit_balance, status')
+        .select('id, email, display_name, role, status')
         .eq('email', authUser.email)
         .single();
 
@@ -62,7 +62,7 @@ module.exports = async function handler(req, res) {
           display_name: displayName,
           role: role
         })
-        .select('id, email, display_name, role, credit_balance, status')
+        .select('id, email, display_name, role, status')
         .single();
 
       if (createError) {

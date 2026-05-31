@@ -1,4 +1,4 @@
-// POST /api/course-orders — buy course (credit OR promptpay_slip auto-verify)
+// POST /api/course-orders — buy course (promptpay_slip auto-verify)
 // GET  /api/course-orders — list user's own course orders
 //
 // Slip flow:
@@ -56,7 +56,7 @@ async function createOrder(req, res) {
   } = req.body || {};
 
   if (!course_id) return res.status(400).json({ error: 'missing course_id' });
-  if (!['credit', 'promptpay_slip'].includes(payment_method)) {
+  if (payment_method !== 'promptpay_slip') {
     return res.status(400).json({ error: 'payment_method ไม่ถูกต้อง' });
   }
 
@@ -82,63 +82,7 @@ async function createOrder(req, res) {
     return res.status(409).json({ error: 'คุณซื้อคอร์สนี้ไปแล้ว', already_enrolled: true });
   }
 
-  if (payment_method === 'credit') {
-    return handleCreditPayment(user, course, res);
-  }
   return handleSlipPayment(user, course, { slip_image_base64, slip_filename, qr_code }, res);
-}
-
-// --- Credit path ---
-async function handleCreditPayment(user, course, res) {
-  // สร้าง order record ก่อน (เพื่อ trace)
-  const { data: order, error: orderErr } = await supabaseAdmin
-    .from('course_orders')
-    .insert({
-      user_id: user.id,
-      course_id: course.id,
-      amount: course.price,
-      payment_method: 'credit',
-      status: 'verifying',
-    })
-    .select('id')
-    .single();
-  if (orderErr) return res.status(500).json({ error: 'สร้างคำสั่งซื้อไม่สำเร็จ' });
-
-  const { data: enrollResult, error: rpcErr } = await supabaseAdmin.rpc('enroll_course', {
-    p_user_id: user.id,
-    p_course_id: course.id,
-    p_payment_method: 'credit',
-    p_course_order_id: order.id,
-  });
-
-  if (rpcErr) {
-    await supabaseAdmin
-      .from('course_orders')
-      .update({
-        status: 'rejected',
-        slip_verify_error: rpcErr.message,
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', order.id);
-    return res.status(400).json({ error: thaiMessageForRpcError(rpcErr.message) });
-  }
-
-  await supabaseAdmin
-    .from('course_orders')
-    .update({
-      status: 'approved',
-      enrollment_id: enrollResult.enrollment_id,
-      processed_at: new Date().toISOString(),
-    })
-    .eq('id', order.id);
-
-  return res.json({
-    order_id: order.id,
-    status: 'approved',
-    enrollment_id: enrollResult.enrollment_id,
-    course_title: course.title,
-    new_balance: enrollResult.new_balance,
-  });
 }
 
 // --- Slip path (auto-verify) ---
@@ -320,7 +264,6 @@ function thaiMessageForRpcError(msg) {
     user_not_found: 'ไม่พบบัญชีผู้ใช้',
     course_not_found_or_unpublished: 'ไม่พบคอร์สหรือยังไม่เปิดขาย',
     already_enrolled: 'คุณซื้อคอร์สนี้ไปแล้ว',
-    insufficient_balance: 'เครดิตไม่พอ กรุณาเติมเครดิตก่อน',
     invalid_payment_method: 'รูปแบบการชำระเงินไม่รองรับ',
   };
   return map[msg] || `ลงทะเบียนไม่สำเร็จ (${msg})`;
