@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Examples — ตัวอย่างกดเล่นได้ | KP Prompt Creator</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Thai', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .tab-btn { padding: 0.4rem 0.8rem; border-radius: 0.5rem 0.5rem 0 0; color: #64748b; cursor: pointer; font-weight: 600; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: #4338ca; border-bottom-color: #6366f1; background: #eef2ff; }
+    .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 0.7rem; background: rgba(148,163,184,0.2); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); padding: 0.3rem 0.55rem; border-radius: 0.375rem; cursor: pointer; }
+    .copy-btn:hover { background: rgba(148,163,184,0.35); color: #fff; }
+    .demo-frame { width: 100%; display: block; border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #fff; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div id="page-header" class="bg-white border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-5">
+      <a href="/index.html" class="text-sm text-indigo-600">← กลับหน้าหลัก</a>
+      <h1 class="text-2xl font-bold mt-2">🎮 Live Examples — ตัวอย่างกดเล่นได้</h1>
+      <p class="text-slate-500 mt-1 text-sm">เทียบ UI แบบต่าง ๆ แบบกดเล่นได้จริง · ดูโค้ด · คัดลอก prompt ไปสั่ง AI ได้เลย</p>
+    </div>
+  </div>
+
+  <main id="root" class="max-w-5xl mx-auto px-4 py-6 space-y-6"></main>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg">✅ คัดลอกแล้ว</div>
+
+  <script src="examples-data.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const embedId = params.get('embed');
+    const demos = (window.KP_EXAMPLES || []).filter((d) => !embedId || d.id === embedId);
+    const root = document.getElementById('root');
+
+    function esc(s) {
+      return (s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add('hidden'), 1500);
+    }
+
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => showToast('✅ คัดลอกแล้ว'));
+    }
+
+    // iframe กดเล่นได้ + ปรับความสูงอัตโนมัติตามเนื้อหา
+    function makeFrame(html) {
+      const f = document.createElement('iframe');
+      f.className = 'demo-frame';
+      f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-modals allow-popups');
+      f.style.height = '180px';
+      f.srcdoc = html;
+      f.addEventListener('load', () => {
+        try {
+          const b = f.contentDocument.body;
+          const fit = () => {
+            f.style.height = Math.max(60, b.scrollHeight + 2) + 'px';
+            postEmbedHeight();
+          };
+          fit();
+          new ResizeObserver(fit).observe(b);
+        } catch (e) { /* cross-origin fallback: คงความสูงเริ่มต้น */ }
+      });
+      return f;
+    }
+
+    function makeCard(d) {
+      const card = document.createElement('div');
+      card.className = 'rounded-2xl border border-slate-200 bg-white overflow-hidden';
+      card.id = 'demo-' + d.id;
+
+      const tags = (d.tags || []).map((t) =>
+        `<span class="text-[11px] font-medium bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${esc(t)}</span>`).join(' ');
+
+      card.innerHTML = `
+        <div class="p-4 border-b border-slate-100">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-lg font-bold">${esc(d.title)}</h3>${tags}
+          </div>
+          <p class="text-sm text-slate-500 mt-1">${esc(d.concept)}</p>
+        </div>
+        <div class="px-4 pt-3 flex gap-1 border-b border-slate-100">
+          <div class="tab-btn active" data-tab="live">▶ ดูตัวอย่าง</div>
+          <div class="tab-btn" data-tab="code">&lt;/&gt; โค้ด</div>
+          <div class="tab-btn" data-tab="prompt">🤖 Prompt สั่ง AI</div>
+        </div>
+        <div class="p-4">
+          <div data-panel="live"></div>
+          <div data-panel="code" class="hidden relative"></div>
+          <div data-panel="prompt" class="hidden relative"></div>
+        </div>
+        <div class="px-4 pb-4 text-xs text-slate-500">💡 ${esc(d.when || '')}</div>`;
+
+      // Live panel — variants แต่ละตัวใน iframe แยก
+      const live = card.querySelector('[data-panel="live"]');
+      const grid = document.createElement('div');
+      grid.style.display = 'grid';
+      grid.style.gap = '12px';
+      grid.style.gridTemplateColumns = (d.variants.length > 1)
+        ? 'repeat(auto-fit, minmax(240px, 1fr))' : '1fr';
+      d.variants.forEach((v) => {
+        const block = document.createElement('div');
+        const label = document.createElement('div');
+        label.className = 'text-xs font-semibold text-slate-600 mb-1';
+        label.textContent = v.label;
+        block.appendChild(label);
+        block.appendChild(makeFrame(v.html));
+        grid.appendChild(block);
+      });
+      live.appendChild(grid);
+
+      // Code panel
+      const codePanel = card.querySelector('[data-panel="code"]');
+      codePanel.innerHTML =
+        `<button class="copy-btn">📋 คัดลอก</button>
+         <pre class="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto text-sm mono"><code>${esc(d.code || '')}</code></pre>`;
+      codePanel.querySelector('.copy-btn').addEventListener('click', () => copyText(d.code || ''));
+
+      // Prompt panel
+      const promptPanel = card.querySelector('[data-panel="prompt"]');
+      promptPanel.innerHTML =
+        `<button class="copy-btn">📋 คัดลอก prompt</button>
+         <pre class="bg-indigo-950 text-indigo-100 rounded-lg p-4 overflow-x-auto text-sm whitespace-pre-wrap" style="font-family:'Noto Sans Thai',sans-serif">${esc(d.prompt || '')}</pre>`;
+      promptPanel.querySelector('.copy-btn').addEventListener('click', () => copyText(d.prompt || ''));
+
+      // Tabs
+      card.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          card.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.dataset.tab;
+          card.querySelectorAll('[data-panel]').forEach((p) => {
+            p.classList.toggle('hidden', p.dataset.panel !== tab);
+          });
+          postEmbedHeight();
+        });
+      });
+
+      return card;
+    }
+
+    // โหมดฝังในบทเรียน: ส่งความสูงไปให้หน้า course-learn ปรับ iframe
+    function postEmbedHeight() {
+      if (!embedId) return;
+      const h = document.documentElement.scrollHeight;
+      try { parent.postMessage({ type: 'kp-embed-height', id: embedId, height: h }, '*'); } catch (e) {}
+    }
+
+    if (embedId) {
+      document.getElementById('page-header').classList.add('hidden');
+      root.className = 'p-2';
+    }
+
+    if (!demos.length) {
+      root.innerHTML = '<p class="text-slate-500">ไม่พบตัวอย่าง</p>';
+    } else {
+      demos.forEach((d) => root.appendChild(makeCard(d)));
+    }
+    window.addEventListener('resize', postEmbedHeight);
+    setTimeout(postEmbedHeight, 400);
+  </script>
+</body>
+</html>

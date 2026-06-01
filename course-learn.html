@@ -364,6 +364,7 @@
       // Markdown
       const md = l.content_md || '_เนื้อหากำลังเตรียม_';
       document.getElementById('lesson-md').innerHTML = marked.parse(md);
+      expandDemoEmbeds();
       addInlineCopyButtons();
 
       // Code snippets — โชว์เฉพาะที่ "ไม่ซ้ำ" กับโค้ดในเนื้อหา
@@ -447,6 +448,36 @@
         pre.appendChild(btn);
       });
     }
+
+    // แปลง ```demo <id>``` ในเนื้อหา → iframe ตัวอย่างกดเล่นได้ (จาก /examples.html)
+    function expandDemoEmbeds() {
+      document.querySelectorAll('#lesson-md pre code.language-demo').forEach((codeEl) => {
+        const id = (codeEl.textContent || '').trim();
+        const pre = codeEl.closest('pre');
+        if (!id || !pre) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'my-5 rounded-xl overflow-hidden border border-slate-200 bg-white';
+        const frame = document.createElement('iframe');
+        frame.src = '/examples.html?embed=' + encodeURIComponent(id);
+        frame.className = 'w-full block';
+        frame.style.height = '340px';
+        frame.style.border = '0';
+        frame.setAttribute('data-embed-id', id);
+        frame.setAttribute('title', 'ตัวอย่าง: ' + id);
+        frame.setAttribute('loading', 'lazy');
+        wrap.appendChild(frame);
+        pre.replaceWith(wrap);
+      });
+    }
+
+    // รับความสูงจริงจาก iframe ตัวอย่าง แล้วปรับให้พอดี (ไม่มี scrollbar ซ้อน)
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d || d.type !== 'kp-embed-height' || !d.id) return;
+      document.querySelectorAll('iframe[data-embed-id="' + d.id + '"]').forEach((f) => {
+        f.style.height = Math.max(120, d.height + 8) + 'px';
+      });
+    });
 
     function renderQuiz(quiz) {
       const el = document.getElementById('lesson-quiz');
