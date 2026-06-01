@@ -16,6 +16,12 @@
     .copy-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 0.7rem; background: rgba(148,163,184,0.2); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); padding: 0.3rem 0.55rem; border-radius: 0.375rem; cursor: pointer; }
     .copy-btn:hover { background: rgba(148,163,184,0.35); color: #fff; }
     .demo-frame { width: 100%; display: block; border: 1px solid #e2e8f0; border-radius: 0.6rem; background: #fff; }
+    html { scroll-behavior: smooth; }
+    .demo-card { scroll-margin-top: 68px; }
+    #quicknav { position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); border-bottom: 1px solid #e2e8f0; }
+    #quicknav .inner { max-width: 64rem; margin: 0 auto; padding: 10px 16px; display: flex; gap: 8px; overflow-x: auto; }
+    #quicknav a { white-space: nowrap; font-size: 13px; color: #475569; background: #f1f5f9; padding: 6px 12px; border-radius: 999px; text-decoration: none; }
+    #quicknav a:hover { background: #e0e7ff; color: #4338ca; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -26,6 +32,8 @@
       <p class="text-slate-500 mt-1 text-sm">เทียบ UI แบบต่าง ๆ แบบกดเล่นได้จริง · ดูโค้ด · คัดลอก prompt ไปสั่ง AI ได้เลย</p>
     </div>
   </div>
+
+  <nav id="quicknav" class="hidden"><div class="inner"></div></nav>
 
   <main id="root" class="max-w-5xl mx-auto px-4 py-6 space-y-6"></main>
 
@@ -77,7 +85,7 @@
 
     function makeCard(d) {
       const card = document.createElement('div');
-      card.className = 'rounded-2xl border border-slate-200 bg-white overflow-hidden';
+      card.className = 'demo-card rounded-2xl border border-slate-200 bg-white overflow-hidden';
       card.id = 'demo-' + d.id;
 
       const tags = (d.tags || []).map((t) =>
@@ -166,6 +174,15 @@
       root.innerHTML = '<p class="text-slate-500">ไม่พบตัวอย่าง</p>';
     } else {
       demos.forEach((d) => root.appendChild(makeCard(d)));
+    }
+
+    // เมนูลัด (เฉพาะหน้า gallery) — กดกระโดดไปแต่ละ demo
+    if (!embedId && demos.length > 1) {
+      const nav = document.getElementById('quicknav');
+      const inner = nav.querySelector('.inner');
+      inner.innerHTML = demos.map((d) =>
+        `<a href="#demo-${d.id}">${esc(d.title)}</a>`).join('');
+      nav.classList.remove('hidden');
     }
     window.addEventListener('resize', postEmbedHeight);
     setTimeout(postEmbedHeight, 400);
