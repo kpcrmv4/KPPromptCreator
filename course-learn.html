@@ -39,7 +39,13 @@
     .code-copy-btn:hover { background: rgba(148,163,184,0.32); color: #fff; }
     @media (hover: none) { .code-copy-btn { opacity: 1; } }
     .prose-content blockquote { border-left: 3px solid #6366f1; padding-left: 1rem; margin: 1rem 0; color: #64748b; font-style: italic; }
-    .prose-content a { color: #6366f1; text-decoration: underline; }
+    .prose-content a { color: #6366f1; text-decoration: underline; word-break: break-all; }
+    /* responsive: กันเนื้อหา/ตาราง/โค้ด/ลิงก์ ดันหน้าจอล้นบนมือถือ */
+    .prose-content { overflow-wrap: break-word; }
+    .prose-content pre { max-width: 100%; }
+    .prose-content table { display: block; width: max-content; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; }
+    .prose-content th, .prose-content td { border: 1px solid #e2e8f0; padding: 6px 10px; white-space: nowrap; text-align: left; }
+    .prose-content th { background: #f8fafc; font-weight: 600; }
     .prose-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; border: 1px solid #e2e8f0; }
     .prose-content hr { margin: 2rem 0; border-color: #e2e8f0; }
     .lesson-link.active { background: #eef2ff; color: #4338ca; font-weight: 600; }
