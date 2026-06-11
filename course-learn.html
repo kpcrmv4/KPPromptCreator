@@ -49,6 +49,10 @@
     .prose-content img { max-width: 100%; border-radius: 0.5rem; margin: 1rem 0; border: 1px solid #e2e8f0; }
     .prose-content hr { margin: 2rem 0; border-color: #e2e8f0; }
     .lesson-link.active { background: #eef2ff; color: #4338ca; font-weight: 600; }
+    /* Mobile: sidebar เป็น drawer ลอยทับเนื้อหา (desktop ใช้ sticky ตาม Tailwind เดิม) */
+    @media (max-width: 767px) {
+      #sidebar { position: fixed; top: 3.5rem; bottom: 0; left: 0; width: 85vw; max-width: 20rem; height: auto; z-index: 40; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2); }
+    }
     /* Quiz toggle: hide default disclosure marker, swap label on open/closed */
     details.quiz-details summary::-webkit-details-marker { display: none; }
     details.quiz-details summary { list-style: none; }
@@ -99,11 +103,22 @@
   </div>
 
   <main id="layout" class="hidden flex">
+    <!-- Backdrop สำหรับ mobile drawer -->
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-30 md:hidden"></div>
     <!-- Sidebar -->
     <aside id="sidebar" class="hidden md:block w-80 bg-white border-r border-slate-200 sticky top-[3.5rem] h-[calc(100vh-3.5rem-4px)] overflow-y-auto">
       <div class="p-4 border-b border-slate-100">
         <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">หลักสูตร</div>
         <h2 id="course-title" class="font-bold text-slate-900 mt-1">—</h2>
+        <div id="progress-text" class="text-xs text-slate-500 mt-1.5"></div>
+      </div>
+      <!-- Search -->
+      <div class="p-3 border-b border-slate-100">
+        <div class="relative">
+          <input id="lesson-search" type="search" placeholder="ค้นหาบทเรียน..."
+                 class="w-full text-sm border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+          <i data-lucide="search" class="absolute left-2.5 top-2 h-4 w-4 text-slate-400 pointer-events-none"></i>
+        </div>
       </div>
       <!-- Track filter -->
       <div class="p-3 border-b border-slate-100 bg-slate-50/50">
@@ -176,6 +191,22 @@
 
     let courseData = null;
     let allLessons = [];
+    let completedSet = new Set();
+    let searchQuery = '';
+
+    function showToast(msg) {
+      let t = document.getElementById('kp-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'kp-toast';
+        t.className = 'fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add('hidden'), 2000);
+    }
 
     // --- Track filter (Quick / Core / All) ---
     function getTrack() {
@@ -238,16 +269,21 @@
       document.getElementById('course-title').textContent = courseData.course.title;
       document.getElementById('course-title-header').textContent = courseData.course.title;
 
-      wireTrackPills();
-      renderSidebar();
-      renderProgress();
+      completedSet = new Set(courseData.completed_lesson_ids || []);
 
       // Default lesson — ถ้าผู้ใช้ใหม่ → บทแรกของ track ปัจจุบัน
+      // (ต้องรู้ก่อน renderSidebar เพื่อเปิด module ที่มีบทนี้ค้างไว้)
       if (!lessonId) {
         const track = getTrack();
         const firstInTrack = allLessons.find((l) => lessonInTrack(l, track));
         lessonId = courseData.last_lesson_id || firstInTrack?.id || allLessons[0]?.id;
       }
+
+      wireTrackPills();
+      wireSearch();
+      renderSidebar();
+      renderProgress();
+
       if (lessonId) {
         loadLesson(lessonId, { skipScroll: true });
       } else {
@@ -272,23 +308,42 @@
       document.getElementById('lesson-empty').classList.remove('hidden');
     }
 
+    function wireSearch() {
+      const input = document.getElementById('lesson-search');
+      input.addEventListener('input', () => {
+        searchQuery = input.value;
+        renderSidebar();
+      });
+    }
+
     function renderSidebar() {
       const el = document.getElementById('outline');
-      el.innerHTML = '';
       const hasFullAccess = courseData.enrolled || courseData.is_admin;
       const track = getTrack();
+      const q = searchQuery.trim().toLowerCase();
 
-      // กรอง modules + lessons ตาม track — แต่บทที่กำลังเปิดอยู่ต้องโผล่เสมอ
+      // จำสถานะเปิด/ปิดของแต่ละ module ไว้ก่อน re-render
+      const isFirstRender = el.children.length === 0;
+      const openModules = new Set(
+        [...el.querySelectorAll('details[data-module-id][open]')].map((d) => d.dataset.moduleId)
+      );
+      el.innerHTML = '';
+
+      // กรอง modules + lessons ตาม track + คำค้น — แต่บทที่กำลังเปิดอยู่ต้องโผล่เสมอ
       const filtered = courseData.modules
         .map((m) => ({
           ...m,
-          lessons: (m.lessons || []).filter((l) => lessonInTrack(l, track) || l.id === lessonId),
+          lessons: (m.lessons || []).filter((l) => {
+            const inTrack = lessonInTrack(l, track) || l.id === lessonId;
+            const matches = !q || (l.title || '').toLowerCase().includes(q);
+            return inTrack && matches;
+          }),
         }))
         .filter((m) => m.lessons.length > 0);
 
       if (filtered.length === 0) {
         el.insertAdjacentHTML('beforeend',
-          `<div class="p-4 text-sm text-slate-500 italic">ไม่มีบทเรียนใน track นี้</div>`
+          `<div class="p-4 text-sm text-slate-500 italic">${q ? 'ไม่พบบทเรียนที่ค้นหา' : 'ไม่มีบทเรียนใน track นี้'}</div>`
         );
         return;
       }
@@ -296,22 +351,27 @@
       filtered.forEach((m) => {
         const lessonsHtml = m.lessons.map((l) => {
           const num = `${m.sort_order}.${l.sort_order}`;
+          const done = completedSet.has(l.id) ? ` <span class="text-emerald-500 text-xs font-bold" title="เรียนจบแล้ว">✓</span>` : '';
           const free = l.is_free_preview ? ` <span class="text-emerald-500 text-xs">ฟรี</span>` : '';
           const quick = l.is_quick_path ? ` <span class="text-indigo-500 text-xs">🚀</span>` : '';
           const adminBadge = (courseData.is_admin && !l.is_published) ? ` <span class="text-amber-500 text-xs">draft</span>` : '';
           const offTrack = !lessonInTrack(l, track);
           const offTrackBadge = offTrack ? ` <span class="text-slate-400 text-[10px] italic">(นอก track)</span>` : '';
           const locked = (!hasFullAccess && !l.is_free_preview);
+          // บทที่ล็อก → พาไปหน้า detail เพื่อซื้อ แทนลิงก์ที่กดแล้วเจอทางตัน
+          const href = locked ? `/course-detail.html?slug=${slug}` : `?slug=${slug}&lesson=${l.id}`;
           return `
-            <a href="?slug=${slug}&lesson=${l.id}" data-lesson-id="${l.id}"
-               class="lesson-link flex items-baseline gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50 cursor-not-allowed' : ''} ${offTrack ? 'opacity-70' : ''}">
+            <a href="${href}" data-lesson-id="${l.id}" ${locked ? 'data-locked="1" title="ซื้อคอร์สเพื่อปลดล็อกบทนี้"' : ''}
+               class="lesson-link flex items-baseline gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 ${locked ? 'opacity-50' : ''} ${offTrack ? 'opacity-70' : ''}">
               <span class="mono text-xs text-slate-400 font-semibold tabular-nums w-9 flex-shrink-0">${num}</span>
-              <span class="flex-1">${escapeHtml(l.title)}</span>${quick}${free}${adminBadge}${offTrackBadge}
+              <span class="flex-1">${escapeHtml(l.title)}</span>${done}${quick}${free}${adminBadge}${offTrackBadge}
             </a>`;
         }).join('');
 
+        const containsActive = m.lessons.some((l) => l.id === lessonId);
+        const open = q || openModules.has(String(m.id)) || (isFirstRender && (containsActive || (!lessonId && m === filtered[0])));
         el.insertAdjacentHTML('beforeend', `
-          <details ${m.sort_order === 1 ? 'open' : ''} class="mb-2">
+          <details data-module-id="${m.id}" ${open ? 'open' : ''} class="mb-2">
             <summary class="px-3 py-2 text-sm font-semibold text-slate-900 cursor-pointer hover:bg-slate-50 rounded-lg list-none flex items-center gap-2">
               <i data-lucide="chevron-right" class="h-4 w-4 transition-transform"></i>
               <span class="flex-1">${escapeHtml(m.title)}</span>
@@ -328,9 +388,22 @@
       lucide.createIcons();
     }
 
+    // คลิกบทใน sidebar → โหลดแบบไม่ reload ทั้งหน้า (บทล็อกปล่อยให้ลิงก์พาไปหน้า detail)
+    document.getElementById('outline').addEventListener('click', (e) => {
+      const a = e.target.closest('a.lesson-link');
+      if (!a || a.dataset.locked) return;
+      e.preventDefault();
+      loadLesson(a.dataset.lessonId);
+      closeMobileSidebar();
+    });
+
     function renderProgress() {
-      const pct = courseData.progress_pct || 0;
+      const total = allLessons.length;
+      const done = allLessons.filter((l) => completedSet.has(l.id)).length;
+      const pct = total ? Math.round((done / total) * 100) : (courseData.progress_pct || 0);
       document.getElementById('progress-bar').style.width = pct + '%';
+      const txt = document.getElementById('progress-text');
+      txt.textContent = courseData.enrolled ? `เรียนแล้ว ${done}/${total} บท (${pct}%)` : '';
     }
 
     async function loadLesson(id, opts = {}) {
@@ -340,9 +413,13 @@
       u.searchParams.set('lesson', id);
       history.replaceState(null, '', u.toString());
 
-      // highlight in sidebar
+      // highlight in sidebar + เปิด module ที่บทนี้อยู่
       document.querySelectorAll('.lesson-link').forEach((a) => {
         a.classList.toggle('active', a.dataset.lessonId === id);
+        if (a.dataset.lessonId === id) {
+          const d = a.closest('details');
+          if (d) d.open = true;
+        }
       });
 
       const token = getToken();
@@ -353,7 +430,7 @@
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         if (res.status === 403) return showNotEnrolled();
-        alert('โหลดบทเรียนไม่สำเร็จ: ' + (err.error || res.status));
+        showToast('❌ โหลดบทเรียนไม่สำเร็จ: ' + (err.error || res.status));
         return;
       }
       const data = await res.json();
@@ -416,6 +493,16 @@
       renderQuiz(l.quiz || []);
       lucide.createIcons();
 
+      // Mark-complete button — เฉพาะคน enroll (admin ที่ดูเฉย ๆ ไม่มี enrollment ให้บันทึก)
+      const completeBtn = document.getElementById('mark-complete');
+      if (courseData.enrolled) {
+        completeBtn.classList.remove('hidden');
+        completeBtn.onclick = toggleComplete;
+        updateCompleteBtn();
+      } else {
+        completeBtn.classList.add('hidden');
+      }
+
       // Nav buttons
       const prev = document.getElementById('prev-lesson');
       const next = document.getElementById('next-lesson');
@@ -423,21 +510,46 @@
       next.disabled = !data.navigation.next_lesson_id;
       prev.onclick = () => loadLesson(data.navigation.prev_lesson_id);
       next.onclick = () => loadLesson(data.navigation.next_lesson_id);
+    }
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    function updateCompleteBtn() {
+      const btn = document.getElementById('mark-complete');
+      const done = completedSet.has(lessonId);
+      btn.textContent = done ? '✓ เรียนจบแล้ว' : '✓ เรียนจบบทนี้';
+      btn.title = done ? 'กดเพื่อยกเลิก' : '';
+      btn.className = done
+        ? 'px-4 py-2 rounded-lg border border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-medium'
+        : 'px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium';
+    }
+
+    async function toggleComplete() {
+      const btn = document.getElementById('mark-complete');
+      const target = !completedSet.has(lessonId);
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/lessons/${lessonId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+          body: JSON.stringify({ completed: target }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.status);
+        completedSet = new Set(data.completed_lesson_ids || []);
+        renderProgress();
+        renderSidebar();
+        updateCompleteBtn();
+        showToast(target ? '✅ บันทึกแล้ว — เรียนจบบทนี้' : 'ยกเลิกเครื่องหมายเรียนจบแล้ว');
+      } catch (err) {
+        showToast('❌ บันทึกไม่สำเร็จ: ' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function copySnippet(idx) {
       const s = (window.__snippets__ || [])[idx];
       if (!s?.code) return;
-      navigator.clipboard.writeText(s.code).then(() => {
-        // Brief toast
-        const t = document.createElement('div');
-        t.className = 'fixed bottom-6 right-6 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-        t.textContent = '✅ คัดลอกแล้ว';
-        document.body.appendChild(t);
-        setTimeout(() => t.remove(), 1500);
-      });
+      navigator.clipboard.writeText(s.code).then(() => showToast('✅ คัดลอกแล้ว'));
     }
 
     // เติมปุ่มคัดลอกให้ทุก code block ที่อยู่ "ในเนื้อหา" (markdown ```...```)
@@ -590,7 +702,7 @@
       if (quiz.explain) {
         const prefix = isCorrect
           ? '<b class="text-emerald-700">✓ ถูกต้อง</b> — '
-          : '<b class="text-red-700">✕ ลองอีกครั้งดูสิ</b> — ';
+          : '<b class="text-red-700">✕ ยังไม่ถูก (ข้อที่ถูกคือข้อสีเขียว)</b> — ';
         explanationEl.innerHTML = prefix + escapeHtml(quiz.explain);
         explanationEl.classList.remove('hidden');
       }
@@ -600,10 +712,20 @@
       return String(s || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
-    // Sidebar toggle (mobile)
+    // Sidebar toggle (mobile) — drawer + backdrop
+    function closeMobileSidebar() {
+      if (window.innerWidth >= 768) return;
+      document.getElementById('sidebar').classList.add('hidden');
+      document.getElementById('sidebar-backdrop').classList.add('hidden');
+    }
     document.getElementById('toggle-sidebar').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.toggle('hidden');
+      const sb = document.getElementById('sidebar');
+      const bd = document.getElementById('sidebar-backdrop');
+      const opening = sb.classList.contains('hidden');
+      sb.classList.toggle('hidden', !opening);
+      bd.classList.toggle('hidden', !opening);
     });
+    document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
 
     init();
   </script>

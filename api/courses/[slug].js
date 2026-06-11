@@ -57,6 +57,7 @@ module.exports = async function handler(req, res) {
   let enrolled = false;
   let last_lesson_id = null;
   let progress_pct = 0;
+  let completed_lesson_ids = [];
   if (user) {
     const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
@@ -68,6 +69,12 @@ module.exports = async function handler(req, res) {
       enrolled = true;
       last_lesson_id = enrollment.last_lesson_id;
       progress_pct = enrollment.progress_pct;
+
+      const { data: done } = await supabaseAdmin
+        .from('lesson_progress')
+        .select('lesson_id')
+        .eq('enrollment_id', enrollment.id);
+      completed_lesson_ids = (done || []).map((d) => d.lesson_id);
     }
   }
 
@@ -78,5 +85,6 @@ module.exports = async function handler(req, res) {
     is_admin: isAdmin,
     last_lesson_id,
     progress_pct,
+    completed_lesson_ids,
   });
 };
