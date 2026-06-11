@@ -1,4 +1,5 @@
-// GET /api/lessons/[id] — full lesson content (gated)
+// GET  /api/lessons/[id] — full lesson content (gated)
+// POST /api/lessons/[id] — mark/unmark lesson complete (body: { completed: boolean })
 // Access rules:
 //   1. lesson.is_free_preview = true     → ทุกคนอ่านได้
 //   2. user.role = 'admin'               → อ่านได้หมด (รวม unpublished)
@@ -6,11 +7,82 @@
 //   4. อื่น ๆ                            → 403
 
 const { supabaseAdmin } = require('../../lib/supabase');
-const { authenticate } = require('../../lib/auth');
+const { authenticate, requireAuth } = require('../../lib/auth');
 const { cors } = require('../../lib/helpers');
+
+// คำนวณ % จากบทที่ published เท่านั้น แล้ว sync ลง enrollments.progress_pct
+async function recomputeProgress(enrollmentId, courseId) {
+  const { data: lessons } = await supabaseAdmin
+    .from('lessons')
+    .select('id')
+    .eq('course_id', courseId)
+    .eq('is_published', true);
+  const publishedIds = new Set((lessons || []).map((l) => l.id));
+
+  const { data: done } = await supabaseAdmin
+    .from('lesson_progress')
+    .select('lesson_id')
+    .eq('enrollment_id', enrollmentId);
+  const completedIds = (done || []).map((d) => d.lesson_id).filter((id) => publishedIds.has(id));
+
+  const pct = publishedIds.size > 0
+    ? Math.round((completedIds.length / publishedIds.size) * 100)
+    : 0;
+
+  await supabaseAdmin
+    .from('enrollments')
+    .update({ progress_pct: pct })
+    .eq('id', enrollmentId);
+
+  return { progress_pct: pct, completed_lesson_ids: completedIds };
+}
+
+async function handleMarkComplete(req, res) {
+  const user = await requireAuth(req, res);
+  if (!user) return;
+
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: 'missing id' });
+
+  const { data: lesson } = await supabaseAdmin
+    .from('lessons')
+    .select('id, course_id, is_published')
+    .eq('id', id)
+    .single();
+  if (!lesson || !lesson.is_published) return res.status(404).json({ error: 'ไม่พบบทเรียน' });
+
+  const { data: enrollment } = await supabaseAdmin
+    .from('enrollments')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('course_id', lesson.course_id)
+    .maybeSingle();
+  // admin ที่ดูคอร์สโดยไม่ enroll → ไม่มีอะไรให้บันทึก
+  if (!enrollment) return res.status(403).json({ error: 'กรุณาซื้อคอร์สก่อนเข้าเรียน' });
+
+  const completed = req.body?.completed !== false;
+  if (completed) {
+    await supabaseAdmin
+      .from('lesson_progress')
+      .upsert(
+        { enrollment_id: enrollment.id, lesson_id: id },
+        { onConflict: 'enrollment_id,lesson_id', ignoreDuplicates: true }
+      );
+  } else {
+    await supabaseAdmin
+      .from('lesson_progress')
+      .delete()
+      .eq('enrollment_id', enrollment.id)
+      .eq('lesson_id', id);
+  }
+
+  const progress = await recomputeProgress(enrollment.id, lesson.course_id);
+  res.json({ completed, ...progress });
+}
 
 module.exports = async function handler(req, res) {
   if (cors(req, res)) return;
+  if (req.method === 'POST') return handleMarkComplete(req, res);
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const { id } = req.query;
